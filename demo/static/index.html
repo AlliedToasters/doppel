@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#14161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Doppel</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="vendor/chessground.base.css">
+<link rel="stylesheet" href="vendor/chessground.cburnett.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<main id="app">
+  <section class="bar" id="bar-top">
+    <div class="who">
+      <div class="avatar bot" id="bot-avatar">M</div>
+      <div class="who-text">
+        <div class="who-name" id="bot-name">Maia-3 79M</div>
+        <div class="who-sub" id="bot-sub">1550 · thinking like a human</div>
+      </div>
+    </div>
+    <div class="clock" id="clock-top">3:00</div>
+  </section>
+
+  <section class="board-wrap">
+    <div id="board" class="cg-wrap"></div>
+    <div id="promo" class="promo hidden"></div>
+    <div id="thinking" class="thinking hidden"><span></span><span></span><span></span></div>
+  </section>
+
+  <section class="thoughts" id="thoughts"></section>
+
+  <section class="bar" id="bar-bottom">
+    <div class="who">
+      <div class="avatar you">You</div>
+      <div class="who-text">
+        <div class="who-name">You</div>
+        <div class="who-sub" id="status">Your move</div>
+      </div>
+    </div>
+    <div class="clock" id="clock-bottom">3:00</div>
+  </section>
+
+  <section class="moves" id="moves"></section>
+
+  <nav class="toolbar">
+    <button id="btn-new" aria-label="New game"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>New</span></button>
+    <button id="btn-humans" aria-label="What would humans play"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Humans</span></button>
+    <button id="btn-back" aria-label="Take back"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span>Undo</span></button>
+    <button id="btn-flip" aria-label="Flip board"><svg viewBox="0 0 24 24"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg><span>Flip</span></button>
+    <button id="btn-resign" aria-label="Resign"><svg viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Resign</span></button>
+  </nav>
+</main>
+
+<div class="sheet-backdrop hidden" id="sheet-backdrop"></div>
+<section class="sheet hidden" id="sheet" role="dialog" aria-label="New game">
+  <div class="grabber"></div>
+  <h2>New game</h2>
+  <label class="field-label">Opponent</label>
+  <div class="bot-list" id="bot-list"></div>
+  <label class="field-label">Rating <b id="elo-val">1550</b></label>
+  <input type="range" id="elo" min="1150" max="2150" step="50" value="1550">
+  <label class="field-label">You play</label>
+  <div class="seg" id="seg-color">
+    <button data-v="white">White</button><button data-v="random">Random</button><button data-v="black">Black</button>
+  </div>
+  <label class="field-label">Time</label>
+  <div class="seg wrap" id="seg-time">
+    <button data-v="60+0">1+0</button><button data-v="180+0">3+0</button><button data-v="180+2">3+2</button>
+    <button data-v="300+0">5+0</button><button data-v="300+3">5+3</button><button data-v="0+0">∞</button>
+  </div>
+  <div class="toggle-row"><span>Human think times</span><label class="switch"><input type="checkbox" id="opt-delay" checked><i></i></label></div>
+  <div class="toggle-row"><span>Show the bot's thoughts</span><label class="switch"><input type="checkbox" id="opt-thoughts" checked><i></i></label></div>
+  <button class="primary" id="btn-start">Play</button>
+</section>
+
+<div class="modal hidden" id="over">
+  <div class="modal-card">
+    <div class="over-title" id="over-title">You win</div>
+    <div class="over-sub" id="over-sub">by checkmate</div>
+    <div class="modal-actions">
+      <button id="btn-share">Share PGN</button>
+      <button class="primary" id="btn-rematch">Rematch</button>
+    </div>
+  </div>
+</div>
+<div class="toast hidden" id="toast"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

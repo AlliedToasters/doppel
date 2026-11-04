@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+logs/
+vendor/*
+!vendor/fetch.sh
+# Flutter
+client/**/build/
+client/**/.dart_tool/
+client/**/.flutter-plugins*
