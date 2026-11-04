@@ -1,8 +1,10 @@
+import 'package:doppel/board/doppel_skin.dart';
 import 'package:doppel/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  DoppelSfx.enabled = false;
   testWidgets('play screen renders a board and a random opponent game', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.6;

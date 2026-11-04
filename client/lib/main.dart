@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'board/board_surface.dart';
 import 'board/classic_skin.dart';
+import 'board/doppel_skin.dart';
 import 'game/game_controller.dart';
 import 'game/material.dart';
 import 'game/opponent.dart';
@@ -15,12 +16,13 @@ Future<void> main() async {
 }
 
 /// Decode piece images before the first frame so the board never appears without pieces.
-Future<void> preloadPieces() => ChessgroundImages.instance.loadAll(
-      const ChessboardSettings().pieceAssets,
-      devicePixelRatio: WidgetsBinding.instance.platformDispatcher.implicitView?.devicePixelRatio ?? 1.0,
-    );
+Future<void> preloadPieces() async {
+  final dpr = WidgetsBinding.instance.platformDispatcher.implicitView?.devicePixelRatio ?? 1.0;
+  await ChessgroundImages.instance.loadAll(const ChessboardSettings().pieceAssets, devicePixelRatio: dpr);
+  await ChessgroundImages.instance.loadAll(doppelPieceAssets, devicePixelRatio: dpr);
+}
 
-const skins = <BoardSkin>[ClassicSkin()];
+const skins = <BoardSkin>[DoppelSkin(), ClassicSkin()];
 
 class DoppelApp extends StatelessWidget {
   const DoppelApp({super.key});
@@ -75,7 +77,8 @@ class _PlayScreenState extends State<PlayScreen> {
   Widget build(BuildContext context) {
     final g = game;
     return Scaffold(
-      appBar: AppBar(title: const Text('Doppel'), actions: [
+      backgroundColor: skin.background,
+      appBar: AppBar(backgroundColor: skin.background, title: const Text('Doppel'), actions: [
         IconButton(icon: const Icon(Icons.tune), onPressed: _settings),
         IconButton(icon: const Icon(Icons.add), tooltip: 'New game', onPressed: _newGame),
       ]),
@@ -89,7 +92,10 @@ class _PlayScreenState extends State<PlayScreen> {
     final width = MediaQuery.sizeOf(context).width;
     final mat = MaterialCount(g.position.board);
     return Column(children: [
-      _PlayerBar(name: g.opponent.name, side: g.humanSide.opposite, material: mat, thinking: g.thinking),
+      _PlayerBar(
+          name: g.opponent.name,
+          thinking: g.thinking,
+          material: skin.buildMaterial(context, mat, g.humanSide.opposite, isHuman: false)),
       skin.buildBoard(
         view: BoardView(
           position: g.position,
@@ -100,7 +106,7 @@ class _PlayScreenState extends State<PlayScreen> {
         size: width,
         onMove: g.play,
       ),
-      _PlayerBar(name: 'You', side: g.humanSide, material: mat),
+      _PlayerBar(name: 'You', material: skin.buildMaterial(context, mat, g.humanSide, isHuman: true)),
       if (g.error != null)
         ListTile(
           leading: const Icon(Icons.wifi_off),
@@ -177,28 +183,21 @@ class _PlayScreenState extends State<PlayScreen> {
 }
 
 class _PlayerBar extends StatelessWidget {
-  const _PlayerBar({required this.name, required this.side, required this.material, this.thinking = false});
+  const _PlayerBar({required this.name, required this.material, this.thinking = false});
 
   final String name;
-  final Side side;
-  final MaterialCount material;
+  final Widget material;
   final bool thinking;
 
-  static const _glyph = {Role.queen: '♛', Role.rook: '♜', Role.bishop: '♝', Role.knight: '♞', Role.pawn: '♟'};
-
   @override
-  Widget build(BuildContext context) {
-    final lead = material.lead(side);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(children: [
-        Text(name, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(width: 8),
-        if (thinking) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
-        const Spacer(),
-        Text(material.captured[side]!.map((r) => _glyph[r]).join(), style: const TextStyle(fontSize: 18)),
-        if (lead > 0) Text(' +$lead', style: const TextStyle(fontWeight: FontWeight.bold)),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(width: 8),
+          if (thinking) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+          const Spacer(),
+          material,
+        ]),
+      );
 }
