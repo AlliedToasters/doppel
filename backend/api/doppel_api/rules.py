@@ -61,11 +61,12 @@ def play(g: Game, uci: str, now: float) -> None:
         raise IllegalMove("game is over")
     b = board(g)
     try:
-        mv = chess.Move.from_uci(uci)
+        mv = b.parse_uci(uci)  # also accepts king-takes-rook castling (e1h1), as some clients send it
     except ValueError:
-        raise IllegalMove(f"bad uci {uci!r}")
-    if mv not in b.legal_moves:
-        raise IllegalMove(f"illegal move {uci}")
+        raise IllegalMove(f"illegal move {uci!r}")
+    if not mv:  # parse_uci lets the null move "0000" through
+        raise IllegalMove("null move")
+    uci = mv.uci()  # store the canonical form (e1g1)
     mover = side_to_move(g)
     if g.turn_started is not None:
         spent = int((now - g.turn_started) * 1000)

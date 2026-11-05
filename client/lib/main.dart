@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chessground/chessground.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import 'board/doppel_skin.dart';
 import 'game/game_controller.dart';
 import 'game/material.dart';
 import 'game/opponent.dart';
+import 'game/server_game.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,28 +52,68 @@ class _PlayScreenState extends State<PlayScreen> {
   String botId = 'random';
   int elo = 1500;
   Side humanSide = Side.white;
-  GameController? game;
+  (int, int) tc = (300, 3);
+  GameSession? game;
+  String? startError;
+
+  static const timeControls = [(180, 2), (300, 3), (600, 0), (900, 10)];
 
   @override
   void initState() {
     super.initState();
-    BackendOpponent.listBots().then((b) => setState(() {
-          bots = b;
-          if (b.isNotEmpty) botId = b.first.$1;
-          _newGame();
-        }), onError: (_) => _newGame());
+    _boot();
   }
 
-  Opponent _opponent() {
-    for (final (id, name) in bots) {
-      if (id == botId) return BackendOpponent(bot: id, label: name, elo: elo);
+  Future<void> _boot() async {
+    try {
+      bots = await listBots();
+      if (bots.isNotEmpty) botId = bots.first.$1;
+      final resumed = await ServerGame.resumeSaved(_label);
+      if (resumed != null) {
+        setState(() => game = resumed);
+        return;
+      }
+    } catch (_) {
+      // backend unreachable: fall through to an offline game
     }
-    return RandomOpponent();
+    _newGame();
   }
 
-  void _newGame() {
-    game?.dispose();
-    setState(() => game = GameController(opponent: _opponent(), humanSide: humanSide));
+  String _label(String id) => bots.firstWhere((b) => b.$1 == id, orElse: () => (id, id)).$2;
+
+  Future<void> _newGame() async {
+    final old = game;
+    setState(() {
+      game = null;
+      startError = null;
+    });
+    old?.dispose();
+    if (botId == 'random' || bots.isEmpty) {
+      setState(() => game = GameController(opponent: RandomOpponent(), humanSide: humanSide));
+      return;
+    }
+    try {
+      final g = await ServerGame.create(
+          bot: botId, label: _label(botId), botElo: elo, humanSide: humanSide, baseS: tc.$1, incS: tc.$2);
+      if (!mounted) return g.dispose();
+      setState(() => game = g);
+    } catch (e) {
+      setState(() => startError = '$e');
+    }
+  }
+
+  Future<void> _confirmResign(GameSession g) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Resign?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep playing')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Resign')),
+        ],
+      ),
+    );
+    if (ok == true) g.resign();
   }
 
   @override
@@ -79,22 +122,42 @@ class _PlayScreenState extends State<PlayScreen> {
     return Scaffold(
       backgroundColor: skin.background,
       appBar: AppBar(backgroundColor: skin.background, title: const Text('Doppel'), actions: [
+        if (g != null)
+          ListenableBuilder(
+              listenable: g,
+              builder: (context, _) => g.canResign
+                  ? IconButton(icon: const Icon(Icons.flag), tooltip: 'Resign', onPressed: () => _confirmResign(g))
+                  : const SizedBox.shrink()),
         IconButton(icon: const Icon(Icons.tune), onPressed: _settings),
         IconButton(icon: const Icon(Icons.add), tooltip: 'New game', onPressed: _newGame),
       ]),
       body: g == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: startError == null
+                  ? const CircularProgressIndicator()
+                  : Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.wifi_off, size: 40),
+                        const SizedBox(height: 8),
+                        Text('Could not start a game\n$startError', textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        FilledButton(onPressed: _newGame, child: const Text('Retry')),
+                      ]),
+                    ))
           : ListenableBuilder(listenable: g, builder: (context, _) => _game(context, g)),
     );
   }
 
-  Widget _game(BuildContext context, GameController g) {
+  Widget _game(BuildContext context, GameSession g) {
     final width = MediaQuery.sizeOf(context).width;
     final mat = MaterialCount(g.position.board);
     return Column(children: [
       _PlayerBar(
-          name: g.opponent.name,
+          name: g.opponentName,
           thinking: g.thinking,
+          clock: g.clock,
+          side: g.humanSide.opposite,
           material: skin.buildMaterial(context, mat, g.humanSide.opposite, isHuman: false)),
       skin.buildBoard(
         view: BoardView(
@@ -106,11 +169,15 @@ class _PlayScreenState extends State<PlayScreen> {
         size: width,
         onMove: g.play,
       ),
-      _PlayerBar(name: 'You', material: skin.buildMaterial(context, mat, g.humanSide, isHuman: true)),
+      _PlayerBar(
+          name: 'You',
+          clock: g.clock,
+          side: g.humanSide,
+          material: skin.buildMaterial(context, mat, g.humanSide, isHuman: true)),
       if (g.error != null)
         ListTile(
           leading: const Icon(Icons.wifi_off),
-          title: const Text('Opponent unreachable'),
+          title: Text(g is ServerGame ? 'Connection lost' : 'Opponent unreachable'),
           subtitle: Text(g.error!, maxLines: 2, overflow: TextOverflow.ellipsis),
           trailing: TextButton(onPressed: g.retry, child: const Text('Retry')),
         ),
@@ -162,6 +229,15 @@ class _PlayScreenState extends State<PlayScreen> {
               onSelectionChanged: (s) => set(() => humanSide = s.first),
             ),
             const SizedBox(height: 8),
+            Wrap(spacing: 8, children: [
+              for (final t in timeControls)
+                ChoiceChip(
+                  label: Text('${t.$1 ~/ 60}+${t.$2}'),
+                  selected: tc == t,
+                  onSelected: (_) => set(() => tc = t),
+                ),
+            ]),
+            const SizedBox(height: 8),
             DropdownButton<String>(
               value: skin.id,
               isExpanded: true,
@@ -183,11 +259,13 @@ class _PlayScreenState extends State<PlayScreen> {
 }
 
 class _PlayerBar extends StatelessWidget {
-  const _PlayerBar({required this.name, required this.material, this.thinking = false});
+  const _PlayerBar({required this.name, required this.material, this.thinking = false, this.clock, this.side});
 
   final String name;
   final Widget material;
   final bool thinking;
+  final ClockState? clock;
+  final Side? side;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -198,6 +276,60 @@ class _PlayerBar extends StatelessWidget {
           if (thinking) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
           const Spacer(),
           material,
+          if (clock != null && side != null) ...[const SizedBox(width: 10), _Clock(clock: clock!, side: side!)],
         ]),
       );
+}
+
+/// Counts down locally from the last server snapshot; the server stays the authority.
+class _Clock extends StatefulWidget {
+  const _Clock({required this.clock, required this.side});
+  final ClockState clock;
+  final Side side;
+
+  @override
+  State<_Clock> createState() => _ClockState();
+}
+
+class _ClockState extends State<_Clock> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (widget.clock.running && widget.clock.turn == widget.side) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final left = widget.clock.remaining(widget.side);
+    final active = widget.clock.running && widget.clock.turn == widget.side;
+    final low = left < const Duration(seconds: 20);
+    final m = left.inMinutes, s = left.inSeconds % 60;
+    final text = left < const Duration(seconds: 10)
+        ? '$s.${(left.inMilliseconds % 1000) ~/ 100}'
+        : '$m:${s.toString().padLeft(2, '0')}';
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: active ? (low ? const Color(0xFFF43F5E) : const Color(0xFFF3F1EA)) : const Color(0x22FFFFFF),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(text,
+          style: TextStyle(
+              fontFeatures: const [FontFeature.tabularFigures()],
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              color: active ? const Color(0xFF0F1418) : const Color(0xFFF3F1EA))),
+    );
+  }
 }

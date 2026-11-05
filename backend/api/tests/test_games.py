@@ -111,3 +111,12 @@ def test_flag_against_lone_king_is_draw(monkeypatch):
     g = _row(moves=["e2e4", "e7e5"], turn_started=1000.0, white_ms=1000)  # white to move, 1 s left
     monkeypatch.setattr(rules, "board", lambda _g: chess.Board("8/8/8/8/8/5k2/8/4K3 w - - 0 1"))
     assert rules.settle(g, 1002.0) and (g.result, g.termination) == ("1/2-1/2", "timeout_vs_insufficient")
+
+
+def test_castling_either_notation_stored_canonical():
+    for sent in ("e1g1", "e1h1"):
+        g = _row()
+        for u in ("e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6"):
+            rules.play(g, u, 0.0)
+        rules.play(g, sent, 0.0)
+        assert g.moves[-1] == "e1g1"

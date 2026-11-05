@@ -115,7 +115,7 @@ models/<name>-<sha8>/      (gitignored locally; object storage later)
 1. Restructure the repo into this layout and move `doppel/` to `lab/`: about 30 min.
 2. Build the Flutter client shell with the `BoardSurface` interface and the Classic skin (chessground), then the Doppel skin prototype (drag, tap-move, animation, haptics, sound, premove), playing a local random-move opponent, as an Android debug build plus a web build: 2–3 days, iterated by feel.
 3. Point the client at today's `demo/server.py` for real Maia-3 moves: about 2 h.
-4. Build `doppel_model`, the Maia-3 ONNX export, `backend/infer` and the `api` skeleton, replacing `demo/server.py`: about 1.5 days. **Done 2026-11-04:** `api` skeleton (games, clocks, per-game z, REST + WebSocket, SQLite; no accounts yet). all three Maia-3 sizes export with parity ≤ 3.6e-5 on 1,000 positions; infer serves 79M in about 21 ms per move on 4 ORT threads.
+4. Build `doppel_model`, the Maia-3 ONNX export, `backend/infer` and the `api` skeleton, replacing `demo/server.py`: about 1.5 days. **Done 2026-11-04:** `api` skeleton (games, clocks, per-game z, REST + WebSocket, SQLite; no accounts yet), and the client plays hosted games over it with server clocks and resume. All three Maia-3 sizes export with parity ≤ 3.6e-5 on 1,000 positions; infer serves 79M in about 21 ms per move on 4 ORT threads.
 5. Later: accounts and consent, Lichess OAuth with the Board API, `lichess_bot`, ratings, the export job.
 
 ## Open decisions

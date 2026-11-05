@@ -4,7 +4,7 @@ The client sends the whole move list each turn; nothing is stored. Bots are mode
 DOPPEL_MODELS (default ./models); a bot id is the package's manifest name (e.g. "maia3-79m"); when several
 packages share a name, the newest directory wins.
 
-Run (repo root): .venv/bin/uvicorn doppel_infer.app:app --host 127.0.0.1 --port 8612
+Run (repo root): .venv/bin/uvicorn doppel_infer.app:app --host 127.0.0.1 --port 8614  (behind backend/api)
 Env: DOPPEL_MODELS, DOPPEL_THREADS (ORT intra-op threads per package, default 4),
      DOPPEL_STATIC (optional dir served at / — Stage 0 uses it for the APK download).
 """

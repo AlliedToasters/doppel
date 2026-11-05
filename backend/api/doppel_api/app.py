@@ -4,8 +4,8 @@ The server holds the moves, the clocks and the doppel's per-game z; the client s
 WebSocket) and renders the state it gets back. Bot moves come from backend/infer over HTTP.
 Accounts, consent, ratings and export come later (Stage 0 is tailnet-only; see ARCHITECTURE.md).
 
-Run (repo root): .venv/bin/uvicorn doppel_api.app:app --host 127.0.0.1 --port 8613
-Env: DOPPEL_DB_URL (default sqlite:///data/api.db), DOPPEL_INFER_URL (default http://127.0.0.1:8612)
+Run (repo root): see backend/api/README.md (Stage 0: port 8612, infer on 8614)
+Env: DOPPEL_STATIC (optional dir served at /, e.g. demo/static for the APK), DOPPEL_DB_URL (default sqlite:///data/api.db), DOPPEL_INFER_URL (default http://127.0.0.1:8614)
 """
 
 from __future__ import annotations
@@ -21,6 +21,8 @@ from typing import Literal
 import httpx
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import rules
@@ -50,7 +52,7 @@ async def lifespan(app: FastAPI):
     if not hasattr(app.state, "sessions"):
         app.state.sessions = make_sessionmaker()
     if not hasattr(app.state, "infer"):
-        app.state.infer = Infer(httpx.AsyncClient(base_url=os.environ.get("DOPPEL_INFER_URL", "http://127.0.0.1:8612"),
+        app.state.infer = Infer(httpx.AsyncClient(base_url=os.environ.get("DOPPEL_INFER_URL", "http://127.0.0.1:8614"),
                                                   timeout=10))
     yield
 
@@ -227,6 +229,25 @@ async def game_ws(ws: WebSocket, game_id: str):
         _sockets[game_id].discard(ws)
 
 
+# ---------- passthrough to infer (the api is the only service the client talks to) ----------
+@app.get("/api/bots")
+async def bots(request: Request):
+    r = await request.app.state.infer.http.get("/api/bots")
+    return JSONResponse(r.json(), status_code=r.status_code)
+
+
+@app.post("/api/move")
+async def stateless_move(request: Request):
+    """Stateless analysis/practice move (the pre-api client contract). Not used for hosted games."""
+    r = await request.app.state.infer.http.post("/api/move", content=await request.body(),
+                                                headers={"content-type": "application/json"})
+    return JSONResponse(r.json(), status_code=r.status_code)
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
+
+if os.environ.get("DOPPEL_STATIC"):
+    app.mount("/", StaticFiles(directory=os.environ["DOPPEL_STATIC"], html=True), name="static")

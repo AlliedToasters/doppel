@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the arm64 release APK and publish it as "latest" at https://bigbox.<tailnet>.ts.net:8460/doppel.apk
-# (the demo server serves demo/static/). Updates install over the old app because every build is signed
+# (backend/api serves demo/static/ via DOPPEL_STATIC). Updates install over the old app because every build is signed
 # with this box's ~/.android/debug.keystore; a different key would force an uninstall first.
 set -euo pipefail
 cd "$(dirname "$0")/.."

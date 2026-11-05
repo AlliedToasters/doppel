@@ -29,31 +29,9 @@ class RandomOpponent implements Opponent {
   }
 }
 
-/// A bot served by the bigbox backend (today: demo/server.py's POST /api/move).
-class BackendOpponent implements Opponent {
-  BackendOpponent({required this.bot, required this.label, required this.elo});
-
-  final String bot;
-  final String label;
-  final int elo;
-
-  @override
-  String get name => '$label · $elo';
-
-  @override
-  Future<Move> move(Position position, List<String> ucis) async {
-    final r = await http
-        .post(Uri.parse('$backendUrl/api/move'),
-            headers: {'content-type': 'application/json'},
-            body: jsonEncode({'bot': bot, 'elo': elo, 'moves': ucis}))
-        .timeout(const Duration(seconds: 30));
-    if (r.statusCode != 200) throw Exception('backend ${r.statusCode}: ${r.body}');
-    return Move.parse(jsonDecode(r.body)['move'] as String)!;
-  }
-
-  static Future<List<(String, String)>> listBots() async {
-    final r = await http.get(Uri.parse('$backendUrl/api/bots')).timeout(const Duration(seconds: 5));
-    final list = jsonDecode(r.body)['bots'] as List;
-    return [for (final b in list) (b['id'] as String, b['name'] as String)];
-  }
+/// Bots the backend serves: (id, display name). Hosted games themselves live in server_game.dart.
+Future<List<(String, String)>> listBots() async {
+  final r = await http.get(Uri.parse('$backendUrl/api/bots')).timeout(const Duration(seconds: 5));
+  final list = jsonDecode(r.body)['bots'] as List;
+  return [for (final b in list) (b['id'] as String, b['name'] as String)];
 }

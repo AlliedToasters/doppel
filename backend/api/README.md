@@ -17,5 +17,9 @@ against insufficient material is a draw.
 
 Storage: SQLite at `data/api.db` (Stage 0); `DOPPEL_DB_URL=postgresql+psycopg://...` with the `postgres` extra for Stage 1.
 
-    .venv/bin/uvicorn doppel_api.app:app --host 127.0.0.1 --port 8613   # needs infer on :8612
+Stage 0 (bigbox): the api is the only service the phone sees (tailscale serve :8460 -> 127.0.0.1:8612). It
+also passes `/api/bots` and the stateless `/api/move` through to infer and serves the APK from `demo/static`.
+
+    DOPPEL_INFER_URL=http://127.0.0.1:8614 DOPPEL_STATIC=demo/static \
+      .venv/bin/uvicorn doppel_api.app:app --host 127.0.0.1 --port 8612
     .venv/bin/python -m pytest -q backend/api/tests
