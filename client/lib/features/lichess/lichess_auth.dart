@@ -41,26 +41,33 @@ class LichessAuth {
     final verifier = _random(64);
     final state = _random(16);
     final challenge = base64Url.encode(sha256.convert(ascii.encode(verifier)).bytes).replaceAll('=', '');
-    final url = Uri.parse('$host/oauth').replace(queryParameters: {
-      'response_type': 'code',
-      'client_id': clientId,
-      'redirect_uri': redirectUri,
-      'scope': scopes.join(' '),
-      'code_challenge_method': 'S256',
-      'code_challenge': challenge,
-      'state': state,
-    });
+    final url = Uri.parse('$host/oauth').replace(
+      queryParameters: {
+        'response_type': 'code',
+        'client_id': clientId,
+        'redirect_uri': redirectUri,
+        'scope': scopes.join(' '),
+        'code_challenge_method': 'S256',
+        'code_challenge': challenge,
+        'state': state,
+      },
+    );
     final result = await FlutterWebAuth2.authenticate(url: url.toString(), callbackUrlScheme: callbackScheme);
     final q = Uri.parse(result).queryParameters;
     if (q['state'] != state) throw Exception('state mismatch');
     if (q['error'] != null) throw Exception('lichess: ${q['error']}');
-    final r = await http.post(Uri.parse('$host/api/token'), body: {
-      'grant_type': 'authorization_code',
-      'code': q['code'] ?? '',
-      'code_verifier': verifier,
-      'redirect_uri': redirectUri,
-      'client_id': clientId,
-    }).timeout(const Duration(seconds: 10));
+    final r = await http
+        .post(
+          Uri.parse('$host/api/token'),
+          body: {
+            'grant_type': 'authorization_code',
+            'code': q['code'] ?? '',
+            'code_verifier': verifier,
+            'redirect_uri': redirectUri,
+            'client_id': clientId,
+          },
+        )
+        .timeout(const Duration(seconds: 10));
     if (r.statusCode != 200) throw Exception('token exchange ${r.statusCode}: ${r.body}');
     token = (jsonDecode(r.body) as Map<String, dynamic>)['access_token'] as String;
     final acct = await account();
