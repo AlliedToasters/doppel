@@ -3,17 +3,18 @@
 name = "doppel-chess"
 version = "0.0.1"
 requires-python = ">=3.12,<3.13"
-dependencies = ["doppel-lab", "doppel-infer"]
+dependencies = ["doppel-lab", "doppel-infer", "doppel-api"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["lab", "packages/doppel_model", "backend/infer"]
+members = ["lab", "packages/doppel_model", "backend/infer", "backend/api"]
 
 [tool.uv.sources]
 doppel-lab = { workspace = true }
 doppel-infer = { workspace = true }
+doppel-api = { workspace = true }
 doppel-model = { workspace = true }
 
 [dependency-groups]

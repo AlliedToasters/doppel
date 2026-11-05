@@ -54,6 +54,7 @@ class MoveReq(BaseModel):
     opp_elo: int | None = Field(None, ge=600, le=2800)
     moves: list[str] = []
     temperature: float = Field(1.0, ge=0.0, le=2.0)
+    z: list[float] | None = None  # per-game z from the api; ignored by stateless packages (z_prior null)
 
 
 def _display(m: dict) -> str:
@@ -66,6 +67,7 @@ def bots():
     names = sorted(PACKAGES, key=lambda n: ORDER.index(n) if n in ORDER else len(ORDER))
     return {"bots": [{"id": n, "name": _display(PACKAGES[n].manifest),
                       "blurb": BLURBS.get(n, ""), "clock": PACKAGES[n].manifest.get("clock_head", False),
+                      "z_prior": PACKAGES[n].manifest.get("z_prior"),
                       "package": PACKAGES[n].id} for n in names]}
 
 
