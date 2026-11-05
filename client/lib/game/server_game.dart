@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../config.dart';
+import 'account.dart';
 import 'game_controller.dart';
 
 /// A Doppel-hosted game: the backend (backend/api) holds the moves, the clocks and the doppel's z.
@@ -57,7 +58,7 @@ class ServerGame extends GameSession {
     final player = await installId();
     final r = await http
         .post(Uri.parse('$backendUrl/api/games'),
-            headers: {'content-type': 'application/json'},
+            headers: Account.headers,
             body: jsonEncode({
               'bot': bot,
               'bot_elo': botElo,
@@ -79,7 +80,7 @@ class ServerGame extends GameSession {
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getString(_prefKey);
     if (id == null) return null;
-    final r = await http.get(Uri.parse('$backendUrl/api/games/$id')).timeout(const Duration(seconds: 5));
+    final r = await http.get(Uri.parse('$backendUrl/api/games/$id'), headers: Account.headers).timeout(const Duration(seconds: 5));
     if (r.statusCode != 200) {
       prefs.remove(_prefKey);
       return null;
@@ -214,7 +215,9 @@ class ServerGame extends GameSession {
     _sub?.cancel();
     _ws?.sink.close();
     final url = Uri.parse(backendUrl).replace(
-        scheme: backendUrl.startsWith('https') ? 'wss' : 'ws', path: '/api/games/$id/ws');
+        scheme: backendUrl.startsWith('https') ? 'wss' : 'ws',
+        path: '/api/games/$id/ws',
+        queryParameters: {if (Account.token != null) 'token': Account.token!});
     final ws = WebSocketChannel.connect(url);
     _ws = ws;
     // Events from a socket we already replaced are ignored: closing the old one fires its onDone, which

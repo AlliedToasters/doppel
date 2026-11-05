@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'board/board_surface.dart';
 import 'board/classic_skin.dart';
 import 'board/doppel_skin.dart';
+import 'game/account.dart';
 import 'game/game_controller.dart';
 import 'game/material.dart';
 import 'game/opponent.dart';
@@ -73,6 +74,7 @@ class _PlayScreenState extends State<PlayScreen> {
       if (saved != null) pace = saved;
       bots = await listBots();
       if (bots.isNotEmpty) botId = bots.first.$1;
+      await Account.ensure();
       final resumed = await ServerGame.resumeSaved(_label);
       if (resumed != null) {
         if (resumed.pace != pace) resumed.setPace(pace);
@@ -222,10 +224,21 @@ class _PlayScreenState extends State<PlayScreen> {
       ].join('  ');
 
   Future<void> _settings() async {
+    // Account state for the sheet: rating and training consent (null when the backend is unreachable).
+    Map<String, dynamic>? me;
+    (String, String)? consent;
+    try {
+      if (await Account.ensure() != null) {
+        me = await Account.me();
+        consent = await Account.consentText();
+      }
+    } catch (_) {}
+    if (!mounted) return;
     await showModalBottomSheet(
+      isScrollControlled: true,
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, set) => Padding(
+        builder: (context, set) => SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             DropdownButton<String>(
@@ -282,6 +295,24 @@ class _PlayScreenState extends State<PlayScreen> {
               items: [for (final s in skins) DropdownMenuItem(value: s.id, child: Text('Skin: ${s.name}'))],
               onChanged: (v) => set(() => skin = skins.firstWhere((s) => s.id == v)),
             ),
+            if (me != null && consent != null) ...[
+              const Divider(height: 24),
+              if (me!['rating'] != null)
+                Text('Your rating: ${(me!['rating']['rating'] as num).round()} '
+                    '± ${(me!['rating']['rd'] as num).round()} (${me!['rating']['games']} rated games)'),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Help train doppels'),
+                subtitle: Text(consent.$2, style: Theme.of(context).textTheme.bodySmall),
+                value: me!['consent']['training'] as bool,
+                onChanged: (v) async {
+                  try {
+                    final m = await Account.setTrainingConsent(v, consent!.$1);
+                    set(() => me = m);
+                  } catch (_) {}
+                },
+              ),
+            ],
             const SizedBox(height: 8),
             FilledButton(
                 onPressed: () {

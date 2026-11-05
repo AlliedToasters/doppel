@@ -2,7 +2,8 @@
 
 The server holds the moves, the clocks and the doppel's per-game z; the client sends intents (REST or
 WebSocket) and renders the state it gets back. Bot moves come from backend/infer over HTTP.
-Accounts, consent, ratings and export come later (Stage 0 is tailnet-only; see ARCHITECTURE.md).
+Accounts and consent: accounts.py (anonymous bearer-token accounts, versioned training consent).
+Ratings: ratings.py (MAP Bradley-Terry, refit when a rated game ends). Export: export.py (consented only).
 
 Run (repo root): see backend/api/README.md (Stage 0: port 8612, infer on 8614)
 Env: DOPPEL_STATIC (optional dir served at /, e.g. demo/static for the APK), DOPPEL_DB_URL (default sqlite:///data/api.db), DOPPEL_INFER_URL (default http://127.0.0.1:8614)
@@ -24,8 +25,9 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 
-from . import rules
+from . import accounts, ratings, rules
 from .db import Game, Ply, make_sessionmaker
 
 
@@ -60,12 +62,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Doppel API", lifespan=lifespan)
+app.include_router(accounts.router)
 _locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 _sockets: dict[str, set[WebSocket]] = defaultdict(set)
 _bot_busy: set[str] = set()  # games whose bot turn is in flight
 _pace_changed: dict[str, asyncio.Event] = {}  # wakes a realtime wait when the human switches to fast
 _tasks: set[asyncio.Task] = set()
 _rng = np.random.default_rng()
+_refit_lock = asyncio.Lock()
 
 
 def state(g: Game, now: float) -> dict:
@@ -91,6 +95,13 @@ def _load(sess, game_id: str) -> Game:
     return g
 
 
+def _owned(sess, game_id: str, request: Request | WebSocket) -> Game:
+    """_load plus the ownership check: an account's game needs that account's token."""
+    g = _load(sess, game_id)
+    accounts.authorize(g, accounts.current_user(sess, request))
+    return g
+
+
 def _record(sess, g: Game, rec: dict, actor: str, think_source: str, client_ms: int | None = None,
             premove: bool = False) -> None:
     sess.add(Ply(game_id=g.id, ply=len(g.moves) - 1, actor=actor, think_source=think_source, pace=g.bot_pace,
@@ -99,6 +110,17 @@ def _record(sess, g: Game, rec: dict, actor: str, think_source: str, client_ms: 
 
 async def _broadcast(g: Game) -> None:
     await _send_all(g.id, {"type": "state", "game": state(g, time.time())})
+    if g.status == "over" and ratings.rated(g):
+        _spawn_refit()
+
+
+def _spawn_refit() -> None:
+    async def run():
+        async with _refit_lock:
+            await asyncio.to_thread(ratings.refit, app.state.sessions)
+    t = asyncio.create_task(run())
+    _tasks.add(t)
+    t.add_done_callback(_tasks.discard)
 
 
 async def _send_all(game_id: str, msg: dict) -> None:
@@ -181,7 +203,7 @@ class NewGame(BaseModel):
     base_s: int = Field(600, ge=15, le=10800)
     inc_s: int = Field(0, ge=0, le=180)
     pace: Literal["realtime", "fast"] = "realtime"
-    player: str | None = Field(None, max_length=64)  # anonymous install id
+    player: str | None = Field(None, max_length=64)  # device install id (legacy; accounts use the token)
 
 
 class PaceIntent(BaseModel):
@@ -198,6 +220,10 @@ class MoveIntent(BaseModel):
 @app.post("/api/games")
 async def create_game(req: NewGame, request: Request):
     app_ = request.app
+    with app_.state.sessions() as sess:
+        user = accounts.current_user(sess, request)
+    if user is None and accounts.require_auth():
+        raise HTTPException(401, "sign in first")
     bots = await app_.state.infer.bots()
     if req.bot not in bots:
         raise HTTPException(400, f"unknown bot {req.bot}")
@@ -205,7 +231,7 @@ async def create_game(req: NewGame, request: Request):
     g = Game(bot=req.bot, package_id=bots[req.bot]["package"], bot_elo=req.bot_elo, human_elo=req.human_elo,
              human_color=color, base_ms=req.base_s * 1000, inc_ms=req.inc_s * 1000, white_ms=req.base_s * 1000,
              black_ms=req.base_s * 1000, moves=[], z=rules.sample_z(bots[req.bot].get("z_prior"), _rng),
-             bot_pace=req.pace, player=req.player, last_move_at=time.time())
+             bot_pace=req.pace, player=req.player, user_id=user.id if user else None, last_move_at=time.time())
     with app_.state.sessions() as sess:
         sess.add(g)
         sess.commit()
@@ -220,7 +246,7 @@ async def create_game(req: NewGame, request: Request):
 @app.get("/api/games/{game_id}")
 def get_game(game_id: str, request: Request):
     with request.app.state.sessions() as sess:
-        return state(_load(sess, game_id), time.time())
+        return state(_owned(sess, game_id, request), time.time())
 
 
 async def _human_move(app_: FastAPI, game_id: str, intent: MoveIntent) -> None:
@@ -239,10 +265,31 @@ async def _human_move(app_: FastAPI, game_id: str, intent: MoveIntent) -> None:
         await _broadcast(g)
 
 
+def _check_owner(request: Request | WebSocket, game_id: str) -> None:
+    with request.app.state.sessions() as sess:
+        _owned(sess, game_id, request)
+
+
+@app.get("/api/me/games")
+def my_games(request: Request, limit: int = 50):
+    """The account's games, newest first (summary rows; GET /api/games/{id} for the full state)."""
+    with request.app.state.sessions() as sess:
+        u = accounts.current_user(sess, request)
+        if u is None:
+            raise HTTPException(401, "sign in first")
+        gs = sess.scalars(select(Game).where(Game.user_id == u.id).order_by(Game.created_at.desc())
+                          .limit(min(limit, 200))).all()
+        return {"games": [{"id": g.id, "created_at": g.created_at, "bot": g.bot, "bot_elo": g.bot_elo,
+                           "human_color": g.human_color, "base_s": g.base_ms // 1000, "inc_s": g.inc_ms // 1000,
+                           "status": g.status, "result": g.result, "termination": g.termination,
+                           "plies": len(g.moves), "rated": ratings.rated(g)} for g in gs]}
+
+
 @app.post("/api/games/{game_id}/move")
 async def post_move(game_id: str, intent: MoveIntent, request: Request):
     """Apply the human's move, then the bot's reply; returns the state after both (in realtime pace this
     blocks for the bot's think time; the WebSocket is the non-blocking path)."""
+    _check_owner(request, game_id)
     async with _locks[game_id]:
         await _human_move(request.app, game_id, intent)
     await _bot_turn(request.app, game_id)
@@ -251,6 +298,7 @@ async def post_move(game_id: str, intent: MoveIntent, request: Request):
 
 @app.post("/api/games/{game_id}/pace")
 async def post_pace(game_id: str, intent: PaceIntent, request: Request):
+    _check_owner(request, game_id)
     async with _locks[game_id]:
         await _set_pace(request.app, game_id, intent.pace)
     return get_game(game_id, request)
@@ -269,6 +317,7 @@ async def _resign(app_: FastAPI, game_id: str) -> None:
 
 @app.post("/api/games/{game_id}/resign")
 async def post_resign(game_id: str, request: Request):
+    _check_owner(request, game_id)
     async with _locks[game_id]:
         await _resign(request.app, game_id)
     return get_game(game_id, request)
@@ -285,6 +334,11 @@ async def game_ws(ws: WebSocket, game_id: str):
         g = sess.get(Game, game_id)
         if g is None:
             await ws.close(code=4404)
+            return
+        try:
+            accounts.authorize(g, accounts.current_user(sess, ws))
+        except HTTPException as e:
+            await ws.close(code=4000 + e.status_code)  # 4401 unknown token, 4403 not your game
             return
     await ws.accept()
     _sockets[game_id].add(ws)

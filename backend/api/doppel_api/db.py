@@ -27,7 +27,8 @@ class Game(Base):
     bot_elo: Mapped[int] = mapped_column(Integer)
     human_elo: Mapped[int] = mapped_column(Integer)
     human_color: Mapped[str] = mapped_column(String(5))  # "white" | "black"
-    player: Mapped[str | None] = mapped_column(String(64), nullable=True)  # anonymous install id (no accounts yet)
+    player: Mapped[str | None] = mapped_column(String(64), nullable=True)  # device install id (legacy, pre-accounts)
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True, index=True)
     base_ms: Mapped[int] = mapped_column(Integer)
     inc_ms: Mapped[int] = mapped_column(Integer)
     white_ms: Mapped[int] = mapped_column(Integer)
@@ -42,6 +43,57 @@ class Game(Base):
     status: Mapped[str] = mapped_column(String(8), default="active")  # "active" | "over"
     result: Mapped[str | None] = mapped_column(String(7), nullable=True)  # "1-0" | "0-1" | "1/2-1/2"
     termination: Mapped[str | None] = mapped_column(String(24), nullable=True)
+
+
+class User(Base):
+    """An account. Stage 0: anonymous, created by the device on first launch and held by a bearer token
+    (only its sha256 is stored). A Lichess login can be linked to it later without changing the id."""
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at: Mapped[float] = mapped_column(Float, default=time.time)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    install_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    display_name: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class Consent(Base):
+    """Consent history, append-only: granting adds a row, withdrawing stamps withdrawn_at. A user holds a
+    consent kind while their latest row of that kind is not withdrawn."""
+
+    __tablename__ = "consents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # "training"
+    version: Mapped[str] = mapped_column(String(32))  # the consent text the user saw
+    granted_at: Mapped[float] = mapped_column(Float, default=time.time)
+    withdrawn_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class Rating(Base):
+    """Current ratings. subject is "user:<id>" or "bot:<package_id>@<bot_elo>" (a package played at a given
+    Elo setting is a distinct opponent). Elo scale; rd is the posterior standard deviation."""
+
+    __tablename__ = "ratings"
+
+    subject: Mapped[str] = mapped_column(String(120), primary_key=True)
+    rating: Mapped[float] = mapped_column(Float)
+    rd: Mapped[float] = mapped_column(Float)
+    games: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[float] = mapped_column(Float, default=time.time)
+
+
+class Exported(Base):
+    """Export ledger: which game ids the lab has received, so a withdrawn or deleted game can be sent as a
+    tombstone. Holds no user data; game_id is deliberately not a foreign key (the game may be gone)."""
+
+    __tablename__ = "exported"
+
+    game_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    exported_at: Mapped[float] = mapped_column(Float)
+    tombstoned_at: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class Ply(Base):
@@ -68,6 +120,7 @@ _ADDED = [  # additive columns for databases created by an earlier skeleton
     ("bot_pace", "VARCHAR(8) NOT NULL DEFAULT 'realtime'"),
     ("player", "VARCHAR(64)"),
     ("last_move_at", "FLOAT"),
+    ("user_id", "VARCHAR(36) REFERENCES users(id)"),
 ]
 
 

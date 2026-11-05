@@ -165,7 +165,7 @@ def test_realtime_pace_waits_and_switch_to_fast_wakes(client, monkeypatch):
 
 
 def test_plies_recorded_and_exported(client, monkeypatch):
-    from doppel_api.export import rows
+    from doppel_api.export import run
     monkeypatch.setattr(rules, "think_ms", lambda *a: 2500)
     g = client.post("/api/games", json={"color": "white", "pace": "fast", "base_s": 60, "player": "dev1"}).json()
     with client.websocket_connect(f"/api/games/{g['id']}/ws") as ws:
@@ -175,8 +175,12 @@ def test_plies_recorded_and_exported(client, monkeypatch):
             ws.receive_json(), ws.receive_json()
         ws.send_json({"type": "resign"})
         ws.receive_json()
-    (r,) = rows(app.state.sessions)
-    assert r["white"] == "doppel:dev1" and r["black"] == "maia3-79m-deadbeef" and r["source"] == "doppel_native"
+    assert run(app.state.sessions)[0] == []  # pre-account game: never exported
+    tok = client.post("/api/users", json={"install_id": "dev1"}).json()["token"]  # claims the game
+    client.put("/api/me/consent", json={"training": True}, headers={"authorization": f"Bearer {tok}"})
+    (r,), _ = run(app.state.sessions, salt="s")
+    assert r["white"].startswith("doppel:") and "dev1" not in r["white"] and r["black"] == "maia3-79m-deadbeef"
+    assert r["source"] == "doppel_native" and r["consent_version"] == "training-v1"
     assert r["actor"] == ["human", "bot", "human", "bot"]
     assert r["think_source"][1] == "heuristic_v1" and r["client_ms"][0] == 1234 and r["premove"] == [False, False, True, False]
     assert r["spent_ms"][:2] == [0, 0] and r["spent_ms"][3] == 2500  # clocks start after both sides moved
