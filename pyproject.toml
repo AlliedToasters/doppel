@@ -1,15 +1,22 @@
-# Doppel monorepo root: a uv workspace. Members: lab (research), later packages/doppel_model and backend/*.
+# Doppel monorepo root: a uv workspace. Members: lab (research), packages/doppel_model, backend/infer.
 [project]
 name = "doppel-chess"
 version = "0.0.1"
 requires-python = ">=3.12,<3.13"
-dependencies = ["doppel-lab"]
+dependencies = ["doppel-lab", "doppel-infer"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["lab"]
+members = ["lab", "packages/doppel_model", "backend/infer"]
 
 [tool.uv.sources]
 doppel-lab = { workspace = true }
+doppel-infer = { workspace = true }
+doppel-model = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doppelchess.app/contracts/model_package.schema.json",
+  "title": "Doppel model package manifest (manifest.json beside model.onnx)",
+  "type": "object",
+  "required": ["id", "name", "sha256", "format", "input", "outputs", "elo_range", "lab_commit", "parity"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9-]+-[0-9a-f]{8}$", "description": "<name>-<sha256[:8]>; one id = one rated player"},
+    "name": {"type": "string", "description": "bot id the backend serves it under, e.g. maia3-79m"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "of model.onnx"},
+    "format": {"const": 1},
+    "input": {
+      "type": "object",
+      "required": ["encoding", "history"],
+      "properties": {
+        "encoding": {"enum": ["maia3"], "description": "doppel_model.encoding: tokens (1, 64, 12*history+1) f32, elo_self (1,) i64, elo_opp (1,) i64"},
+        "history": {"type": "integer", "minimum": 1},
+        "clk_ponder": {"type": "number"}
+      }
+    },
+    "outputs": {"type": "array", "items": {"enum": ["logits_move", "logits_value", "z_logits", "think_time"]}, "contains": {"const": "logits_move"}},
+    "elo_range": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2},
+    "z_prior": {"type": ["object", "null"], "description": "per-game z prior; null for stateless base models"},
+    "clock_head": {"type": "boolean"},
+    "base_model": {"type": "object", "properties": {"family": {"type": "string"}, "size": {"type": "string"}, "license": {"type": "string"}}},
+    "lab_commit": {"type": "string"},
+    "parity": {
+      "type": "object",
+      "required": ["n", "max_abs_logp_diff", "tol", "pass"],
+      "properties": {"n": {"type": "integer"}, "max_abs_logp_diff": {"type": "number"}, "top1_agree": {"type": "number"},
+                     "tol": {"type": "number"}, "pass": {"const": true}}
+    }
+  }
+}
