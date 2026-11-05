@@ -52,7 +52,7 @@ class DoppelSkin extends BoardSkin {
   Color get background => DoppelColors.bg;
 
   @override
-  Widget buildBoard({required BoardView view, required double size, required ValueChanged<Move> onMove}) =>
+  Widget buildBoard({required BoardView view, required double size, required MoveHandler onMove}) =>
       _DoppelBoard(view: view, size: size, onMove: onMove);
 
   @override
@@ -133,7 +133,7 @@ class _DoppelBoard extends StatefulWidget {
   const _DoppelBoard({required this.view, required this.size, required this.onMove});
   final BoardView view;
   final double size;
-  final ValueChanged<Move> onMove;
+  final MoveHandler onMove;
 
   @override
   State<_DoppelBoard> createState() => _DoppelBoardState();

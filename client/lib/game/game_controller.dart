@@ -34,7 +34,7 @@ abstract class GameSession extends ChangeNotifier {
   ClockState? get clock => null;
   bool get canResign => false;
 
-  void play(Move move);
+  void play(Move move, {bool premove = false});
   void retry();
   void resign() {}
 }
@@ -91,7 +91,7 @@ class GameController extends GameSession {
   }
 
   @override
-  void play(Move move) {
+  void play(Move move, {bool premove = false}) {
     if (over || !position.isLegal(move)) return;
     final (next, san) = position.makeSan(move);
     position = next;

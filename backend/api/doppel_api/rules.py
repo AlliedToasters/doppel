@@ -55,9 +55,9 @@ def settle(g: Game, now: float) -> bool:
     return False
 
 
-def play(g: Game, uci: str, now: float, charge_ms: int | None = None) -> None:
+def play(g: Game, uci: str, now: float, charge_ms: int | None = None) -> dict:
     """Validate and apply one move by the side to move, charging its clock: wall time since the turn began,
-    or `charge_ms` instead (a bot's sampled think time)."""
+    or `charge_ms` instead (a bot's sampled think time). Returns the move's timing record."""
     if settle(g, now) or g.status != "active":
         raise IllegalMove("game is over")
     b = board(g)
@@ -69,16 +69,22 @@ def play(g: Game, uci: str, now: float, charge_ms: int | None = None) -> None:
         raise IllegalMove("null move")
     uci = mv.uci()  # store the canonical form (e1g1)
     mover = side_to_move(g)
+    began = g.turn_started if g.turn_started is not None else g.last_move_at
+    wall = int((now - began) * 1000) if began is not None else 0
+    spent = 0
     if g.turn_started is not None:
-        spent = int((now - g.turn_started) * 1000) if charge_ms is None else charge_ms
+        spent = wall if charge_ms is None else charge_ms
         setattr(g, f"{mover}_ms", getattr(g, f"{mover}_ms") - spent + g.inc_ms)
     b.push(mv)
     g.moves = [*g.moves, uci]  # reassign so the JSON column is marked dirty
     # Clocks start once both sides have made a move (Lichess convention).
     g.turn_started = now if len(g.moves) >= 2 else None
+    g.last_move_at = now
     out = b.outcome(claim_draw=True)
     if out is not None:
         _end(g, out.result(), out.termination.name.lower())
+    return {"uci": uci, "at": now, "wall_ms": wall, "spent_ms": spent,
+            "clock_after_ms": getattr(g, f"{mover}_ms")}
 
 
 def resign(g: Game, color: str, now: float) -> None:

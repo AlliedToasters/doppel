@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:dartchess/dartchess.dart';
 import 'package:http/http.dart' as http;
@@ -14,8 +15,10 @@ import 'game_controller.dart';
 /// optimistically and replaced by the server's list on every update. The game id is saved, so a restarted
 /// app resumes the game (see [resumeSaved]).
 class ServerGame extends GameSession {
-  ServerGame._(this.id, this.opponentLabel, Map<String, dynamic> state) {
+  ServerGame._(this.id, this.opponentLabel, Map<String, dynamic> state, {bool resumed = false}) {
     _apply(state);
+    // Mid-turn on resume we don't know when the position first appeared: leave this move's device time unset.
+    if (resumed && (state['ply'] as int) > 0) _turnShownAt = null;
     _connect();
   }
 
@@ -34,6 +37,7 @@ class ServerGame extends GameSession {
   String? _result, _termination;
   String _pace = 'realtime';
   bool _pending = false; // our move sent, server state not back yet
+  DateTime? _turnShownAt; // when the current position appeared with us to move (device think time)
   String? _error;
   WebSocketChannel? _ws;
   StreamSubscription? _sub;
@@ -50,6 +54,7 @@ class ServerGame extends GameSession {
     required int incS,
     required String pace,
   }) async {
+    final player = await installId();
     final r = await http
         .post(Uri.parse('$backendUrl/api/games'),
             headers: {'content-type': 'application/json'},
@@ -60,6 +65,7 @@ class ServerGame extends GameSession {
               'base_s': baseS,
               'inc_s': incS,
               'pace': pace,
+              'player': player,
             }))
         .timeout(const Duration(seconds: 30));
     if (r.statusCode != 200) throw Exception('backend ${r.statusCode}: ${r.body}');
@@ -83,7 +89,7 @@ class ServerGame extends GameSession {
       prefs.remove(_prefKey);
       return null;
     }
-    return ServerGame._(id, labelFor(state['bot'] as String), state);
+    return ServerGame._(id, labelFor(state['bot'] as String), state, resumed: true);
   }
 
   // ---------- GameSession ----------
@@ -139,7 +145,7 @@ class ServerGame extends GameSession {
   }
 
   @override
-  void play(Move move) {
+  void play(Move move, {bool premove = false}) {
     if (over || _pending || _position.turn != _human || !_position.isLegal(move)) return;
     final (next, san) = _position.makeSan(move);
     final ply = _ucis.length;
@@ -149,7 +155,15 @@ class ServerGame extends GameSession {
     _last = move;
     _pending = true;
     notifyListeners();
-    _send({'type': 'move', 'uci': move.uci, 'ply': ply});
+    final shown = _turnShownAt;
+    _turnShownAt = null;
+    _send({
+      'type': 'move',
+      'uci': move.uci,
+      'ply': ply,
+      'premove': premove,
+      if (shown != null) 'think_ms': DateTime.now().difference(shown).inMilliseconds,
+    });
   }
 
   @override
@@ -168,6 +182,10 @@ class ServerGame extends GameSession {
     _human = s['human_color'] == 'white' ? Side.white : Side.black;
     _botElo = s['bot_elo'] as int;
     final moves = (s['moves'] as List).cast<String>();
+    final ourTurn = s['status'] == 'active' && s['turn'] == (_human == Side.white ? 'white' : 'black');
+    if (ourTurn && (moves.length != _ucis.length || _turnShownAt == null && moves.isEmpty)) {
+      _turnShownAt = DateTime.now();
+    }
     if (!listEquals(moves, _ucis)) {
       final (pos, sans, last) = replay(moves);
       _position = pos;
@@ -259,4 +277,17 @@ bool listEquals(List<String> a, List<String> b) {
     if (a[i] != b[i]) return false;
   }
   return true;
+}
+
+
+/// Anonymous per-install id: separates players in the native corpus without accounts.
+Future<String> installId() async {
+  final prefs = await SharedPreferences.getInstance();
+  var id = prefs.getString('install_id');
+  if (id == null) {
+    final r = Random.secure();
+    id = List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    await prefs.setString('install_id', id);
+  }
+  return id;
 }

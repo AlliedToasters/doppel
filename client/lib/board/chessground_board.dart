@@ -16,7 +16,7 @@ class ChessgroundBoard extends StatefulWidget {
 
   final BoardView view;
   final double size;
-  final ValueChanged<Move> onMove;
+  final MoveHandler onMove;
   final ChessboardSettings settings;
 
   @override
@@ -54,7 +54,7 @@ class _ChessgroundBoardState extends State<ChessgroundBoard> {
       if (pre != null && v.interactive == v.position.turn) {
         _controller.premove = null;
         if (v.position.isLegal(pre)) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => widget.onMove(pre));
+          WidgetsBinding.instance.addPostFrameCallback((_) => widget.onMove(pre, premove: true));
         }
       }
     }

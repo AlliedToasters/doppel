@@ -21,6 +21,9 @@ class BoardView {
   final Move? lastMove;
 }
 
+/// Called with the human's move; `premove` is true when it was queued earlier and executed automatically.
+typedef MoveHandler = void Function(Move move, {bool premove});
+
 /// A skin: one board widget implementation plus its theme.
 ///
 /// Contract: render [BoardView], call `onMove` with a legal move (for the human side, including executed
@@ -38,7 +41,7 @@ abstract class BoardSkin {
   Widget buildBoard({
     required BoardView view,
     required double size,
-    required ValueChanged<Move> onMove,
+    required MoveHandler onMove,
   });
 
   /// Material display for one player bar. Material only: never anything model- or engine-derived.

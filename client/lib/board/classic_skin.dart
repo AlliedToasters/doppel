@@ -1,5 +1,4 @@
 import 'package:chessground/chessground.dart';
-import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 
 import 'board_surface.dart';
@@ -15,7 +14,7 @@ class ClassicSkin extends BoardSkin {
   String get name => 'Classic';
 
   @override
-  Widget buildBoard({required BoardView view, required double size, required ValueChanged<Move> onMove}) =>
+  Widget buildBoard({required BoardView view, required double size, required MoveHandler onMove}) =>
       ChessgroundBoard(
           view: view, size: size, onMove: onMove, settings: const ChessboardSettings(enablePremoves: true));
 }

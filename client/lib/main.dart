@@ -186,7 +186,7 @@ class _PlayScreenState extends State<PlayScreen> {
           lastMove: g.lastMove,
         ),
         size: width,
-        onMove: g.play,
+        onMove: (m, {premove = false}) => g.play(m, premove: premove),
       ),
       _PlayerBar(
           name: 'You',

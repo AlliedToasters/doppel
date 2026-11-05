@@ -162,3 +162,22 @@ def test_realtime_pace_waits_and_switch_to_fast_wakes(client, monkeypatch):
         assert ws.receive_json()["game"]["pace"] == "fast"
         s = ws.receive_json()["game"]
         assert s["ply"] == 4 and time.time() - t < 2.0  # woke immediately instead of waiting 30 s
+
+
+def test_plies_recorded_and_exported(client, monkeypatch):
+    from doppel_api.export import rows
+    monkeypatch.setattr(rules, "think_ms", lambda *a: 2500)
+    g = client.post("/api/games", json={"color": "white", "pace": "fast", "base_s": 60, "player": "dev1"}).json()
+    with client.websocket_connect(f"/api/games/{g['id']}/ws") as ws:
+        ws.receive_json()
+        for ply, u, pre in ((0, "e2e4", False), (2, "d2d4", True)):
+            ws.send_json({"type": "move", "uci": u, "ply": ply, "think_ms": 1234, "premove": pre})
+            ws.receive_json(), ws.receive_json()
+        ws.send_json({"type": "resign"})
+        ws.receive_json()
+    (r,) = rows(app.state.sessions)
+    assert r["white"] == "doppel:dev1" and r["black"] == "maia3-79m-deadbeef" and r["source"] == "doppel_native"
+    assert r["actor"] == ["human", "bot", "human", "bot"]
+    assert r["think_source"][1] == "heuristic_v1" and r["client_ms"][0] == 1234 and r["premove"] == [False, False, True, False]
+    assert r["spent_ms"][:2] == [0, 0] and r["spent_ms"][3] == 2500  # clocks start after both sides moved
+    assert r["clocks"][3] == 57.5 and len(r["clocks"]) == len(r["moves"]) == 4

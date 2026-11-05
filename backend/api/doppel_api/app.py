@@ -26,7 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import rules
-from .db import Game, make_sessionmaker
+from .db import Game, Ply, make_sessionmaker
 
 
 class Infer:
@@ -91,6 +91,12 @@ def _load(sess, game_id: str) -> Game:
     return g
 
 
+def _record(sess, g: Game, rec: dict, actor: str, think_source: str, client_ms: int | None = None,
+            premove: bool = False) -> None:
+    sess.add(Ply(game_id=g.id, ply=len(g.moves) - 1, actor=actor, think_source=think_source, pace=g.bot_pace,
+                 client_ms=client_ms, premove=premove, **rec))
+
+
 async def _broadcast(g: Game) -> None:
     await _send_all(g.id, {"type": "state", "game": state(g, time.time())})
 
@@ -137,7 +143,8 @@ async def _bot_turn(app_: FastAPI, game_id: str) -> None:
                 g = _load(sess, game_id)
                 if g.status != "active" or len(g.moves) != ply:
                     return  # resigned, flagged, or already answered meanwhile
-                rules.play(g, uci, time.time(), charge_ms=think)
+                rec = rules.play(g, uci, time.time(), charge_ms=think)
+                _record(sess, g, rec, "bot", "heuristic_v1")  # synthetic timing: never a think-time label
                 sess.commit()
                 await _broadcast(g)
     finally:
@@ -174,6 +181,7 @@ class NewGame(BaseModel):
     base_s: int = Field(600, ge=15, le=10800)
     inc_s: int = Field(0, ge=0, le=180)
     pace: Literal["realtime", "fast"] = "realtime"
+    player: str | None = Field(None, max_length=64)  # anonymous install id
 
 
 class PaceIntent(BaseModel):
@@ -183,6 +191,8 @@ class PaceIntent(BaseModel):
 class MoveIntent(BaseModel):
     uci: str
     ply: int | None = None  # the ply the client believes it is moving at; stale or duplicate sends are refused
+    think_ms: int | None = Field(None, ge=0)  # measured on the device from the position appearing to the move
+    premove: bool = False
 
 
 @app.post("/api/games")
@@ -195,7 +205,7 @@ async def create_game(req: NewGame, request: Request):
     g = Game(bot=req.bot, package_id=bots[req.bot]["package"], bot_elo=req.bot_elo, human_elo=req.human_elo,
              human_color=color, base_ms=req.base_s * 1000, inc_ms=req.inc_s * 1000, white_ms=req.base_s * 1000,
              black_ms=req.base_s * 1000, moves=[], z=rules.sample_z(bots[req.bot].get("z_prior"), _rng),
-             bot_pace=req.pace)
+             bot_pace=req.pace, player=req.player, last_move_at=time.time())
     with app_.state.sessions() as sess:
         sess.add(g)
         sess.commit()
@@ -221,9 +231,10 @@ async def _human_move(app_: FastAPI, game_id: str, intent: MoveIntent) -> None:
         if intent.ply is not None and intent.ply != len(g.moves):
             raise HTTPException(409, f"stale move: game is at ply {len(g.moves)}")
         try:
-            rules.play(g, intent.uci, time.time())
+            rec = rules.play(g, intent.uci, time.time())
         except rules.IllegalMove as e:
             raise HTTPException(400, str(e))
+        _record(sess, g, rec, "human", "human", intent.think_ms, intent.premove)
         sess.commit()
         await _broadcast(g)
 
@@ -287,7 +298,9 @@ async def game_ws(ws: WebSocket, game_id: str):
                 async with _locks[game_id]:
                     kind = msg.get("type")
                     if kind == "move":
-                        await _human_move(app_, game_id, MoveIntent(uci=msg["uci"], ply=msg.get("ply")))
+                        await _human_move(app_, game_id, MoveIntent(
+                            uci=msg["uci"], ply=msg.get("ply"), think_ms=msg.get("think_ms"),
+                            premove=bool(msg.get("premove", False))))
                     elif kind == "resign":
                         await _resign(app_, game_id)
                     elif kind == "pace":
