@@ -41,4 +41,12 @@ for k, fr in enumerate((523, 659, 784, 1047)):
     s = int(k * 0.11 * SR); seg = t(0.35)
     x[s:s + len(seg)] += env(np.sin(2 * np.pi * fr * seg) + 0.3 * np.sin(4 * np.pi * fr * seg), d=0.18)[: len(x) - s]
 save("win", x)
+tt = t(0.42)  # lowtime: two-tone falling alert when the human's clock drops under 20 s
+x = np.zeros(len(tt))
+for st, fr in ((0.0, 988), (0.2, 740)):
+    s0 = int(st * SR); seg = t(0.18)
+    x[s0:s0 + len(seg)] += env(np.sin(2 * np.pi * fr * seg) + 0.35 * np.sign(np.sin(2 * np.pi * fr * seg)), d=0.09)[: len(x) - s0]
+save("lowtime", x)
+tt = t(0.035)  # tick: dry click, once a second under 10 s
+save("tick", env(np.sin(2 * np.pi * 2200 * tt) + 0.5 * rng.standard_normal(len(tt)), a=0.0005, d=0.008))
 print("ok")

@@ -123,7 +123,7 @@ class DoppelSfx {
 
   void warm() {
     if (!enabled) return;
-    for (final n in ['move', 'capture', 'check', 'thunder', 'win']) {
+    for (final n in ['move', 'capture', 'check', 'thunder', 'win', 'lowtime', 'tick']) {
       _pool(n);
     }
   }

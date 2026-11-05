@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:chessground/chessground.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'board/board_surface.dart';
@@ -313,16 +314,22 @@ class _PlayerBar extends StatelessWidget {
           if (thinking) const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
           const Spacer(),
           material,
-          if (clock != null && side != null) ...[const SizedBox(width: 10), _Clock(clock: clock!, side: side!)],
+          if (clock != null && side != null) ...[
+            const SizedBox(width: 10),
+            _Clock(clock: clock!, side: side!, warn: name == 'You'),
+          ],
         ]),
       );
 }
 
 /// Counts down locally from the last server snapshot; the server stays the authority.
 class _Clock extends StatefulWidget {
-  const _Clock({required this.clock, required this.side});
+  const _Clock({required this.clock, required this.side, this.warn = false});
   final ClockState clock;
   final Side side;
+
+  /// Low-time cues for the human's own clock: an alert + buzz on dropping under 20 s, a tick each second under 10 s.
+  final bool warn;
 
   @override
   State<_Clock> createState() => _ClockState();
@@ -330,13 +337,32 @@ class _Clock extends StatefulWidget {
 
 class _ClockState extends State<_Clock> {
   Timer? _tick;
+  bool _warned = false;
+  int _lastTickSec = -1;
 
   @override
   void initState() {
     super.initState();
-    _tick = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      if (widget.clock.running && widget.clock.turn == widget.side) setState(() {});
+    _tick = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (!(widget.clock.running && widget.clock.turn == widget.side)) return;
+      if (widget.warn) _cues(widget.clock.remaining(widget.side));
+      setState(() {});
     });
+  }
+
+  void _cues(Duration left) {
+    if (left > const Duration(seconds: 25)) _warned = false; // re-arm once increments lift it clear
+    if (!_warned && left <= const Duration(seconds: 20) && left > Duration.zero) {
+      _warned = true;
+      HapticFeedback.heavyImpact();
+      DoppelSfx.instance.play('lowtime');
+    }
+    final sec = left.inSeconds;
+    if (left < const Duration(seconds: 10) && left > Duration.zero && sec != _lastTickSec) {
+      _lastTickSec = sec;
+      HapticFeedback.selectionClick();
+      DoppelSfx.instance.play('tick');
+    }
   }
 
   @override
