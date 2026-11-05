@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'board/board_surface.dart';
 import 'board/classic_skin.dart';
 import 'board/doppel_skin.dart';
+import 'features/lichess/lichess_auth.dart';
 import 'game/account.dart';
 import 'game/game_controller.dart';
 import 'game/material.dart';
@@ -18,6 +19,7 @@ import 'game/server_game.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await preloadPieces();
+  await LichessAuth.load();
   runApp(const DoppelApp());
 }
 
@@ -313,6 +315,37 @@ class _PlayScreenState extends State<PlayScreen> {
                 },
               ),
             ],
+            const Divider(height: 24),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.public),
+              title: Text(LichessAuth.signedIn ? 'Lichess: ${LichessAuth.username}' : 'Sign in with Lichess'),
+              subtitle: Text(
+                  LichessAuth.signedIn
+                      ? 'Stays on this phone. Doppel never sees your Lichess games.'
+                      : 'Play your Lichess games here, with this board.',
+                  style: Theme.of(context).textTheme.bodySmall),
+              trailing: LichessAuth.signedIn
+                  ? TextButton(
+                      onPressed: () async {
+                        await LichessAuth.signOut();
+                        set(() {});
+                      },
+                      child: const Text('Sign out'))
+                  : null,
+              onTap: LichessAuth.signedIn
+                  ? null
+                  : () async {
+                      try {
+                        await LichessAuth.signIn();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lichess sign-in: $e')));
+                        }
+                      }
+                      set(() {});
+                    },
+            ),
             const SizedBox(height: 8),
             FilledButton(
                 onPressed: () {
