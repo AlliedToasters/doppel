@@ -108,7 +108,14 @@ class _PlayScreenState extends State<PlayScreen> {
 
   String _label(String id) => bots.firstWhere((b) => b.$1 == id, orElse: () => (id, id)).$2;
 
+  /// Lichess fair play: no Doppel play (nor anything else that could suggest a move) while a Lichess game is live.
+  bool get _lichessLive => game is LichessGame && !game!.over;
+
+  void _blocked() => ScaffoldMessenger.of(context)
+      .showSnackBar(const SnackBar(content: Text('Finish or resign your Lichess game first.')));
+
   Future<void> _newGame() async {
+    if (_lichessLive) return _blocked();
     final old = game;
     seeking?.cancel();
     setState(() {
@@ -139,6 +146,7 @@ class _PlayScreenState extends State<PlayScreen> {
   }
 
   Future<void> _seekLichess() async {
+    if (_lichessLive) return _blocked();
     final old = game;
     seeking?.cancel();
     final s = LichessSeek.start(minutes: lichessTc.$1, inc: lichessTc.$2, rated: lichessRated);

@@ -91,6 +91,8 @@ models/<name>-<sha8>/      (gitignored locally; object storage later)
   - `lichess_game` may not import the backend or inference modules. An import-lint rule fails CI if it does.
   - The backend has no endpoint that accepts a live Lichess game id.
   - Post-game analysis unlocks only after Lichess reports the game finished.
+  - While a Lichess game is live the client refuses to start Doppel play (a doppel's reply to a copied position is "move recommendations from software" under the Lichess ToS).
+  - Lichess rules we design to (checked 2026-11-05): the Board API forbids "engine assistance, or any kind of outside help" and allows only Rapid, Classical and Correspondence seeks (Blitz only for direct challenges, games vs the AI and bulk pairing). Doppels play only from BOT accounts (Bot API, engine play allowed), casual while testing, and must follow the sandbagging/aborting/boosting rules. A doppel modelled on a real player must not be presented as that player (Lichess forbids impersonation).
 - The API client is generated from `contracts/openapi.json`, so a backend change that breaks the client fails at build time.
 
 ## lab
