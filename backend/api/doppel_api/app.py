@@ -40,11 +40,13 @@ class Infer:
         r.raise_for_status()
         return {b["id"]: b for b in r.json()["bots"]}
 
-    async def move(self, g: Game) -> str:
+    async def move(self, g: Game) -> tuple[str, float]:
+        """The sampled move and the policy's top-move probability (drives think time)."""
         r = await self.http.post("/api/move", json={
             "bot": g.bot, "elo": g.bot_elo, "opp_elo": g.human_elo, "moves": g.moves, "z": g.z})
         r.raise_for_status()
-        return r.json()["move"]
+        d = r.json()
+        return d["move"], float(d["top"][0]["p"]) if d.get("top") else 0.5
 
 
 @asynccontextmanager
@@ -60,6 +62,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Doppel API", lifespan=lifespan)
 _locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 _sockets: dict[str, set[WebSocket]] = defaultdict(set)
+_bot_busy: set[str] = set()  # games whose bot turn is in flight
+_pace_changed: dict[str, asyncio.Event] = {}  # wakes a realtime wait when the human switches to fast
+_tasks: set[asyncio.Task] = set()
 _rng = np.random.default_rng()
 
 
@@ -73,7 +78,7 @@ def state(g: Game, now: float) -> dict:
                   "black_ms": max(0, rules.remaining_ms(g, "black", now)),
                   "running": g.status == "active" and g.turn_started is not None,
                   "base_ms": g.base_ms, "inc_ms": g.inc_ms},
-        "status": g.status, "result": g.result, "termination": g.termination,
+        "pace": g.bot_pace, "status": g.status, "result": g.result, "termination": g.termination,
     }
 
 
@@ -87,27 +92,77 @@ def _load(sess, game_id: str) -> Game:
 
 
 async def _broadcast(g: Game) -> None:
-    msg = {"type": "state", "game": state(g, time.time())}
-    for ws in list(_sockets[g.id]):
+    await _send_all(g.id, {"type": "state", "game": state(g, time.time())})
+
+
+async def _send_all(game_id: str, msg: dict) -> None:
+    for ws in list(_sockets[game_id]):
         try:
             await ws.send_json(msg)
         except Exception:
-            _sockets[g.id].discard(ws)
+            _sockets[game_id].discard(ws)
 
 
 async def _bot_turn(app_: FastAPI, game_id: str) -> None:
-    """If it is the bot's turn, ask infer for a move and apply it. Caller holds the game lock."""
+    """If it is the bot's turn: get a move from infer, sample a think time, wait it out on the wall clock if
+    the pace is realtime, then apply the move charging the think time to the bot's clock.
+    Takes the game lock itself, and not while waiting, so the human can still resign or change pace."""
+    if game_id in _bot_busy:
+        return
+    _bot_busy.add(game_id)
+    try:
+        async with _locks[game_id]:
+            with app_.state.sessions() as sess:
+                g = _load(sess, game_id)
+                if g.status != "active" or rules.side_to_move(g) == g.human_color:
+                    return
+                ply = len(g.moves)
+        t0 = time.time()
+        try:
+            uci, p_top = await app_.state.infer.move(g)
+        except httpx.HTTPError as e:
+            await _send_all(game_id, {"type": "error", "status": 503, "detail": f"infer unavailable: {e}"})
+            raise HTTPException(503, f"infer unavailable: {e}")
+        think = rules.think_ms(g, p_top, t0, _rng)
+        wait = think / 1000 - (time.time() - t0)
+        if g.bot_pace == "realtime" and wait > 0:
+            ev = _pace_changed.setdefault(game_id, asyncio.Event())
+            ev.clear()
+            try:
+                await asyncio.wait_for(ev.wait(), wait)
+            except TimeoutError:
+                pass
+        async with _locks[game_id]:
+            with app_.state.sessions() as sess:
+                g = _load(sess, game_id)
+                if g.status != "active" or len(g.moves) != ply:
+                    return  # resigned, flagged, or already answered meanwhile
+                rules.play(g, uci, time.time(), charge_ms=think)
+                sess.commit()
+                await _broadcast(g)
+    finally:
+        _bot_busy.discard(game_id)
+
+
+def _spawn_bot_turn(app_: FastAPI, game_id: str) -> None:
+    async def run():
+        try:
+            await _bot_turn(app_, game_id)
+        except HTTPException:
+            pass  # already reported to the sockets
+    t = asyncio.create_task(run())
+    _tasks.add(t)
+    t.add_done_callback(_tasks.discard)
+
+
+async def _set_pace(app_: FastAPI, game_id: str, pace: str) -> None:
     with app_.state.sessions() as sess:
         g = _load(sess, game_id)
-        if g.status != "active" or rules.side_to_move(g) == g.human_color:
-            return
-        try:
-            uci = await app_.state.infer.move(g)
-        except httpx.HTTPError as e:
-            raise HTTPException(503, f"infer unavailable: {e}")
-        rules.play(g, uci, time.time())
+        g.bot_pace = pace
         sess.commit()
         await _broadcast(g)
+    if pace == "fast" and game_id in _pace_changed:
+        _pace_changed[game_id].set()
 
 
 # ---------- REST ----------
@@ -118,6 +173,11 @@ class NewGame(BaseModel):
     color: Literal["white", "black", "random"] = "white"
     base_s: int = Field(600, ge=15, le=10800)
     inc_s: int = Field(0, ge=0, le=180)
+    pace: Literal["realtime", "fast"] = "realtime"
+
+
+class PaceIntent(BaseModel):
+    pace: Literal["realtime", "fast"]
 
 
 class MoveIntent(BaseModel):
@@ -134,12 +194,15 @@ async def create_game(req: NewGame, request: Request):
     color = random.choice(["white", "black"]) if req.color == "random" else req.color
     g = Game(bot=req.bot, package_id=bots[req.bot]["package"], bot_elo=req.bot_elo, human_elo=req.human_elo,
              human_color=color, base_ms=req.base_s * 1000, inc_ms=req.inc_s * 1000, white_ms=req.base_s * 1000,
-             black_ms=req.base_s * 1000, moves=[], z=rules.sample_z(bots[req.bot].get("z_prior"), _rng))
+             black_ms=req.base_s * 1000, moves=[], z=rules.sample_z(bots[req.bot].get("z_prior"), _rng),
+             bot_pace=req.pace)
     with app_.state.sessions() as sess:
         sess.add(g)
         sess.commit()
-    async with _locks[g.id]:
-        await _bot_turn(app_, g.id)
+    if req.pace == "fast":
+        await _bot_turn(app_, g.id)  # reply is immediate: include the bot's first move
+    else:
+        _spawn_bot_turn(app_, g.id)  # arrives over the WebSocket after its think time
     with app_.state.sessions() as sess:
         return state(_load(sess, g.id), time.time())
 
@@ -167,10 +230,18 @@ async def _human_move(app_: FastAPI, game_id: str, intent: MoveIntent) -> None:
 
 @app.post("/api/games/{game_id}/move")
 async def post_move(game_id: str, intent: MoveIntent, request: Request):
-    """Apply the human's move, then the bot's reply; returns the state after both."""
+    """Apply the human's move, then the bot's reply; returns the state after both (in realtime pace this
+    blocks for the bot's think time; the WebSocket is the non-blocking path)."""
     async with _locks[game_id]:
         await _human_move(request.app, game_id, intent)
-        await _bot_turn(request.app, game_id)
+    await _bot_turn(request.app, game_id)
+    return get_game(game_id, request)
+
+
+@app.post("/api/games/{game_id}/pace")
+async def post_pace(game_id: str, intent: PaceIntent, request: Request):
+    async with _locks[game_id]:
+        await _set_pace(request.app, game_id, intent.pace)
     return get_game(game_id, request)
 
 
@@ -195,7 +266,7 @@ async def post_resign(game_id: str, request: Request):
 # ---------- WebSocket ----------
 @app.websocket("/api/games/{game_id}/ws")
 async def game_ws(ws: WebSocket, game_id: str):
-    """Intents in: {"type":"move","uci":..,"ply":..} | {"type":"resign"} | {"type":"sync"}.
+    """Intents in: {"type":"move","uci":..,"ply":..} | {"type":"resign"} | {"type":"pace","pace":..} | {"type":"sync"}.
     Out: {"type":"state","game":{..}} after every change (the human's move, then the bot's), or
     {"type":"error","status":..,"detail":..}."""
     app_ = ws.app
@@ -209,18 +280,22 @@ async def game_ws(ws: WebSocket, game_id: str):
     try:
         with app_.state.sessions() as sess:
             await ws.send_json({"type": "state", "game": state(_load(sess, game_id), time.time())})
+        _spawn_bot_turn(app_, game_id)  # resume a bot turn lost to a server restart (no-op if not its turn)
         while True:
             msg = await ws.receive_json()
             try:
                 async with _locks[game_id]:
-                    if msg.get("type") == "move":
+                    kind = msg.get("type")
+                    if kind == "move":
                         await _human_move(app_, game_id, MoveIntent(uci=msg["uci"], ply=msg.get("ply")))
-                        await _bot_turn(app_, game_id)
-                    elif msg.get("type") == "resign":
+                    elif kind == "resign":
                         await _resign(app_, game_id)
+                    elif kind == "pace":
+                        await _set_pace(app_, game_id, PaceIntent(pace=msg["pace"]).pace)
                     else:
                         with app_.state.sessions() as sess:
                             await ws.send_json({"type": "state", "game": state(_load(sess, game_id), time.time())})
+                _spawn_bot_turn(app_, game_id)
             except HTTPException as e:
                 await ws.send_json({"type": "error", "status": e.status_code, "detail": e.detail})
     except WebSocketDisconnect:

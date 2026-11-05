@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:chessground/chessground.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'board/board_surface.dart';
 import 'board/classic_skin.dart';
@@ -53,6 +54,7 @@ class _PlayScreenState extends State<PlayScreen> {
   int elo = 1500;
   Side humanSide = Side.white;
   (int, int) tc = (300, 3);
+  String pace = 'realtime';
   GameSession? game;
   String? startError;
 
@@ -66,10 +68,13 @@ class _PlayScreenState extends State<PlayScreen> {
 
   Future<void> _boot() async {
     try {
+      final saved = (await SharedPreferences.getInstance()).getString('bot_pace');
+      if (saved != null) pace = saved;
       bots = await listBots();
       if (bots.isNotEmpty) botId = bots.first.$1;
       final resumed = await ServerGame.resumeSaved(_label);
       if (resumed != null) {
+        if (resumed.pace != pace) resumed.setPace(pace);
         setState(() => game = resumed);
         return;
       }
@@ -94,12 +99,26 @@ class _PlayScreenState extends State<PlayScreen> {
     }
     try {
       final g = await ServerGame.create(
-          bot: botId, label: _label(botId), botElo: elo, humanSide: humanSide, baseS: tc.$1, incS: tc.$2);
+          bot: botId,
+          label: _label(botId),
+          botElo: elo,
+          humanSide: humanSide,
+          baseS: tc.$1,
+          incS: tc.$2,
+          pace: pace);
       if (!mounted) return g.dispose();
       setState(() => game = g);
     } catch (e) {
       setState(() => startError = '$e');
     }
+  }
+
+  /// Applies to the next game and, mid-game, to the current one from the bot's next move.
+  void _setPace(String p) {
+    setState(() => pace = p);
+    SharedPreferences.getInstance().then((prefs) => prefs.setString('bot_pace', p));
+    final g = game;
+    if (g is ServerGame && !g.over) g.setPace(p);
   }
 
   Future<void> _confirmResign(GameSession g) async {
@@ -237,6 +256,24 @@ class _PlayScreenState extends State<PlayScreen> {
                   onSelected: (_) => set(() => tc = t),
                 ),
             ]),
+            const SizedBox(height: 12),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'realtime', label: Text('Realtime'), icon: Icon(Icons.schedule)),
+                ButtonSegment(value: 'fast', label: Text('Fast'), icon: Icon(Icons.bolt)),
+              ],
+              selected: {pace},
+              onSelectionChanged: (s) => set(() => _setPace(s.first)),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                pace == 'realtime'
+                    ? 'The bot takes its think time for real; watch its clock run.'
+                    : 'The bot replies instantly; its think time still comes off its clock.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
             const SizedBox(height: 8),
             DropdownButton<String>(
               value: skin.id,

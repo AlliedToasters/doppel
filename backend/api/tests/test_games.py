@@ -3,6 +3,7 @@
 import time
 
 import chess
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -23,7 +24,7 @@ class FakeInfer:
         b = chess.Board()
         for u in g.moves:
             b.push_uci(u)
-        return sorted(m.uci() for m in b.legal_moves)[0]
+        return sorted(m.uci() for m in b.legal_moves)[0], 0.5
 
 
 @pytest.fixture
@@ -35,7 +36,7 @@ def client(tmp_path):
 
 
 def test_create_white_and_move(client):
-    g = client.post("/api/games", json={"color": "white"}).json()
+    g = client.post("/api/games", json={"color": "white", "pace": "fast"}).json()
     assert g["ply"] == 0 and g["turn"] == "white" and g["package_id"] == "maia3-79m-deadbeef"
     g2 = client.post(f"/api/games/{g['id']}/move", json={"uci": "e2e4", "ply": 0}).json()
     assert g2["ply"] == 2 and g2["moves"][0] == "e2e4" and g2["turn"] == "white"
@@ -43,12 +44,12 @@ def test_create_white_and_move(client):
 
 
 def test_black_gets_bot_first_move(client):
-    g = client.post("/api/games", json={"color": "black"}).json()
+    g = client.post("/api/games", json={"color": "black", "pace": "fast"}).json()
     assert g["ply"] == 1 and g["turn"] == "black"
 
 
 def test_illegal_stale_and_wrong_turn(client):
-    g = client.post("/api/games", json={"color": "white"}).json()
+    g = client.post("/api/games", json={"color": "white", "pace": "fast"}).json()
     assert client.post(f"/api/games/{g['id']}/move", json={"uci": "e2e5"}).status_code == 400
     client.post(f"/api/games/{g['id']}/move", json={"uci": "e2e4", "ply": 0})
     assert client.post(f"/api/games/{g['id']}/move", json={"uci": "d2d4", "ply": 0}).status_code == 409
@@ -56,7 +57,7 @@ def test_illegal_stale_and_wrong_turn(client):
 
 
 def test_resign_and_resume(client):
-    g = client.post("/api/games", json={"color": "white"}).json()
+    g = client.post("/api/games", json={"color": "white", "pace": "fast"}).json()
     client.post(f"/api/games/{g['id']}/move", json={"uci": "e2e4"})
     again = client.get(f"/api/games/{g['id']}").json()  # a fresh client resumes from server state
     assert again["moves"][0] == "e2e4"
@@ -69,7 +70,7 @@ def test_z_sampled_once_and_sent_every_move(tmp_path):
     app.state.sessions = make_sessionmaker(f"sqlite:///{tmp_path}/z.db")
     app.state.infer = fake = FakeInfer(z_prior={"type": "normal", "dim": 4, "scale": 1.0})
     with TestClient(app) as c:
-        g = c.post("/api/games", json={"color": "white"}).json()
+        g = c.post("/api/games", json={"color": "white", "pace": "fast"}).json()
         for u in ("e2e4", "d2d4"):
             g = c.post(f"/api/games/{g['id']}/move", json={"uci": u}).json()
     zs = [z for _, z in fake.calls]
@@ -77,7 +78,7 @@ def test_z_sampled_once_and_sent_every_move(tmp_path):
 
 
 def test_websocket_move_then_bot_reply(client):
-    g = client.post("/api/games", json={"color": "white"}).json()
+    g = client.post("/api/games", json={"color": "white", "pace": "fast"}).json()
     with client.websocket_connect(f"/api/games/{g['id']}/ws") as ws:
         assert ws.receive_json()["game"]["ply"] == 0
         ws.send_json({"type": "move", "uci": "e2e4", "ply": 0})
@@ -120,3 +121,44 @@ def test_castling_either_notation_stored_canonical():
             rules.play(g, u, 0.0)
         rules.play(g, sent, 0.0)
         assert g.moves[-1] == "e1g1"
+
+
+def test_think_time_bounds():
+    rng = np.random.default_rng(0)
+    g = _row(base_ms=180000, inc_ms=2000, white_ms=180000, black_ms=180000)
+    for u in ("e2e4", "e7e5"):
+        rules.play(g, u, 0.0)
+    assert all(400 <= rules.think_ms(g, 0.5, 0.0, rng) <= 1500 for _ in range(50))  # opening: quick
+    g.moves = g.moves + ["g1f3", "b8c6", "f1c4", "g8f6", "d2d3", "f8c5"]  # bot (white) to move, own move 4
+    ts = [rules.think_ms(g, 0.3, 0.0, rng) for _ in range(400)]
+    assert 2000 < float(np.median(ts)) < 12000 and max(ts) <= 0.25 * 180000
+    g.white_ms = 3000  # time trouble: never think itself into a flag
+    assert max(rules.think_ms(g, 0.1, 0.0, rng) for _ in range(200)) <= 1500
+
+
+def test_fast_pace_charges_think_time(client, monkeypatch):
+    monkeypatch.setattr(rules, "think_ms", lambda *a: 4000)
+    g = client.post("/api/games", json={"color": "white", "pace": "fast", "base_s": 60, "inc_s": 0}).json()
+    t = time.time()
+    g = client.post(f"/api/games/{g['id']}/move", json={"uci": "e2e4"}).json()
+    g = client.post(f"/api/games/{g['id']}/move", json={"uci": "d2d4"}).json()  # clocks now running
+    assert time.time() - t < 1.0  # no wall-clock wait
+    assert g["clock"]["black_ms"] == 56000  # but the bot's clock paid 4 s
+
+
+def test_realtime_pace_waits_and_switch_to_fast_wakes(client, monkeypatch):
+    monkeypatch.setattr(rules, "think_ms", lambda *a: 600)
+    g = client.post("/api/games", json={"color": "white", "pace": "realtime"}).json()
+    t = time.time()
+    g = client.post(f"/api/games/{g['id']}/move", json={"uci": "e2e4"}).json()
+    assert g["ply"] == 2 and time.time() - t >= 0.55
+    monkeypatch.setattr(rules, "think_ms", lambda *a: 30000)
+    with client.websocket_connect(f"/api/games/{g['id']}/ws") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "move", "uci": "d2d4", "ply": 2})
+        assert ws.receive_json()["game"]["ply"] == 3
+        t = time.time()
+        ws.send_json({"type": "pace", "pace": "fast"})
+        assert ws.receive_json()["game"]["pace"] == "fast"
+        s = ws.receive_json()["game"]
+        assert s["ply"] == 4 and time.time() - t < 2.0  # woke immediately instead of waiting 30 s

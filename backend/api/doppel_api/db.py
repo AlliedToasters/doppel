@@ -6,7 +6,7 @@ import os
 import time
 import uuid
 
-from sqlalchemy import JSON, Float, Integer, String, create_engine
+from sqlalchemy import JSON, Float, Integer, String, create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 
@@ -34,6 +34,9 @@ class Game(Base):
     turn_started: Mapped[float | None] = mapped_column(Float, nullable=True)  # epoch s; None = clocks not running
     moves: Mapped[list] = mapped_column(JSON, default=list)
     z: Mapped[list | None] = mapped_column(JSON, nullable=True)  # per-game z, sampled once at creation
+    # "realtime": the bot waits its think time on the wall clock. "fast": it replies at once but the same
+    # think time is still charged to its clock. Either way the clocks read as a human game.
+    bot_pace: Mapped[str] = mapped_column(String(8), default="realtime")
     status: Mapped[str] = mapped_column(String(8), default="active")  # "active" | "over"
     result: Mapped[str | None] = mapped_column(String(7), nullable=True)  # "1-0" | "0-1" | "1/2-1/2"
     termination: Mapped[str | None] = mapped_column(String(24), nullable=True)
@@ -43,5 +46,9 @@ def make_sessionmaker(url: str | None = None):
     url = url or os.environ.get("DOPPEL_DB_URL", "sqlite:///data/api.db")
     kw = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
     engine = create_engine(url, **kw)
-    Base.metadata.create_all(engine)  # skeleton: no migrations until the schema settles (then Alembic)
+    Base.metadata.create_all(engine)  # skeleton: additive columns only until the schema settles (then Alembic)
+    have = {c["name"] for c in inspect(engine).get_columns("games")}
+    with engine.begin() as conn:
+        if "bot_pace" not in have:
+            conn.execute(text("ALTER TABLE games ADD COLUMN bot_pace VARCHAR(8) NOT NULL DEFAULT 'realtime'"))
     return sessionmaker(engine, expire_on_commit=False)

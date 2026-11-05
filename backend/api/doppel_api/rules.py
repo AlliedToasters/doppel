@@ -55,8 +55,9 @@ def settle(g: Game, now: float) -> bool:
     return False
 
 
-def play(g: Game, uci: str, now: float) -> None:
-    """Validate and apply one move by the side to move, charging its clock."""
+def play(g: Game, uci: str, now: float, charge_ms: int | None = None) -> None:
+    """Validate and apply one move by the side to move, charging its clock: wall time since the turn began,
+    or `charge_ms` instead (a bot's sampled think time)."""
     if settle(g, now) or g.status != "active":
         raise IllegalMove("game is over")
     b = board(g)
@@ -69,7 +70,7 @@ def play(g: Game, uci: str, now: float) -> None:
     uci = mv.uci()  # store the canonical form (e1g1)
     mover = side_to_move(g)
     if g.turn_started is not None:
-        spent = int((now - g.turn_started) * 1000)
+        spent = int((now - g.turn_started) * 1000) if charge_ms is None else charge_ms
         setattr(g, f"{mover}_ms", getattr(g, f"{mover}_ms") - spent + g.inc_ms)
     b.push(mv)
     g.moves = [*g.moves, uci]  # reassign so the JSON column is marked dirty
@@ -93,3 +94,23 @@ def sample_z(prior: dict | None, rng: np.random.Generator) -> list | None:
     if prior.get("type") == "normal":
         return rng.normal(0.0, prior.get("scale", 1.0), int(prior["dim"])).round(5).tolist()
     raise ValueError(f"unknown z prior {prior!r}")
+
+
+def think_ms(g: Game, p_top: float, now: float, rng: np.random.Generator) -> int:
+    """Human-like think time for the bot's next move (placeholder until a model has a clock head).
+
+    Quick for the first few moves and for forced moves; otherwise its remaining time spread over the moves it
+    expects to play, scaled up when the policy is unsure (low top-move probability), with lognormal noise.
+    Never spends more than a quarter of what is left, and leaves a margin so it cannot flag by thinking."""
+    mover = side_to_move(g)
+    left = remaining_ms(g, mover, now)
+    own = len(g.moves) // 2
+    if board(g).legal_moves.count() == 1:
+        t = rng.uniform(300, 900)
+    elif own < 3:
+        t = rng.uniform(400, 1500)
+    else:
+        budget = left / max(50 - own, 25) + 0.6 * g.inc_ms
+        t = budget * (0.3 + 1.3 * (1.0 - p_top)) * rng.lognormal(0.0, 0.55)
+    cap = max(150.0, min(0.25 * left, left - 1500.0))
+    return int(np.clip(t, 150.0, cap))

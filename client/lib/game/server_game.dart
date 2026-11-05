@@ -32,6 +32,7 @@ class ServerGame extends GameSession {
   ClockState? _clock;
   String _status = 'active';
   String? _result, _termination;
+  String _pace = 'realtime';
   bool _pending = false; // our move sent, server state not back yet
   String? _error;
   WebSocketChannel? _ws;
@@ -47,6 +48,7 @@ class ServerGame extends GameSession {
     required Side humanSide,
     required int baseS,
     required int incS,
+    required String pace,
   }) async {
     final r = await http
         .post(Uri.parse('$backendUrl/api/games'),
@@ -57,6 +59,7 @@ class ServerGame extends GameSession {
               'color': humanSide == Side.white ? 'white' : 'black',
               'base_s': baseS,
               'inc_s': incS,
+              'pace': pace,
             }))
         .timeout(const Duration(seconds: 30));
     if (r.statusCode != 200) throw Exception('backend ${r.statusCode}: ${r.body}');
@@ -104,6 +107,16 @@ class ServerGame extends GameSession {
   String? get error => _error;
   @override
   bool get canResign => !over;
+
+  /// "realtime": the bot takes its think time on the wall clock. "fast": it replies at once, and the
+  /// same think time is still charged to its clock.
+  String get pace => _pace;
+
+  void setPace(String pace) {
+    _pace = pace;
+    notifyListeners();
+    _send({'type': 'pace', 'pace': pace});
+  }
 
   @override
   String? get resultText {
@@ -173,6 +186,7 @@ class ServerGame extends GameSession {
     _status = s['status'] as String;
     _result = s['result'] as String?;
     _termination = s['termination'] as String?;
+    _pace = (s['pace'] as String?) ?? _pace;
     if (over) SharedPreferences.getInstance().then((p) => p.remove(_prefKey));
   }
 
@@ -185,12 +199,17 @@ class ServerGame extends GameSession {
         scheme: backendUrl.startsWith('https') ? 'wss' : 'ws', path: '/api/games/$id/ws');
     final ws = WebSocketChannel.connect(url);
     _ws = ws;
+    // Events from a socket we already replaced are ignored: closing the old one fires its onDone, which
+    // must not schedule yet another reconnect (that loop opened 3 sockets per resume).
     _sub = ws.stream.listen((raw) {
+      if (!identical(_ws, ws)) return;
       _backoff = 1;
       final msg = jsonDecode(raw as String) as Map<String, dynamic>;
       if (msg['type'] == 'state') {
         _error = null;
         _apply(msg['game'] as Map<String, dynamic>);
+      } else if (msg['type'] == 'error' && msg['status'] == 503) {
+        _error = 'Opponent unavailable: ${msg['detail']}';
       } else if (msg['type'] == 'error') {
         // Refused intent (stale ply, illegal): drop the optimistic move and take the server's state.
         _error = null;
@@ -199,11 +218,16 @@ class ServerGame extends GameSession {
         _send({'type': 'sync'});
       }
       notifyListeners();
-    }, onError: (Object e) => _lost('$e'), onDone: () => _lost('connection closed'));
+    }, onError: (Object e) {
+      if (identical(_ws, ws)) _lost('$e');
+    }, onDone: () {
+      if (identical(_ws, ws)) _lost('connection closed');
+    });
   }
 
   void _lost(String why) {
     if (_disposed || over) return;
+    _reconnect?.cancel();
     _pending = false;
     _error = 'Reconnecting… ($why)';
     notifyListeners();
