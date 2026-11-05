@@ -17,13 +17,14 @@ Shock check: on own moves 1-5 after a realized queen loss (see lab/scripts/shock
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 import chess
 import numpy as np
 import polars as pl
+
+from doppel_lab.split import held_out
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data/probe/think_feats.npz"
@@ -172,7 +173,7 @@ def fit():
                   m["elo_opp"].to_numpy() / 1000]
     think = m["think"].to_numpy()
     ys = {"log_s": np.log1p(think), "logit_frac": _logit((think + 0.5) / (rem + inc + 1e-9))}
-    test = np.array([int(hashlib.md5(p.encode()).hexdigest(), 16) % 5 == 0 for p in m["player"]])
+    test = np.array([held_out(p) for p in m["player"]])  # the project-wide player split
     shock = m["after_qshock"].to_numpy()
     variants = {
         "clock_only": clock,
