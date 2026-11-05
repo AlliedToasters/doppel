@@ -1,0 +1,79 @@
+{
+ "n_rows": 190181,
+ "n_test": 57952,
+ "n_after_qshock_k1": 619,
+ "log_s": {
+  "clock_only": {
+   "r2_test": 0.1665,
+   "alpha": 10.0,
+   "qshock_resid_k1": 0.0188,
+   "qshock_resid_k1_5": -0.1016,
+   "resid_all": 0.0008
+  },
+  "A_position": {
+   "r2_test": 0.4072,
+   "alpha": 316.2277660168379,
+   "qshock_resid_k1": 0.0995,
+   "qshock_resid_k1_5": 0.007,
+   "resid_all": 0.0002
+  },
+  "B_history": {
+   "r2_test": 0.4418,
+   "alpha": 316.2277660168379,
+   "qshock_resid_k1": 0.0895,
+   "qshock_resid_k1_5": 0.0037,
+   "resid_all": 0.0004
+  },
+  "C_history_tempo": {
+   "r2_test": 0.4496,
+   "alpha": 316.2277660168379,
+   "qshock_resid_k1": 0.0913,
+   "qshock_resid_k1_5": 0.0023,
+   "resid_all": 0.0005
+  },
+  "tempo_clock_only": {
+   "r2_test": 0.268,
+   "alpha": 10.0,
+   "qshock_resid_k1": -0.0561,
+   "qshock_resid_k1_5": -0.1517,
+   "resid_all": 0.0003
+  }
+ },
+ "logit_frac": {
+  "clock_only": {
+   "r2_test": 0.4825,
+   "alpha": 100.0,
+   "qshock_resid_k1": 0.0249,
+   "qshock_resid_k1_5": -0.1217,
+   "resid_all": 0.0014
+  },
+  "A_position": {
+   "r2_test": 0.6257,
+   "alpha": 1000.0,
+   "qshock_resid_k1": 0.1178,
+   "qshock_resid_k1_5": 0.0029,
+   "resid_all": 0.0004
+  },
+  "B_history": {
+   "r2_test": 0.6457,
+   "alpha": 1000.0,
+   "qshock_resid_k1": 0.1111,
+   "qshock_resid_k1_5": -0.0012,
+   "resid_all": 0.0007
+  },
+  "C_history_tempo": {
+   "r2_test": 0.651,
+   "alpha": 316.2277660168379,
+   "qshock_resid_k1": 0.1109,
+   "qshock_resid_k1_5": -0.0044,
+   "resid_all": 0.0008
+  },
+  "tempo_clock_only": {
+   "r2_test": 0.5499,
+   "alpha": 10.0,
+   "qshock_resid_k1": -0.0831,
+   "qshock_resid_k1_5": -0.1921,
+   "resid_all": 0.0007
+  }
+ }
+}
