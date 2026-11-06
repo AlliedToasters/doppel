@@ -105,6 +105,44 @@ Built from the features above and used across capabilities:
 - **Tempo**: the player's running median and decayed mean of think fraction so far in the game.
 - **Policy confidence**: Maia-3 top-move probability and entropy. Used by the production think-time heuristic.
 
+### 3.4 Per-game trajectories (the game analyzer)
+
+Every per-position feature above is also a **trajectory**: one value per ply over the whole game. Simple causal
+transforms of a trajectory give history features without a sequence model. The analyzer
+(`lab/doppel_lab/analyzer/`) computes them for one game and renders an HTML page with every trajectory on a
+shared ply axis:
+
+    uv run python -m doppel_lab.analyzer <lichess game ID | file.pgn | v0 game_id> [--tables DIR]
+
+It reads finished games only, and refuses a game with no result. One 130-ply game takes about 9 s on the CPU:
+Maia-3 about 3 s, Stockfish at 50,000 nodes about 5 s. Nothing is served; the page is a local file.
+
+- **Channels** (raw, per ply): clocks, think time and think fraction, legal moves, check (tier 0); material
+  (tier 1); Maia-3 win/draw/loss, expected score, sharpness, policy entropy, top-move probability, played move's
+  log-prob and rank (tier 2); Stockfish cp, winning chances, CPL, Lichess move class (tier 3).
+- **Transforms** (causal: a value uses only the current and earlier plies):
+  - Exponential moving average with α = 0.3, as in the probe's decayed tempo.
+  - Rolling mean and standard deviation over the last 5 own moves.
+  - Velocity: the change from the previous own move.
+  - Running median of think fraction before the move (tempo).
+  - On the position series: **volatility**, the rolling standard deviation of win % over Lichess's window (game
+    length / 10, clamped to 2..8); velocity; and each side's **drawdown** below its running peak.
+- **Events:**
+  - Lichess move classes: blunder, mistake and inaccuracy, at win-chance drops of 0.3, 0.2 and 0.1.
+  - Realized shock, as defined in §3.3.
+  - Entry into time trouble: own clock below 10% of base time.
+  - Lead change: win chances crossing from beyond ±0.2 to beyond the opposite ±0.2.
+  - Game end, classified by `doppel_lab/resign.py`.
+- **Summary:** one row per side, the per-game "dumb features" for simple estimators. It covers ACPL, move
+  classes, median think time, tempo drift (second-half minus first-half mean think fraction), time-trouble moves,
+  Maia-3 top-1 rate and surprisal, mean volatility, worst drawdown, mean sharpness and shocks. `--tables` writes
+  it as parquet next to the per-ply tables.
+
+**Finding, sharpness.** jk_182's formula (§8) depends on the draw probability: `(2 / log((1−W)(1−L)/(WL)))²` grows
+without bound as D → 0. At 1500 blitz Maia-3 rarely gives a draw more than a few percent, so balanced positions
+score above the plot cap of 50, while lopsided ones score low. It was designed on Lc0's win/draw/loss for strong
+players; for our bands it needs a variant before it is used as a feature.
+
 ## 4. Chess machines we benchmark against
 
 | Machine | What it predicts | Used for |
