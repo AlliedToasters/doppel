@@ -46,7 +46,7 @@ def run(sessions, include_active: bool = False, salt: str | None = None) -> tupl
             if consent[g.user_id] is None or (g.status != "over" and not include_active):
                 continue
             plies = sess.scalars(select(Ply).where(Ply.game_id == g.id).order_by(Ply.ply)).all()
-            if len(plies) != len(g.moves) or not plies:
+            if g.termination == "abort" or len(plies) != len(g.moves) or not plies:
                 continue  # not fully clocked (pre-timing games)
             human = pid(g.user_id)
             hw = g.human_color == "white"

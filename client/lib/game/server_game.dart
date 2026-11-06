@@ -170,6 +170,17 @@ class ServerGame extends GameSession {
   @override
   void resign() => _send({'type': 'resign'});
 
+  /// Leaving for another game ends this one on the server (resign, or abort before both sides moved),
+  /// so it doesn't sit "active" forever. Over REST: the socket is about to close.
+  Future<void> leave() async {
+    if (over) return;
+    try {
+      await http
+          .post(Uri.parse('$backendUrl/api/games/$id/resign'), headers: Account.headers)
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
+  }
+
   @override
   void retry() {
     _error = null;

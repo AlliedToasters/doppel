@@ -90,6 +90,9 @@ def play(g: Game, uci: str, now: float, charge_ms: int | None = None) -> dict:
 def resign(g: Game, color: str, now: float) -> None:
     if settle(g, now) or g.status != "active":
         raise IllegalMove("game is over")
+    if len(g.moves) < 2:  # Lichess rule: before both sides have moved, leaving aborts (unrated, no result)
+        _end(g, "*", "abort")
+        return
     _end(g, "0-1" if color == "white" else "1-0", "resign")
 
 

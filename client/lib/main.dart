@@ -123,6 +123,7 @@ class _PlayScreenState extends State<PlayScreen> {
       startError = null;
       seeking = null;
     });
+    if (old is ServerGame) old.leave();
     old?.dispose();
     if (botId == 'random' || bots.isEmpty) {
       setState(() => game = GameController(opponent: RandomOpponent(), humanSide: humanSide));
@@ -155,6 +156,7 @@ class _PlayScreenState extends State<PlayScreen> {
       startError = null;
       seeking = s;
     });
+    if (old is ServerGame) old.leave();
     old?.dispose();
     try {
       final g = await s.game;

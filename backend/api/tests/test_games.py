@@ -66,6 +66,12 @@ def test_resign_and_resume(client):
     assert client.post(f"/api/games/{g['id']}/move", json={"uci": "d2d4"}).status_code == 400
 
 
+def test_leaving_before_both_moved_aborts(client):
+    g = client.post("/api/games", json={"color": "white", "pace": "fast"}).json()
+    r = client.post(f"/api/games/{g['id']}/resign").json()
+    assert (r["status"], r["result"], r["termination"]) == ("over", "*", "abort")
+
+
 def test_z_sampled_once_and_sent_every_move(tmp_path):
     app.state.sessions = make_sessionmaker(f"sqlite:///{tmp_path}/z.db")
     app.state.infer = fake = FakeInfer(z_prior={"type": "normal", "dim": 4, "scale": 1.0})
