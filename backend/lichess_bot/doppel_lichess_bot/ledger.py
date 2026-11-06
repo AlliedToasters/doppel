@@ -22,15 +22,19 @@ from pathlib import Path
 log = logging.getLogger("doppel.lichess_bot")
 ROOT = Path(__file__).resolve().parents[3]
 LEDGER = ROOT / "data/lichess_bot/ledger.jsonl"
+BREAKER = ROOT / "data/lichess_bot/BREAKER_TRIPPED"  # present = hard off until a human deletes it
 
 
 class Gate:
     """Returns None (handle normally), "flood" (too many challenges overall) or "spam" (one account)."""
 
-    def __init__(self, global_per_min: int = 20, user_per_10min: int = 5, user_block_s: int = 3600, clock=time.time):
+    def __init__(self, global_per_min: int = 20, user_per_10min: int = 5, user_block_s: int = 3600,
+                 trip_per_10min: int = 100, clock=time.time):
         self.global_per_min, self.user_per_10min, self.user_block_s = global_per_min, user_per_10min, user_block_s
+        self.trip_per_10min = trip_per_10min
         self.clock = clock
         self.recent: deque[float] = deque()
+        self.window: deque[float] = deque()  # every challenge in the last 10 min, for the hard breaker
         self.by_user: dict[str, deque[float]] = defaultdict(deque)
         self.blocked: dict[str, float] = {}
         self.flooding = False
@@ -42,7 +46,10 @@ class Gate:
         q = self.by_user[who]
         while q and q[0] < t - 600:
             q.popleft()
+        while self.window and self.window[0] < t - 600:
+            self.window.popleft()
         self.recent.append(t)
+        self.window.append(t)
         q.append(t)
         if self.blocked.get(who, 0) > t:
             return "spam"
@@ -57,6 +64,17 @@ class Gate:
             log.warning("flood gate: %s (%d challenges in the last minute)", "SHEDDING" if flooding else "recovered",
                         len(self.recent))
         return "flood" if flooding else None
+
+    @property
+    def tripped(self) -> bool:
+        """Hard circuit breaker: a sustained flood (shedding alone keeps up with bursts, not with this)."""
+        return len(self.window) > self.trip_per_10min
+
+
+def trip_breaker(n: int, path: Path = BREAKER) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"tripped {time.strftime('%Y-%m-%d %H:%M:%S')}: {n} challenges in 10 min. "
+                    "Delete this file to resume (the runner checks every 30 s).\n")
 
 
 class Ledger:

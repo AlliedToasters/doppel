@@ -23,3 +23,10 @@ The token lives in `~/.config/doppel/lichess_bot.token` (chmod 600, `bot:play` s
 
     .venv/bin/python -m doppel_lichess_bot.ledger --days 7     # rates, decisions, top challengers, results, floods
 
+**Hard circuit breaker.** More than 100 challenges in 10 minutes means a sustained flood, which shedding is not meant to absorb. The runner then:
+- writes `data/lichess_bot/BREAKER_TRIPPED`;
+- disconnects from the Lichess event stream, so no challenge reaches bigbox at all;
+- stays off, even across restarts, until a human deletes that file. It checks every 30 s.
+
+Games already running finish on their own streams. To resume: `rm data/lichess_bot/BREAKER_TRIPPED`. To take the bot off Lichess on purpose, create the file.
+

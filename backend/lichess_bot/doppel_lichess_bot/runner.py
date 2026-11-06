@@ -26,7 +26,7 @@ import numpy as np
 
 from doppel_model import heuristic_think_ms
 
-from .ledger import Gate, Ledger
+from .ledger import BREAKER, Gate, Ledger, trip_breaker
 
 log = logging.getLogger("doppel.lichess_bot")
 ELO_MIN, ELO_MAX = 600, 2600
@@ -213,8 +213,21 @@ async def run(cfg: Config, token: str, infer_url: str) -> None:
     gate, ledger = Gate(), Ledger()
     backoff = 1
     while True:
+        if BREAKER.exists():
+            # Hard off: no event stream at all, so no challenges reach us. Running games finish on their own streams.
+            log.critical("circuit breaker is tripped (%s); not playing until it is deleted", BREAKER)
+            while BREAKER.exists():
+                await asyncio.sleep(30)
+            log.warning("circuit breaker reset; reconnecting")
+            gate = Gate()
         try:
             async for ev in lc.stream("/api/stream/event"):
+                if gate.tripped:
+                    ledger.flush_shed()
+                    trip_breaker(len(gate.window))
+                    log.critical("CIRCUIT BREAKER TRIPPED: %d challenges in 10 min; disconnecting from Lichess",
+                                 len(gate.window))
+                    break
                 backoff = 1
                 games = {k: t for k, t in games.items() if not t.done()}
                 kind = ev.get("type")

@@ -124,3 +124,21 @@ def test_ledger_and_stats(tmp_path):
     out = stats(rows, 0)
     assert "challenges: 2 from 1 accounts" in out and "accept 1" in out and "1W 0D 0L" in out
     assert "shed (flood gate): 30 challenges" in out
+
+
+def test_hard_breaker_trips_on_sustained_flood(tmp_path):
+    from doppel_lichess_bot.ledger import Gate, trip_breaker
+    t = [0.0]
+    g = Gate(trip_per_10min=100, clock=lambda: t[0])
+    for i in range(100):  # 100 in ~5 min: shed bursts, but not tripped
+        g.check(f"u{i}")
+        t[0] += 3
+    assert not g.tripped
+    g.check("one-more")
+    assert g.tripped
+    p = tmp_path / "BREAKER_TRIPPED"
+    trip_breaker(len(g.window), p)
+    assert "Delete this file" in p.read_text()
+    t[0] += 601
+    g.check("later")
+    assert not g.tripped  # the window slides, but the file keeps the runner off until a human deletes it
