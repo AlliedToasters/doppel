@@ -15,3 +15,11 @@ Runs as the user unit `doppel-lichess-bot` (~/.config/systemd/user/doppel-liches
 ```
 
 The token lives in `~/.config/doppel/lichess_bot.token` (chmod 600, `bot:play` scope) and is never logged. Change the allowlist in the unit's ExecStart, then `systemctl --user daemon-reload && systemctl --user restart doppel-lichess-bot`.
+
+**Ledger and flood gate.** Every challenge and its decision, and every finished game, goes to `data/lichess_bot/ledger.jsonl`.
+- If there are more than 20 challenges a minute overall, or more than 5 in 10 minutes from one account, the runner stops answering challenges and lets Lichess expire them. That account is then ignored for an hour.
+- Because it sends nothing back, a flood costs only reading the event stream, and Lichess cannot rate-limit the bot's token.
+- While the gate is shedding, the ledger writes one summary line a minute instead of one line per challenge. The episode is logged as `flood gate: SHEDDING` or `recovered`.
+
+    .venv/bin/python -m doppel_lichess_bot.ledger --days 7     # rates, decisions, top challengers, results, floods
+

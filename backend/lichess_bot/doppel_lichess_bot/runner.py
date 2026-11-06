@@ -26,6 +26,8 @@ import numpy as np
 
 from doppel_model import heuristic_think_ms
 
+from .ledger import Gate, Ledger
+
 log = logging.getLogger("doppel.lichess_bot")
 ELO_MIN, ELO_MAX = 600, 2600
 MIN_BASE_S, MAX_BASE_S = 60, 3600
@@ -117,8 +119,11 @@ class Game:
     """One Lichess game: follow the game stream, move on our turn after a human-like pause."""
 
     def __init__(self, lc: Lichess, infer: Infer, cfg: Config, me: str, game_id: str,
-                 rng: np.random.Generator | None = None, sleep=asyncio.sleep):
+                 rng: np.random.Generator | None = None, sleep=asyncio.sleep, ledger: Ledger | None = None):
         self.lc, self.infer, self.cfg, self.me, self.id = lc, infer, cfg, me, game_id
+        self.ledger = ledger
+        self.opp_id: str | None = None
+        self.plies = 0
         self.rng = rng or np.random.default_rng()
         self.sleep = sleep
         self.color: str | None = None
@@ -145,6 +150,7 @@ class Game:
             w, b = ev["white"], ev["black"]
             self.color = "white" if (w.get("id") or "").lower() == self.me else "black"
             opp = b if self.color == "white" else w
+            self.opp_id = opp.get("id")
             self.elo = clamp_elo(opp.get("rating"))
             self.inc_ms = int((ev.get("clock") or {}).get("increment", 0))
             if not self.greeted:
@@ -162,6 +168,9 @@ class Game:
             if self.pending:
                 self.pending.cancel()
             log.info("game %s over: %s %s", self.id, state.get("status"), state.get("winner"))
+            if self.ledger:
+                self.ledger.game_end(self.id, self.opp_id, self.elo, self.color, state.get("status"), state.get("winner"),
+                                     len(state.get("moves", "").split()))
             return True
         moves = state.get("moves", "").split()
         ply = len(moves)
@@ -201,6 +210,7 @@ async def run(cfg: Config, token: str, infer_url: str) -> None:
         raise SystemExit(f"{me} is not a BOT account")
     log.info("playing as %s with %s; allow=%s rated=%s", me, cfg.bot, sorted(cfg.allow) or "anyone", cfg.rated)
     games: dict[str, asyncio.Task] = {}
+    gate, ledger = Gate(), Ledger()
     backoff = 1
     while True:
         try:
@@ -212,8 +222,14 @@ async def run(cfg: Config, token: str, infer_url: str) -> None:
                     ch = ev["challenge"]
                     if (ch.get("challenger") or {}).get("id") == me:
                         continue
-                    reason = decide(ch, cfg, len(games))
                     who = (ch.get("challenger") or {}).get("id")
+                    shed = gate.check(who or "?")
+                    if shed:  # flood: don't answer at all; Lichess expires the challenge
+                        ledger.shed(shed)
+                        continue
+                    ledger.flush_shed()
+                    reason = decide(ch, cfg, len(games))
+                    ledger.challenge(ch, "accept" if reason is None else reason)
                     if reason is None:
                         log.info("accept %s from %s", ch["id"], who)
                         await lc.post(f"/api/challenge/{ch['id']}/accept")
@@ -225,7 +241,7 @@ async def run(cfg: Config, token: str, infer_url: str) -> None:
                     gid = ev["game"]["gameId"]
                     if gid not in games:
                         log.info("game %s start", gid)
-                        games[gid] = asyncio.create_task(Game(lc, infer, cfg, me, gid).run())
+                        games[gid] = asyncio.create_task(Game(lc, infer, cfg, me, gid, ledger=ledger).run())
         except (httpx.HTTPError, json.JSONDecodeError) as e:
             log.warning("event stream: %s; reconnecting in %d s", e, backoff)
         await asyncio.sleep(backoff)

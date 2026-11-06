@@ -87,3 +87,40 @@ def test_game_as_white_moves_first_and_clamps_rating():
         assert g.color == "white" and g.elo == 600
         assert [p for p, _ in lc.posts if "/move/" in p] == ["/api/bot/game/g2/move/e2e4"]
     asyncio.run(go())
+
+
+def test_gate_sheds_floods_and_spammers():
+    from doppel_lichess_bot.ledger import Gate
+    t = [0.0]
+    g = Gate(global_per_min=20, user_per_10min=5, user_block_s=3600, clock=lambda: t[0])
+    assert [g.check("alice") for _ in range(5)] == [None] * 5
+    assert g.check("alice") == "spam"  # 6th in 10 min
+    t[0] += 700
+    assert g.check("alice") == "spam"  # still blocked for the hour
+    t[0] += 3600
+    assert g.check("alice") is None
+    t[0] += 1000
+    res = [g.check(f"u{i}") for i in range(25)]  # 25 distinct accounts in one minute
+    assert res[:20] == [None] * 20 and set(res[20:]) == {"flood"}
+    t[0] += 61
+    assert g.check("late") is None and not g.flooding
+
+
+def test_ledger_and_stats(tmp_path):
+    import json
+
+    from doppel_lichess_bot.ledger import Ledger, stats
+    t = [1000.0]
+    led = Ledger(tmp_path / "l.jsonl", clock=lambda: t[0])
+    led.challenge(ch(), "accept")
+    led.challenge(ch(rated=True), "casual")
+    led.game_end("g1", "alice", 1400, "black", "mate", "black", 40)
+    for _ in range(30):
+        led.shed("flood")
+        t[0] += 3
+    led.flush_shed()
+    rows = [json.loads(x) for x in (tmp_path / "l.jsonl").read_text().splitlines()]
+    assert sum(r["kind"] == "shed" for r in rows) <= 3  # summarised, not one line per challenge
+    out = stats(rows, 0)
+    assert "challenges: 2 from 1 accounts" in out and "accept 1" in out and "1W 0D 0L" in out
+    assert "shed (flood gate): 30 challenges" in out
