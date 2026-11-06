@@ -85,11 +85,27 @@ The v0 Doppel at inference is T1/R1: a Maia-3 trunk plus history and clocks. T2 
 baselines: they know the engine's verdict, which neither the human nor the Doppel has. They are ceilings for
 dumb estimators and are labeled as oracles.
 
-**Storage and code.** Only raw channels that cost something are stored: one parquet sidecar per (tier, split)
-with per-ply list columns, joined on `game_id` (the shape of `evals_*` and `blunder_*`). T0 channels and all
-transforms are recomputed on the fly. One registry defines each feature once (name, tier, regime, point of view:
-the mover's by default); the analyzer and every baseline read from it, so the HTML profile and the baselines
-cannot drift. Results files record the feature-set version.
+**Timing.** Each feature is also labeled by when it is known relative to the move at ply k: **pre** (before the
+move is chosen: position k, the clocks, history through ply k−1), **act** (the move itself and how long it took:
+this move's think time, its Maia-3 log-prob) or **post** (needs the next position: CPL, wc loss, blunder). Post
+features are targets, never predictors of the same move. Every history transform comes in two forms: `x_ewma`
+includes the current move and inherits its timing; `x_ewma_prev` is its value as of the mover's previous move and
+is always pre.
+
+**Storage and code** (`lab/doppel_lab/features/`):
+
+- `registry.py` defines every feature once: name, tier, regime, timing, table (per move from the mover's view, or
+  per position from White's), and `VERSION` (now `f1`). `select(tier, regime, timing)` lists what a baseline may
+  use. A test fails if the analyzer or the table builder emits a name the registry lacks.
+- `channels.py` and `transforms.py` compute the features for one game. The analyzer and the corpus tables both
+  call them, so the HTML profile and the baselines cannot drift.
+- Only raw channels that cost something are stored as sidecars joined on `game_id`: the Maia-3 teacher shards
+  (T1) and `evals_*` (T2).
+- `table.py` builds per-move tables from those sidecars into `data/v0/features/moves_<VERSION>_<tier>_<band>_<split>/`.
+  The tables are a cache that can be rebuilt (about 9,000 moves/s on 8 cores: val in about 3 min, train in about
+  1.5 h). A T2 table covers only games with evals.
+- Not stored yet: Maia-3 win/draw/loss for v0 positions, so the T1 position features (expected-score volatility,
+  sharpness) exist only in the analyzer.
 
 ### 3.1 Stockfish eval
 

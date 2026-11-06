@@ -9,7 +9,8 @@ import sys
 import time
 from pathlib import Path
 
-from doppel_lab.analyzer import channels, render, source, transforms
+from doppel_lab.analyzer import render, source
+from doppel_lab.features import channels, transforms
 
 
 def analyze(spec: str, maia: bool = True, stockfish: bool = True, nodes: int = 50_000,
@@ -53,8 +54,8 @@ def main():
     ap.add_argument("game", help="Lichess game ID or URL (finished games only), a .pgn file, or a v0 game_id")
     ap.add_argument("--out", help="HTML path (default: <game_id>.html in the current directory)")
     ap.add_argument("--tables", help="also write per-ply parquet tables and the summary to this directory")
-    ap.add_argument("--no-maia", action="store_true", help="skip Maia-3 (tier 2)")
-    ap.add_argument("--no-stockfish", action="store_true", help="skip Stockfish (tier 3)")
+    ap.add_argument("--no-maia", action="store_true", help="skip Maia-3 (T1)")
+    ap.add_argument("--no-stockfish", action="store_true", help="skip Stockfish (T2)")
     ap.add_argument("--nodes", type=int, default=50_000, help="Stockfish nodes per position (default 50000)")
     ap.add_argument("--stockfish", help="path to the Stockfish binary")
     a = ap.parse_args()
@@ -64,7 +65,8 @@ def main():
     except source.LiveGame as e:
         sys.exit(str(e))
     out = Path(a.out or f"{res['rec']['game_id']}.html")
-    out.write_text(render.render(res["rec"], res["pos"], res["mov"], res["side_tf"], res["pos_tf"], res["events"],
+    shown = {k: v for k, v in res["side_tf"].items() if not k.endswith("_prev")}  # lags duplicate the plotted series
+    out.write_text(render.render(res["rec"], res["pos"], res["mov"], shown, res["pos_tf"], res["events"],
                                  res["summary"]))
     if a.tables:
         write_tables(res, Path(a.tables))

@@ -1,15 +1,14 @@
-"""Raw per-ply signals for one game, by cost tier (docs/SCIENCE.md §3).
+"""Raw per-ply signals for one game, by compute tier (docs/SCIENCE.md §3; every name is in registry.py).
 
 Two tables, both plain dicts of numpy arrays:
   pos[i], i = 0..n     the position before ply i (i = n is the final position). White's point of view.
   mov[k], k = 0..n-1   ply k, from the mover's point of view.
 
-Tier 0  clocks, think time, legal moves, check                     always
-Tier 1  material                                                    always
-Tier 2  Maia-3 79M: win/draw/loss, sharpness, policy entropy,       --no-maia skips; CPU, ~2 s per game
-        top-move probability, played move's log-prob and rank
-Tier 3  Stockfish cp at a fixed node budget, win chances, CPL,      --no-stockfish skips; ~50 ms per position
-        Lichess move classes
+T0  clocks, think time, legal moves, check, move type, material     always
+T1  Maia-3 79M: win/draw/loss, sharpness, policy entropy,            live (maia_channels, CPU ~3 s per game) or
+    top-move probability, played move's log-prob and rank            from the stored teacher shards (teacher_moves)
+T2  Stockfish cp at a fixed node budget, win chances, CPL,           live (stockfish_channels) or from stored
+    wc loss, Lichess move classes                                    evals (eval_channels)
 """
 
 from __future__ import annotations
@@ -55,9 +54,14 @@ def base_channels(rec: dict) -> tuple[dict, dict, list[chess.Board]]:
     b = chess.Board()
     boards = [b.copy()]
     sans, mat, legal, check = [], [white_material(b)], [b.legal_moves.count()], [b.is_check()]
+    capture, gives_check, promo, castle = [], [], [], []
     for u in moves:
         mv = b.parse_uci(u)
         sans.append(b.san(mv))
+        capture.append(b.is_capture(mv))
+        gives_check.append(b.gives_check(mv))
+        promo.append(mv.promotion is not None)
+        castle.append(b.is_castling(mv))
         b.push(mv)
         boards.append(b.copy())
         mat.append(white_material(b))
@@ -67,17 +71,24 @@ def base_channels(rec: dict) -> tuple[dict, dict, list[chess.Board]]:
            "in_check": np.array(check), "fen": [x.fen() for x in boards]}
     mover = np.arange(n) % 2
     mov = {"ply": np.arange(n), "mover": mover, "uci": list(moves), "san": sans,
-           "n_legal": pos["n_legal"][:n], "forced": pos["n_legal"][:n] == 1}
-    # Material from the mover's view after the opponent's reply (what the mover faces at their next decision).
+           "n_legal": pos["n_legal"][:n], "forced": pos["n_legal"][:n] == 1, "in_check": pos["in_check"][:n],
+           "capture": np.array(capture, bool), "gives_check": np.array(gives_check, bool),
+           "promotion": np.array(promo, bool), "castle": np.array(castle, bool)}
+    # Material from the mover's view in the position the move is chosen from, and its change since the mover's
+    # previous decision (the opponent's reply included).
     sign = np.where(mover == 0, 1.0, -1.0)
     mov["material_own"] = sign * pos["material_w"][:n]
+    prev = np.r_[np.full(2, np.nan), pos["material_w"][:max(0, n - 2)]]
+    mov["material_own_delta"] = sign * (pos["material_w"][:n] - prev)
     if clocks is not None and base:
         c = np.array(clocks, float)
         before = np.array([c[k - 2] if k >= 2 else base for k in range(n)])
         opp = np.array([c[k - 1] if k >= 1 else base for k in range(n)])
         think = np.array([max(0.0, c[k - 2] - c[k] + inc) if k >= 2 else np.nan for k in range(n)])
+        with np.errstate(divide="ignore"):
+            tfrac = logit((think + 0.5) / (before + inc))
         mov |= {"clock_after": c, "clock_before": before, "clock_opp": opp, "think_s": think,
-                "think_frac": logit((think + 0.5) / (before + inc)), "clock_frac": before / base}
+                "think_frac": tfrac, "clock_frac": before / base}
     rec["base_eff"] = base
     return pos, mov, boards
 
@@ -127,6 +138,15 @@ def maia_channels(rec: dict, pos: dict, mov: dict, boards: list[chess.Board], de
     mov |= {"maia_entropy": ent, "maia_p_top": ptop, "maia_played_lp": plp, "maia_played_rank": prank}
 
 
+def teacher_moves(mov: dict, top_lp, played_idx, top_idx, played_lp, entropy):
+    """The same per-move T1 names from the stored Maia-3 teacher outputs (doppel_lab.teacher, top-16 only).
+    Rank is exact inside the top 16 and 17 outside it. Agrees with the live path to ~0.003 nats."""
+    hit = top_idx == played_idx[:, None]
+    mov |= {"maia_entropy": entropy.astype(float), "maia_p_top": np.exp(top_lp[:, 0].astype(float)),
+            "maia_played_lp": played_lp.astype(float),
+            "maia_played_rank": np.where(hit.any(1), hit.argmax(1) + 1, 17).astype(float)}
+
+
 def stockfish_channels(pos: dict, mov: dict, boards: list[chess.Board], nodes: int = 50_000,
                        path: str = "/usr/games/stockfish"):
     """Same settings as doppel_lab.analyze (1 thread, 16 MB hash, fixed nodes, mate = +/-10000), so a game scored
@@ -148,12 +168,19 @@ def stockfish_channels(pos: dict, mov: dict, boards: list[chess.Board], nodes: i
                 cp.append(eng.analyse(b, chess.engine.Limit(nodes=nodes))["score"].white().score(mate_score=MATE))
     finally:
         eng.quit()
+    eval_channels(pos, mov, cp)
+
+
+def eval_channels(pos: dict, mov: dict, cp):
+    """T2 channels from White-POV cp for positions 0..n (live, or stored data/v0/evals_*.parquet)."""
     cp = np.array(cp, float)
     pos |= {"cp_w": cp, "wc_w": wc(cp)}
     n = len(mov["ply"])
     sign = np.where(mov["mover"] == 0, 1.0, -1.0)
     cpc = np.clip(cp, -CLIP, CLIP)
     mov["cpl"] = np.maximum(0.0, sign * (cpc[:n] - cpc[1:]))
+    mov["cp_own"] = sign * cpc[:n]
+    mov["wc_own"] = sign * pos["wc_w"][:n]
     mov["wc_loss"] = np.maximum(0.0, sign * (pos["wc_w"][:n] - pos["wc_w"][1:]))
     cls = np.array([""] * n, dtype=object)
     for name, t in reversed(CLASSES):

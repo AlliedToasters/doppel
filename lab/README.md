@@ -9,6 +9,14 @@ Research sandbox, runs on the dev box. Run everything from the repo root (paths 
 
 Data lives in ../data (gitignored); results in lab/results.
 
+## Canonical features
+
+Per-move feature tables for baselines, from the same code the analyzer uses (docs/SCIENCE.md §3):
+
+    uv run python -m doppel_lab.features.table --split val --tier T2    # T0 moves/clocks, T1 Maia-3, T2 Stockfish
+
+`doppel_lab.features.registry.select(tier="T1", regime="R1")` lists the features a baseline at that tier may use.
+
 ## Render any finished game
 
     uv run python -m doppel_lab.analyzer <lichess game ID or URL | file.pgn> [--out game.html] [--tables DIR]

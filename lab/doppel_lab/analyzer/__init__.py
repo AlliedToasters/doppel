@@ -7,7 +7,7 @@ game_id from data/v0/games_*.parquet. Everything runs on the CPU in seconds for 
 
 Layers, cheapest first (docs/SCIENCE.md §3 and §3.4):
   source.py      load a game into one record (moves, clocks, ratings, result)
-  channels.py    raw per-ply signals by cost tier: clocks, material, Maia-3, Stockfish
-  transforms.py  rolling mean, EWMA, volatility, velocity, drawdown, plies-since-event; events; per-game summary
+  doppel_lab.features.channels    raw per-ply signals by compute tier (shared with corpus-scale baselines)
+  doppel_lab.features.transforms  rolling mean, EWMA, volatility, velocity, drawdown; events; per-game summary
   render.py      one self-contained HTML page: stacked panels on a shared ply axis, board on hover
 """

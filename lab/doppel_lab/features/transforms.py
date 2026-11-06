@@ -1,4 +1,4 @@
-"""Trajectory transforms, events and the per-game summary (docs/SCIENCE.md §3.4).
+"""Trajectory transforms (regime R1), events and the per-game summary (docs/SCIENCE.md §3.4; names in registry.py).
 
 Every transform is causal: the value at a ply uses only that ply and earlier ones, so the same features can be fed
 to a model that predicts the next move. Move-level channels are transformed per side, over that side's own moves.
@@ -9,6 +9,7 @@ from __future__ import annotations
 import chess
 import numpy as np
 
+from doppel_lab.features.registry import POS_SERIES, SIDE_CHANNELS, SIDE_SUFFIXES
 from doppel_lab.resign import classify
 
 SHOCK = 3            # realized shock: material loss of >= 3 that persists for the player's next two moves
@@ -16,9 +17,6 @@ TROUBLE = 0.10       # time trouble: own clock below 10% of base time
 LEAD = 0.2           # lead change: winning chances (or Maia-3 expected score - 0.5, x2) beyond +/-0.2 on both sides
 EWMA_ALPHA = 0.3     # matches the think-time probe's decayed tempo (weight 0.7 on the past)
 ROLL = 5             # own moves in a rolling window
-
-# Move-level channels transformed per side, when present.
-SIDE_CHANNELS = ("think_s", "think_frac", "clock_frac", "maia_entropy", "maia_played_lp", "cpl", "wc_loss")
 
 
 def ewma(x, alpha=EWMA_ALPHA):
@@ -71,14 +69,16 @@ def lichess_window(n_positions):
 
 
 def side_transforms(mov: dict) -> dict:
-    """Per side, over own moves: EWMA, rolling mean and std, velocity; running median of think fraction (tempo)."""
+    """Per side, over own moves: EWMA, rolling mean and std, velocity; running median of think fraction (tempo).
+    Each "<x>" includes the current move; "<x>_prev" is its value as of the mover's previous move."""
     n = len(mov["ply"])
     out = {}
     for ch in SIDE_CHANNELS:
         if ch not in mov:
             continue
-        for suffix in ("ewma", "roll_mean", "roll_std", "vel"):
+        for suffix in SIDE_SUFFIXES:
             out[f"{ch}_{suffix}"] = np.full(n, np.nan)
+            out[f"{ch}_{suffix}_prev"] = np.full(n, np.nan)
         if ch == "think_frac":
             out["tempo_median"] = np.full(n, np.nan)
         for side in (0, 1):
@@ -88,6 +88,8 @@ def side_transforms(mov: dict) -> dict:
             out[f"{ch}_roll_mean"][idx] = rolling(x, ROLL, np.mean)
             out[f"{ch}_roll_std"][idx] = rolling(x, ROLL, np.std)
             out[f"{ch}_vel"][idx] = velocity(x)
+            for suffix in SIDE_SUFFIXES:
+                out[f"{ch}_{suffix}_prev"][idx] = np.r_[np.nan, out[f"{ch}_{suffix}"][idx][:-1]]
             if ch == "think_frac":
                 # Tempo before this move: the player's pace so far, excluding the move being predicted.
                 out["tempo_median"][idx] = np.r_[np.nan, running_median(x)[:-1]]
@@ -98,7 +100,8 @@ def position_transforms(pos: dict) -> dict:
     """White-POV position series: volatility of win% (Lichess window), velocity, and each side's drawdown."""
     out = {}
     w = lichess_window(len(pos["ply"]))
-    for ch, scale in (("wc_w", 50.0), ("maia_es_w", 100.0)):
+    for ch, _ in POS_SERIES:
+        scale = 50.0 if ch == "wc_w" else 100.0
         if ch not in pos:
             continue
         # Win% on 0..100: Lichess uses 50 + 50 * wc; Maia-3 expected score is 0..1, so x100.
@@ -108,6 +111,21 @@ def position_transforms(pos: dict) -> dict:
         out[f"{ch}_drawdown_white"] = drawdown(pct)
         out[f"{ch}_drawdown_black"] = drawdown(100.0 - pct)
     out["material_vel"] = velocity(pos["material_w"])
+    return out
+
+
+def position_to_moves(pos_tf: dict, mov: dict) -> dict:
+    """Position transforms at the position each move is chosen from, from the mover's view (mov-table names)."""
+    n = len(mov["ply"])
+    white = mov["mover"] == 0
+    out = {}
+    for ch, _ in POS_SERIES:
+        if f"{ch}_volatility" not in pos_tf:
+            continue
+        out[f"{ch}_volatility"] = pos_tf[f"{ch}_volatility"][:n]
+        out[f"{ch}_vel_own"] = np.where(white, 1.0, -1.0) * pos_tf[f"{ch}_vel"][:n]
+        out[f"{ch}_drawdown_own"] = np.where(white, pos_tf[f"{ch}_drawdown_white"][:n],
+                                             pos_tf[f"{ch}_drawdown_black"][:n])
     return out
 
 

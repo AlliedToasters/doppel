@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from doppel_lab.analyzer import channels, render, source, transforms
+from doppel_lab.analyzer import render, source
+from doppel_lab.features import channels, transforms
 from doppel_lab.analyzer.__main__ import analyze
 
 PGN = """[Event "Rated blitz game"]

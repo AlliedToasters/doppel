@@ -21,7 +21,6 @@ import argparse
 import numpy as np
 import polars as pl
 
-from doppel_lab.metrics import CLIP, wc
 from doppel_lab.resign import V0
 
 THRESH = 0.3
@@ -29,16 +28,16 @@ THRESH_MAIA = 0.2
 
 
 def labels(evals) -> dict:
-    """evals[k] is White-POV cp after ply k (evals[0] = start position); returns per-ply mover-POV labels."""
-    ev = np.asarray(evals, float)
-    n = len(ev) - 1
-    sign = np.where(np.arange(n) % 2 == 0, 1.0, -1.0)
-    w = wc(ev)
-    wc_loss = np.maximum(0.0, sign * (w[:n] - w[1:]))
-    c = np.clip(ev, -CLIP, CLIP)
-    cpl = np.maximum(0.0, sign * (c[:n] - c[1:]))
-    return {"wc_loss": wc_loss.astype(np.float32), "cpl": cpl.astype(np.float32),
-            "blunder": (wc_loss >= THRESH).astype(np.int8), "blunder2": (wc_loss >= THRESH_MAIA).astype(np.int8)}
+    """evals[k] is White-POV cp of position k (evals[0] = start position); returns per-ply mover-POV labels.
+    Same definitions as the registry's T2 features (doppel_lab.features.channels.eval_channels)."""
+    from doppel_lab.features.channels import eval_channels
+
+    n = len(evals) - 1
+    mov = {"ply": np.arange(n), "mover": np.arange(n) % 2}
+    eval_channels({}, mov, evals)
+    wl = mov["wc_loss"]
+    return {"wc_loss": wl.astype(np.float32), "cpl": mov["cpl"].astype(np.float32),
+            "blunder": (wl >= THRESH).astype(np.int8), "blunder2": (wl >= THRESH_MAIA).astype(np.int8)}
 
 
 def select(split: str, band: int, n_games: int | None, seed: int = 0):
