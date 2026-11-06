@@ -36,7 +36,7 @@ doppel/
   vendor/                 gitignored; fetch.sh pins maia3 (AGPL-3.0) and chessmimic (PolyForm Noncommercial, lab only)
   data/                   gitignored; Lichess dumps, evals, synthetic games (lab reads it from the repo root)
   demo/                   temporary PWA + move server; deleted once client/ and backend/infer serve Maia-3
-  docs/
+  docs/                   design notes; SCIENCE.md is the canonical science program
 ```
 
 Python uses one uv workspace with members `lab`, `packages/doppel_model`, `backend/api`, `backend/infer` and `backend/lichess_bot`.
