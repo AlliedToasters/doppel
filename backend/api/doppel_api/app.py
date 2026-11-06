@@ -61,6 +61,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
+accounts.install_log_redaction()
 app = FastAPI(title="Doppel API", lifespan=lifespan)
 app.include_router(accounts.router)
 _locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -378,12 +379,8 @@ async def bots(request: Request):
     return JSONResponse(r.json(), status_code=r.status_code)
 
 
-@app.post("/api/move")
-async def stateless_move(request: Request):
-    """Stateless analysis/practice move (the pre-api client contract). Not used for hosted games."""
-    r = await request.app.state.infer.http.post("/api/move", content=await request.body(),
-                                                headers={"content-type": "application/json"})
-    return JSONResponse(r.json(), status_code=r.status_code)
+# No stateless "/api/move" here: a move for an arbitrary position is a move-suggestion service (Lichess fair play,
+# ARCHITECTURE.md). Clients get bot moves only inside games the server hosts. infer stays on 127.0.0.1.
 
 
 @app.get("/api/health")

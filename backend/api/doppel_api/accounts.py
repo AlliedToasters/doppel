@@ -12,7 +12,9 @@ Deleting the account removes its games, plies, consents and ratings.
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
+import re
 import secrets
 import time
 
@@ -30,6 +32,27 @@ CONSENT_TEXT = (
     "time; games already exported are then deleted from training data at the next export.")
 
 router = APIRouter()
+
+
+_TOKEN_IN_URL = re.compile(r"([?&]token=)[^&\s\"]+")
+
+
+class RedactTokens(logging.Filter):
+    """Keeps bearer tokens out of server logs: the WebSocket carries one in its URL (?token=), and uvicorn logs
+    request lines verbatim."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        if "token=" in msg:
+            record.msg, record.args = _TOKEN_IN_URL.sub(r"\1REDACTED", msg), None
+        return True
+
+
+def install_log_redaction() -> None:
+    for name in ("uvicorn.access", "uvicorn.error", "uvicorn"):
+        lg = logging.getLogger(name)
+        if not any(isinstance(f, RedactTokens) for f in lg.filters):
+            lg.addFilter(RedactTokens())
 
 
 def hash_token(token: str) -> str:

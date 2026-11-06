@@ -118,3 +118,17 @@ def test_fit_recovers_order():
     res = [("u", "b1", 1.0)] * 8 + [("u", "b2", 0.0)] * 8 + [("u", "b2", 0.5)] * 2
     out = ratings.fit(res, pri)
     assert 1200 < out["u"][0] < 1800 and out["b1"][0] < 1200 and out["b2"][0] > 1800
+
+
+def test_tokens_never_reach_logs():
+    import logging
+
+    from doppel_api.accounts import RedactTokens
+    rec = logging.LogRecord("uvicorn.error", logging.INFO, "", 0, '%s - "WebSocket %s" [accepted]',
+                            ("1.2.3.4:0", "/api/games/abc/ws?token=s3cr3t-Tok_en&x=1"), None)
+    RedactTokens().filter(rec)
+    assert "s3cr3t" not in rec.getMessage() and "token=REDACTED&x=1" in rec.getMessage()
+
+
+def test_no_stateless_move_endpoint(client):
+    assert client.post("/api/move", json={"bot": "x", "moves": []}).status_code in (404, 405)

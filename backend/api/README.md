@@ -39,7 +39,9 @@ export, tombstones for games withdrawn or deleted since an earlier export, in `<
 Storage: SQLite at `data/api.db` (Stage 0); `DOPPEL_DB_URL=postgresql+psycopg://...` with the `postgres` extra for Stage 1.
 
 Stage 0 (bigbox): the api is the only service the phone sees (tailscale serve :8460 -> 127.0.0.1:8612). It
-also passes `/api/bots` and the stateless `/api/move` through to infer and serves the APK from `demo/static`.
+also passes `/api/bots` through to infer and serves the APK from `demo/static`. There is deliberately no stateless
+`/api/move`: bot moves exist only inside server-hosted games, so the api is never a move-suggestion service for a
+live Lichess game. Bearer tokens are redacted from uvicorn's log lines (`?token=REDACTED`).
 
 Runs as the user unit `doppel-api` (~/.config/systemd/user/doppel-api.service; `systemctl --user restart doppel-api`, logs in logs/). The command below is what the unit runs.
 
