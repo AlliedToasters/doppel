@@ -124,9 +124,9 @@ cannot drift. Results files record the feature-set version.
   that only search sees. Search is sequential alpha-beta built around incremental CPU updates of the net, so a
   GPU does not speed it up; corpus throughput already scales linearly with cores (one engine per game). Labels
   stay at 50k nodes. A **T2-lite** channel at 5,000 nodes (full corpus in about 3 h on 28 cores) is an option
-  when a baseline needs Stockfish features on every position. The GPU route is different work: a net trained on
-  our 50k-node labels to predict wc and wc loss directly (T1 cost). It is a new feature with its own measured
-  error, not a faster Stockfish. Blunder rates from 2,866 positions are noisy (about ±0.05).
+  when a baseline needs Stockfish features on every position. **Planned (future ML work): an auxiliary eval net**, trained
+  on our 50k-node labels to predict wc and wc loss directly, batched on the GPU at T1 cost. It is a new feature
+  with its own measured error against the 50k-node labels, not a faster Stockfish. Blunder rates from 2,866 positions are noisy (about ±0.05).
 - **Caveat:** Stockfish sees tactics a 1500 player does not. A better eval is not always a better predictor of
   human behavior; Maia-3's win/draw/loss is closer to how a human of that rating sees the position.
 
