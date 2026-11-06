@@ -11,6 +11,7 @@ client/**/.dart_tool/
 client/**/.flutter-plugins*
 # client builds served by the demo server
 demo/static/doppel.apk
+client/backend_url.local
 
 # exported model packages (lab -> backend); published to object storage later
 /models/
