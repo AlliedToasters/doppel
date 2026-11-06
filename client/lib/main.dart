@@ -509,6 +509,13 @@ class _PlayScreenState extends State<PlayScreen> {
                   label: const Text('Find a Lichess game'),
                 ),
               ],
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SelectableText(
+                  'Open source (AGPL-3.0): https://github.com/AlliedToasters/doppel',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: () {

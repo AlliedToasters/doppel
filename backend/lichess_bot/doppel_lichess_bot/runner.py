@@ -29,6 +29,7 @@ from doppel_model import heuristic_think_ms
 log = logging.getLogger("doppel.lichess_bot")
 ELO_MIN, ELO_MAX = 600, 2600
 MIN_BASE_S, MAX_BASE_S = 60, 3600
+SOURCE_NOTE = "Open source (AGPL-3.0): https://github.com/AlliedToasters/doppel"  # AGPL section 13 offer
 
 
 @dataclass
@@ -151,6 +152,7 @@ class Game:
                 await self.lc.post(f"/api/bot/game/{self.id}/chat", {"room": "player", "text": (
                     f"Hi! I'm a doppel: a human-like chess model (Maia-3) playing at your rating, {self.elo}. "
                     "My think times are simulated. Have fun!")})
+                await self.lc.post(f"/api/bot/game/{self.id}/chat", {"room": "player", "text": SOURCE_NOTE})
             state = ev["state"]
         elif ev.get("type") == "gameState":
             state = ev
