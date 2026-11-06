@@ -8,8 +8,10 @@ One long-lived runner for the Lichess BOT account `doppelbot`. It reads the Bot 
 - **Allowlist:** `--allow a,b` accepts challenges only from those Lichess users. Keep it set until the AGPL source offer for infer and this runner is public, because Maia-3 is AGPL-3.0.
 - **Greeting:** it opens each game by telling the opponent it is a human-like model and that its think times are simulated.
 
+Runs as the user unit `doppel-lichess-bot` (~/.config/systemd/user/doppel-lichess-bot.service; `systemctl --user restart doppel-lichess-bot`, logs in logs/). The command below is what the unit runs.
+
 ```
 .venv/bin/python -m doppel_lichess_bot.runner --allow <lichess names> >> logs/lichess_bot.log 2>&1 &
 ```
 
-The token lives in `~/.config/doppel/lichess_bot.token` (chmod 600, `bot:play` scope) and is never logged. Stop the runner by PID (`pgrep -af doppel_lichess_bot`), never with `pkill -f`.
+The token lives in `~/.config/doppel/lichess_bot.token` (chmod 600, `bot:play` scope) and is never logged. Change the allowlist in the unit's ExecStart, then `systemctl --user daemon-reload && systemctl --user restart doppel-lichess-bot`.

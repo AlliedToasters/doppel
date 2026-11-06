@@ -8,4 +8,6 @@ Stateless CPU move server: ONNX Runtime + `packages/doppel_model`. Replaces `dem
 
 Stage 0 (bigbox): internal only; clients reach it through backend/api.
 
+Runs as the user unit `doppel-infer` (~/.config/systemd/user/doppel-infer.service; `systemctl --user restart doppel-infer`, logs in logs/). The command below is what the unit runs.
+
     .venv/bin/uvicorn doppel_infer.app:app --host 127.0.0.1 --port 8614

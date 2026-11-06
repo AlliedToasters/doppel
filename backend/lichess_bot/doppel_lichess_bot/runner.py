@@ -216,7 +216,8 @@ async def run(cfg: Config, token: str, infer_url: str) -> None:
                         log.info("accept %s from %s", ch["id"], who)
                         await lc.post(f"/api/challenge/{ch['id']}/accept")
                     else:
-                        log.info("decline %s from %s: %s", ch["id"], who, reason)
+                        log.info("decline %s from %s: %s (tc=%s rated=%s variant=%s)", ch["id"], who, reason, ch.get("timeControl"),
+                                 ch.get("rated"), (ch.get("variant") or {}).get("key"))
                         await lc.post(f"/api/challenge/{ch['id']}/decline", {"reason": reason})
                 elif kind == "gameStart":
                     gid = ev["game"]["gameId"]
