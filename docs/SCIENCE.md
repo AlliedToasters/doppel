@@ -275,6 +275,28 @@ read the source in full; "abstract" means only its abstract or a summary so far.
   [MaiaChess/maia3](https://huggingface.co/collections/MaiaChess/maia3). Blitz only, no clock input. Used, not
   yet read in full.
 
+- **Maia (original): human move prediction, tuned by rating, and blunder prediction.** McIlroy-Young, Sen,
+  Kleinberg, Anderson, *Aligning Superhuman AI with Human Behavior: Chess as a Model System*, KDD 2020,
+  [arXiv:2006.01855](https://arxiv.org/abs/2006.01855). Read.
+  - Weakened engines do not imitate humans. Depth-limited Stockfish matches 33–41% of human moves, and every
+    depth predicts strong players better than weak ones. Leela versions are flat across ratings. Maia, one
+    search-free network per 100-point band, reaches 46–53% and peaks near its own band.
+  - Search hurts prediction (10 rollouts cost 5–10 points); 12 plies of history add about 3 points.
+  - Evaluation protocol, later copied by Allie: drop the first 10 plies, every move made with under 30 s left,
+    and bullet games. Our think-time and resignation targets must keep those moves, so we report both: our
+    full set, and the Maia filter when comparing move matching with published numbers.
+  - Blunder prediction: a blunder is a drop of ≥ 10 points of win probability, from an empirical table of
+    win rate by Stockfish cp in 10 cp steps (not Lichess's logistic curve). On a balanced test set, a residual
+    CNN reaches 67.7% accuracy from the board alone and 71.7% with metadata (ratings, clock fractions, and the
+    cp score). Collective version: positions seen ≥ 10 times, predicting whether > 10% of players blunder,
+    76.9%.
+  - Units: 10 points of win probability on a 0–1 scale is a drop of 0.2 in Lichess winning chances (−1..1),
+    Lichess's "mistake" level, not its 0.3 "blunder".
+  - Open direction they name: finding distinctions among players with the same rating. That is our per-game z.
+- **Error against a benchmark of perfection.** Anderson, Kleinberg, Mullainathan, *Assessing human error against
+  a benchmark of perfection*, ACM TKDD 11(4), 2017. Cited by Maia as prior work on errors by skill, time and
+  difficulty. Not yet read.
+
 ### Evaluation trajectories and per-game features
 
 - **Volatility-weighted accuracy (Lichess).** [lichess.org/page/accuracy](https://lichess.org/page/accuracy).
