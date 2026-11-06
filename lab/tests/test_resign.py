@@ -31,3 +31,12 @@ def test_target_only_on_final_resigner_position():
     assert len(rows) == 4 and ys == [0, 0, 0, 1]
     rows, ys = game_features((moves, [300.0, 300.0, 299.0], 1500, 1500, 300, 0, "flag", None))
     assert len(rows) == 3 and sum(ys) == 0  # final position dropped when nobody resigned
+
+
+def test_blunder_labels_mover_pov():
+    from doppel_lab.blunder import labels
+    # start +20; White blunders to -500; Black then blunders back to +600; White holds at +590
+    lab = labels([20, -500, 600, 590])
+    assert lab["blunder"].tolist() == [1, 1, 0]
+    assert lab["cpl"].tolist() == [520, 1100, 10]
+    assert (lab["wc_loss"] >= 0).all() and lab["blunder2"][2] == 0

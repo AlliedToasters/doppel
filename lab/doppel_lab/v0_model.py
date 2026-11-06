@@ -7,7 +7,7 @@
              and rank of the played move, teacher entropy, think fraction, clock fraction); opponent plies are
              context, flagged as such
   residual   g(current board, z, ratings): a small transformer with no move history, added to the teacher's
-             logits. Its output gain starts at 0, so step 0 is exactly Maia-3.
+             logits. Its output projection starts at 0, so step 0 is exactly Maia-3; the correction is soft-capped.
   think      censored likelihood of the think fraction think / (remaining + inc) on the logit scale: logistic
              main component plus a wide Cauchy outlier component (heavy tails); clocks are whole seconds, so the
              observation is the interval think ± 1 s
@@ -29,6 +29,7 @@ from doppel_lab.v0_data import CLK_FEATS, ENC_FEATS, HIST, TEMPO_FEATS
 
 Z = 8
 NMOVES = 4352
+CAP = 10.0  # max |logit correction| in nats
 
 
 class Trunk(nn.Module):
@@ -93,7 +94,9 @@ class Encoder(nn.Module):
         super().__init__()
         self.inp = nn.Linear(ENC_FEATS + cond_dim, d)
         layer = nn.TransformerEncoderLayer(d, heads, 2 * d, dropout=0.0, batch_first=True, norm_first=True)
-        self.tf = nn.TransformerEncoder(layer, layers, enable_nested_tensor=False)
+        # Final LayerNorm: with pre-norm layers the residual stream is otherwise unnormalized and grows (v0a's
+        # policy residual diverged this way: raw bilinear scores ~2e7 by step 3000).
+        self.tf = nn.TransformerEncoder(layer, layers, norm=nn.LayerNorm(d), enable_nested_tensor=False)
         self.out = nn.Linear(d, 2 * Z)
 
     def forward(self, enc, mask, cond):
@@ -113,10 +116,15 @@ class Residual(nn.Module):
         self.piece = nn.Linear(12, d)
         self.ctx = nn.Linear(Z + 2, d)
         layer = nn.TransformerEncoderLayer(d, heads, 2 * d, dropout=0.0, batch_first=True, norm_first=True)
-        self.tf = nn.TransformerEncoder(layer, layers, enable_nested_tensor=False)
+        # Final LayerNorm: with pre-norm layers the residual stream is otherwise unnormalized and grows (v0a's
+        # policy residual diverged this way: raw bilinear scores ~2e7 by step 3000).
+        self.tf = nn.TransformerEncoder(layer, layers, norm=nn.LayerNorm(d), enable_nested_tensor=False)
         self.q_from, self.q_to = nn.Linear(d, dh, bias=False), nn.Linear(d, dh, bias=False)
         self.promo = nn.Linear(d, 4, bias=False)
-        self.gain = nn.Parameter(torch.zeros(()))
+        # Zero-init the 'to' side and the promotion head so scores start at exactly 0. A scalar gain on unbounded
+        # scores let Adam grow the scores while the gain sat near 0.
+        nn.init.zeros_(self.q_to.weight)
+        nn.init.zeros_(self.promo.weight)
         self.dh = dh
         r7, r8 = torch.arange(48, 56), torch.arange(56, 64)
         self.register_buffer("pf", r7.repeat_interleave(32), persistent=False)        # from square per promo
@@ -135,7 +143,8 @@ class Residual(nn.Module):
         s = torch.einsum("bid,bjd->bij", f, t) / math.sqrt(self.dh)
         flat = s.reshape(len(x), 4096)
         promo = s[:, self.pf, self.pt] + self.promo(x[:, 56:64])[:, self.pt - 56, self.pp]
-        return self.gain * torch.cat([flat, promo], 1)
+        s = torch.cat([flat, promo], 1)
+        return CAP * torch.tanh(s / CAP)
 
 
 class ThinkHead(nn.Module):
@@ -255,5 +264,5 @@ def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha:
     parts = {"loss": total.item(), "ce": L_pol.item(), "ce_teacher": ce_t[has_move].mean().item(),
              "marg": L_marg.item(), "kl_nats": kl.mean().item(), "think_nll": L_think.item(),
              "resign_bce": L_res.item(), "top1": top1.item(), "top1_teacher": top1_t.item(),
-             "gain": model.residual.gain.item()}
+             "res_abs": (s_logits - t_logp).abs()[mask].mean().item()}
     return total, parts
