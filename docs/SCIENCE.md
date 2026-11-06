@@ -1,7 +1,6 @@
 # Doppel science program
 
-Canonical. This file defines what Doppel models about human chess behavior, how each capability is measured, and
-what it must beat. If a capability, metric or baseline is not written here, it is not part of the program yet.
+This file defines what Doppel models about human chess behavior and how each capability is measured.
 Results live in `lab/results/*.json`; the numbers quoted below are copied from those files with their dates.
 
 ## 1. Scope: the model of human behavior
@@ -15,11 +14,10 @@ assumed to be inherited from the move-choice teacher or ignored.
 | Think time | How long does this player spend on this move? | Modeled (§5) |
 | Resignation | Does this player resign now instead of moving? | Modeled (§6) |
 
-Move choice itself is **inherited**, not a research target: Doppels distil from Maia-3 (`doppel_lab/teacher.py`)
-and we only check that move quality does not regress (top-1 and perplexity, `doppel_lab/top1.py`).
-
-Candidates not yet in scope (each needs a section like §5 before work starts): draw offers and acceptance,
-flagging versus resigning in lost positions, premoves, tilt across games.
+Move choice itself is a research target, but at this time is only planned future work. Currently we use
+off-the-shelf models like Maia, and plan to leverage other chess-playing models such as ChessMimic when we begin
+modeling move choice. Until then, v0 distils move choice from Maia-3 (`doppel_lab/teacher.py`) and we check only
+that it does not regress (top-1 and perplexity, `doppel_lab/top1.py`).
 
 ## 2. The benchmark rule
 
@@ -49,7 +47,7 @@ Rules that keep the comparison fair:
 We pick features in order of cost. Cheap features are used everywhere; expensive ones only where the payoff is
 measured.
 
-| Tier | Feature | Cost (bigbox) | Notes |
+| Tier | Feature | Cost (lab server) | Notes |
 |---|---|---|---|
 | 0 | Clocks, increment, ply, both ratings, legal-move count, in check | free | Already in the game record or one board call |
 | 1 | **Material** balance (P 1, N 3, B 3, R 5, Q 9) | microseconds per position | Best signal per unit of compute |
