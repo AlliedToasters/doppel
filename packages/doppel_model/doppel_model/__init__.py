@@ -6,5 +6,6 @@ lab/doppel_lab/export_package.py checks it against the torch model end to end.
 
 from .encoding import MOVES, MOVE_INDEX, encode, legal_mask, mirror_uci, board_planes
 from .package import ModelPackage, load_packages
+from .think import heuristic_think_ms
 
-__all__ = ["MOVES", "MOVE_INDEX", "encode", "legal_mask", "mirror_uci", "board_planes", "ModelPackage", "load_packages"]
+__all__ = ["MOVES", "MOVE_INDEX", "encode", "legal_mask", "mirror_uci", "board_planes", "ModelPackage", "load_packages", "heuristic_think_ms"]

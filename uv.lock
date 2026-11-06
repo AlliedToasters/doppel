@@ -8,6 +8,7 @@ members = [
     "doppel-chess",
     "doppel-infer",
     "doppel-lab",
+    "doppel-lichess-bot",
     "doppel-model",
 ]
 
@@ -223,6 +224,7 @@ name = "doppel-api"
 version = "0.0.1"
 source = { editable = "backend/api" }
 dependencies = [
+    { name = "doppel-model" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "numpy" },
@@ -239,6 +241,7 @@ postgres = [
 
 [package.metadata]
 requires-dist = [
+    { name = "doppel-model", editable = "packages/doppel_model" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "numpy" },
@@ -258,6 +261,7 @@ dependencies = [
     { name = "doppel-api" },
     { name = "doppel-infer" },
     { name = "doppel-lab" },
+    { name = "doppel-lichess-bot" },
 ]
 
 [package.dev-dependencies]
@@ -270,6 +274,7 @@ requires-dist = [
     { name = "doppel-api", editable = "backend/api" },
     { name = "doppel-infer", editable = "backend/infer" },
     { name = "doppel-lab", editable = "lab" },
+    { name = "doppel-lichess-bot", editable = "backend/lichess_bot" },
 ]
 
 [package.metadata.requires-dev]
@@ -351,6 +356,25 @@ requires-dist = [
     { name = "tqdm" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0" },
     { name = "zstandard" },
+]
+
+[[package]]
+name = "doppel-lichess-bot"
+version = "0.0.1"
+source = { editable = "backend/lichess_bot" }
+dependencies = [
+    { name = "doppel-model" },
+    { name = "httpx" },
+    { name = "numpy" },
+    { name = "python-chess" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "doppel-model", editable = "packages/doppel_model" },
+    { name = "httpx" },
+    { name = "numpy" },
+    { name = "python-chess" },
 ]
 
 [[package]]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import chess
 import numpy as np
+from doppel_model import heuristic_think_ms
 
 from .db import Game
 
@@ -106,20 +107,6 @@ def sample_z(prior: dict | None, rng: np.random.Generator) -> list | None:
 
 
 def think_ms(g: Game, p_top: float, now: float, rng: np.random.Generator) -> int:
-    """Human-like think time for the bot's next move (placeholder until a model has a clock head).
-
-    Quick for the first few moves and for forced moves; otherwise its remaining time spread over the moves it
-    expects to play, scaled up when the policy is unsure (low top-move probability), with lognormal noise.
-    Never spends more than a quarter of what is left, and leaves a margin so it cannot flag by thinking."""
-    mover = side_to_move(g)
-    left = remaining_ms(g, mover, now)
-    own = len(g.moves) // 2
-    if board(g).legal_moves.count() == 1:
-        t = rng.uniform(300, 900)
-    elif own < 3:
-        t = rng.uniform(400, 1500)
-    else:
-        budget = left / max(50 - own, 25) + 0.6 * g.inc_ms
-        t = budget * (0.3 + 1.3 * (1.0 - p_top)) * rng.lognormal(0.0, 0.55)
-    cap = max(150.0, min(0.25 * left, left - 1500.0))
-    return int(np.clip(t, 150.0, cap))
+    """Human-like think time for the bot's next move: doppel_model.heuristic_think_ms on this game's clock."""
+    return heuristic_think_ms(remaining_ms(g, side_to_move(g), now), g.inc_ms, len(g.moves),
+                              board(g).legal_moves.count(), p_top, rng)

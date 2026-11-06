@@ -24,7 +24,7 @@ doppel/
   backend/
     api/                  FastAPI: accounts, consent, Doppel-hosted games (WebSocket), ratings, export
     infer/                stateless CPU model server (ONNX Runtime), one process per model package
-    lichess_bot/          one runner per doppel BOT account (Lichess Bot API stream → infer)
+    lichess_bot/          one runner for the BOT account doppelbot (Lichess Bot API stream → infer)
   lab/                    research sandbox: today's doppel/ package, scripts/, results/
   packages/
     doppel_model/         shared Python: board/history encoding, move decoding, z sampling, package loader
@@ -73,7 +73,7 @@ models/<name>-<sha8>/      (gitignored locally; object storage later)
   - Input is a position plus history, clocks, Elo and z. Output is a move distribution, a sampled move and a think time.
   - It scales horizontally, one process per CPU core group.
   - Latency budget: p95 under 150 ms per move on a 4-vCPU box, to be measured on Maia-3 79M before committing to an instance size.
-- **lichess_bot:** a long-lived worker per BOT account that streams Lichess events and calls infer. It has no database access beyond recording that a game happened; Lichess already publishes those games.
+- **lichess_bot:** a long-lived worker for one BOT account (`doppelbot`, upgraded 2026-11-06) that streams Lichess events and calls infer. Every doppel plays from this one account, at the challenger's rating; a second BOT account needs Lichess's OK first (their multi-account rule). Public play waits for the AGPL source offer (Maia-3 is AGPL-3.0; the repo is private), so until then `--allow` limits challengers. It has no database access beyond recording that a game happened; Lichess already publishes those games.
 - **Stage 0 (now): bigbox over the tailnet.** Everything runs on this box, CPU only. The backend binds to 127.0.0.1, and `tailscale serve` publishes it on HTTPS at `https://bigbox.<tailnet>.ts.net:<port>`, so the phone gets a real certificate and Android needs no cleartext exception. Only devices on the tailnet can reach it, so there's no public exposure, no accounts and no consent flow yet. The client reads its backend URL from `--dart-define=BACKEND_URL=...`, which means moving to the cloud later is a rebuild, not a code change. The APK is built on bigbox and installed on the Pixel 8, either by downloading it from a tailnet URL or by `adb` wireless debugging. Stage 0 lasts until real Doppel models are ready.
 - **Stage 1: cloud.** One CPU VM running `api + infer + lichess_bot + postgres + caddy` under docker compose. Split infer onto its own VMs once it's the bottleneck.
 
@@ -118,7 +118,7 @@ models/<name>-<sha8>/      (gitignored locally; object storage later)
 2. Build the Flutter client shell with the `BoardSurface` interface and the Classic skin (chessground), then the Doppel skin prototype (drag, tap-move, animation, haptics, sound, premove), playing a local random-move opponent, as an Android debug build plus a web build: 2–3 days, iterated by feel.
 3. Point the client at today's `demo/server.py` for real Maia-3 moves: about 2 h.
 4. Build `doppel_model`, the Maia-3 ONNX export, `backend/infer` and the `api` skeleton, replacing `demo/server.py`: about 1.5 days. **Done 2026-11-04:** `api` skeleton (games, clocks, per-game z, REST + WebSocket, SQLite; no accounts yet), and the client plays hosted games over it with server clocks and resume. All three Maia-3 sizes export with parity ≤ 3.6e-5 on 1,000 positions; infer serves 79M in about 21 ms per move on 4 ORT threads.
-5. Accounts and consent, ratings, the consented export: **done 2026-11-05** (anonymous bearer-token accounts, versioned withdrawable training consent, MAP Bradley-Terry ratings, salted export with tombstones; see backend/api/README.md). Next: Lichess OAuth with the Board API, `lichess_bot`.
+5. Accounts and consent, ratings, the consented export: **done 2026-11-05** (anonymous bearer-token accounts, versioned withdrawable training consent, MAP Bradley-Terry ratings, salted export with tombstones; see backend/api/README.md). Next: Lichess OAuth with the Board API, `lichess_bot`. **Done 2026-11-06:** Lichess sign-in (PKCE on device) and Board API play in the client; `lichess_bot` running as doppelbot behind an allowlist.
 
 ## Open decisions
 
