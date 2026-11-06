@@ -48,26 +48,56 @@ Rules that keep the comparison fair:
   |eval| ≥ 600 cp holds for 6 consecutive plies, because bots never resign and humans do.
 - A result is a JSON file under `lab/results/` written by a script in `lab/`, never a number typed into a doc.
 
-## 3. Features, ordered by compute cost
+## 3. Features: compute tiers and information regimes
 
-We pick features in order of cost. Cheap features are used everywhere; expensive ones only where the payoff is
-measured.
+Every "dumb" baseline draws from one canonical feature set, so a new baseline is a new estimator, not new
+features. Each feature carries two labels: a **compute tier** (what it costs) and an **information regime** (what
+it is allowed to know). A baseline declares the highest tier and regime it uses, and results tables report both.
 
-| Tier | Feature | Cost (lab server) | Notes |
+**Compute tiers.** A feature's tier is the highest tier among its inputs; a derived feature inherits it (Stockfish
+volatility is T2 even though the rolling std is free).
+
+| Tier | Features | Cost (lab server) | Coverage |
 |---|---|---|---|
-| 0 | Clocks, increment, ply, both ratings, legal-move count, in check | free | Already in the game record or one board call |
-| 1 | **Material** balance (P 1, N 3, B 3, R 5, Q 9) | microseconds per position | Best signal per unit of compute |
-| 2 | Maia-3 outputs: policy entropy, top-move probability, win/draw/loss | ~12,000 positions/s on the GPU (79M model) | Needs the warden; already stored for v0 (§3.2) |
-| 3 | **Stockfish eval** at 50,000 nodes | ~49 ms per position per core (~depth 16) | Strongest single feature; see §3.1 for when it is worth it |
-| 4 | Stockfish eval at 1,000,000 nodes | ~1 s per position per core (~depth 22) | Reserved for spot checks |
+| **T0** free | Clocks, increment, think time, ply, both ratings, legal-move count, in check, move type, **material** (P 1, N 3, B 3, R 5, Q 9) | microseconds per position | full corpus, on the fly |
+| **T1** Maia-3 | Policy entropy, top-move probability, played move's log-prob and rank, win/draw/loss | ~12,000 positions/s on the GPU (79M model, through the warden); ~3 s per game on the CPU | full corpus |
+| **T2** Stockfish | cp, winning chances, CPL, wc loss, Lichess move class, at 50,000 nodes | ~49 ms per position per core (~depth 16) | label sets (§7); full corpus ~24 h on 28 cores |
+| **T3** deep | Stockfish on every legal move (blunder potential β), 1M-node spot checks (~1 s per position), tablebases | hours per 2,000 games | eval sets only |
 
 Costs measured 2026-11-06 with Stockfish 16 (about 2 M nodes/s per core) and the Maia-3 teacher job.
+
+**Information regimes.** All three are causal: a feature for ply k never reads ply k+1 or later.
+
+| Regime | May read | Status |
+|---|---|---|
+| **R0** point | Position k and game metadata (ratings, time control). No earlier plies. The original Maia's board-only setup. | built (analyzer channels) |
+| **R1** trajectory | Every ply of this game up to k: the causal transforms of §3.4. A whole-game summary exists for game-level reports only and is never a predictor. | built (analyzer transforms) |
+| **R2** career | Every game by this player that started before this game. | design only |
+
+R2 is the only fair baseline for a player-personalized Doppel, since such a Doppel has seen the player's history.
+Our split is player-disjoint (`lab/doppel_lab/split.py`: a player is held out iff `sha1(name) % 5 == 0`), so a
+held-out player's history exists only in the held-out games. R2 therefore needs a within-player time split:
+earlier games are history, later games are targets. A personalized Doppel needs the same split, so the baseline
+and the Doppel see the same data.
+
+**Fair comparison.** A machine is scored against baselines at or below its own inference cost and information.
+The v0 Doppel at inference is T1/R1: a Maia-3 trunk plus history and clocks. T2 and T3 baselines are **oracle**
+baselines: they know the engine's verdict, which neither the human nor the Doppel has. They are ceilings for
+dumb estimators and are labeled as oracles.
+
+**Storage and code.** Only raw channels that cost something are stored: one parquet sidecar per (tier, split)
+with per-ply list columns, joined on `game_id` (the shape of `evals_*` and `blunder_*`). T0 channels and all
+transforms are recomputed on the fly. One registry defines each feature once (name, tier, regime, point of view:
+the mover's by default); the analyzer and every baseline read from it, so the HTML profile and the baselines
+cannot drift. Results files record the feature-set version.
 
 ### 3.1 Stockfish eval
 
 - **What it is:** an evaluation function. Stockfish searches ahead (alpha-beta with pruning, a transposition
   table, and an NNUE neural net as the static eval at the leaves) and reports a score in **centipawns** (cp),
-  hundredths of a pawn, from White's view. Forced mates are stored as ±10,000.
+  hundredths of a pawn, from White's view. Forced mates are stored as ±10,000. NNUE has been the main eval since
+  Stockfish 12 (2020); the handcrafted eval was removed in the 16 cycle, documented in 16.1 (February 2024). We run
+  Stockfish 16 (Debian package).
 - **Winning chances:** centipawns are converted with Lichess's logistic curve
   `wc(cp) = 2 / (1 + exp(-0.00368208 · cp)) − 1`, range −1 to +1. The constant was fitted on Lichess games, so it
   describes human players. Per-move losses are measured in wc, not raw cp, so a drop from +800 to +500 is not
@@ -80,6 +110,23 @@ Costs measured 2026-11-06 with Stockfish 16 (about 2 M nodes/s per core) and the
     and add Stockfish only when an ablation on a sample shows it earns the day of CPU.
   - Never at serve time without a separate decision: a feature the model needs as input must also be computed
     when the Doppel plays.
+- **Cheaper Stockfish (measured 2026-11-06, 40 val games, 2,866 positions, scored against 50k-node labels):**
+
+  | Budget | Cost vs 50k | wc correlation | wc MAE | Blunder recall | Blunder precision |
+  |---|---|---|---|---|---|
+  | static NNUE eval, no search | — | 0.878 | 0.131 | 0.06 | 0.33 |
+  | 100 nodes | 1% | 0.935 | 0.100 | 0.51 | 0.40 |
+  | 1,000 nodes | 4% | 0.985 | 0.056 | 0.65 | 0.78 |
+  | 5,000 nodes | 13% | 0.993 | 0.036 | 0.80 | 0.86 |
+
+  The neural part is not what costs: an NNUE eval takes microseconds, and the cost is the search, tens of
+  thousands of evals per position. The static eval misses 94% of blunders, because a blunder is usually a tactic
+  that only search sees. Search is sequential alpha-beta built around incremental CPU updates of the net, so a
+  GPU does not speed it up; corpus throughput already scales linearly with cores (one engine per game). Labels
+  stay at 50k nodes. A **T2-lite** channel at 5,000 nodes (full corpus in about 3 h on 28 cores) is an option
+  when a baseline needs Stockfish features on every position. The GPU route is different work: a net trained on
+  our 50k-node labels to predict wc and wc loss directly (T1 cost). It is a new feature with its own measured
+  error, not a faster Stockfish. Blunder rates from 2,866 positions are noisy (about ±0.05).
 - **Caveat:** Stockfish sees tactics a 1500 player does not. A better eval is not always a better predictor of
   human behavior; Maia-3's win/draw/loss is closer to how a human of that rating sees the position.
 
@@ -122,9 +169,9 @@ shared ply axis:
 It reads finished games only, and refuses a game with no result. One 130-ply game takes about 9 s on the CPU:
 Maia-3 about 3 s, Stockfish at 50,000 nodes about 5 s. Nothing is served; the page is a local file.
 
-- **Channels** (raw, per ply): clocks, think time and think fraction, legal moves, check (tier 0); material
-  (tier 1); Maia-3 win/draw/loss, expected score, sharpness, policy entropy, top-move probability, played move's
-  log-prob and rank (tier 2); Stockfish cp, winning chances, CPL, Lichess move class (tier 3).
+- **Channels** (raw, per ply): clocks, think time and think fraction, legal moves, check, material
+  (T0); Maia-3 win/draw/loss, expected score, sharpness, policy entropy, top-move probability, played move's
+  log-prob and rank (T1); Stockfish cp, winning chances, CPL, Lichess move class (T2).
 - **Transforms** (causal: a value uses only the current and earlier plies):
   - Exponential moving average with α = 0.3, as in the probe's decayed tempo.
   - Rolling mean and standard deviation over the last 5 own moves.
@@ -280,11 +327,11 @@ dedicated blunder head is a baseline only; it would not change how a Doppel play
 
 1. **Prior:** the blunder rate per band.
 2. **Heuristics, before the move:** material, clock fraction, time trouble, both ratings, legal moves, check,
-   tempo (tiers 0–1); plus Maia-3 policy entropy and top-move probability (tier 2) as a cheap difficulty proxy.
+   tempo (T0); plus Maia-3 policy entropy and top-move probability (T1) as a cheap difficulty proxy.
 3. **Heuristics, joint with the clock:** the same features plus this move's think fraction. This variant is not a
    predictor a Doppel can use before moving; it measures the think-time and blunder link on our data.
 4. **Blunder potential** β, Anderson et al.'s difficulty measure: the fraction of legal moves that blunder, from
-   Stockfish on every legal move (tier 3, eval sets only). A policy-weighted version, β weighted by Maia-3's move
+   Stockfish on every legal move (T3, eval sets only). A policy-weighted version, β weighted by Maia-3's move
    probabilities, is a second variant.
 5. **Machines, policy-implied:** P(blunder) = the sum of a policy's probabilities over the moves that blunder.
    Maia-3, Allie 2.1, and the v0 Doppel, with z from the prior and from the posterior. A strong engine's best move
@@ -305,7 +352,7 @@ dedicated blunder head is a baseline only; it would not change how a Doppel play
 
 - A Stockfish blunder is not always a real loss: at 1500 many blunders are never punished (§3.3, realized shock).
   The target measures error against the engine, not against the outcome.
-- Labels at 50k nodes miss deep tactics that a 1M-node search finds. Spot checks at tier 4 measure how often.
+- Labels at 50k nodes miss deep tactics that a 1M-node search finds. T3 spot checks at 1M nodes measure how often.
 
 **Results.** None yet.
 
