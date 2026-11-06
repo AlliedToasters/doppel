@@ -187,10 +187,12 @@ class _PlayScreenState extends State<PlayScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Resign?'),
+        title: Text(g.sans.length < 2 ? 'Abort this game?' : 'Resign?'),
+        content: Text(g.sans.length < 2 ? 'Nobody has moved twice yet, so it ends unrated.' : 'This counts as a loss.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep playing')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Resign')),
+          FilledButton(
+              onPressed: () => Navigator.pop(c, true), child: Text(g.sans.length < 2 ? 'Abort' : 'Resign')),
         ],
       ),
     );
@@ -289,7 +291,19 @@ class _PlayScreenState extends State<PlayScreen> {
           side: g.humanSide,
           material: skin.buildMaterial(context, mat, g.humanSide, isHuman: true),
         ),
-        if (g is LichessGame && g.opponentDrawOffer && !g.over)
+        if (g.canResign)
+        Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () => _confirmResign(g),
+              icon: const Icon(Icons.flag, size: 18),
+              label: Text(g.sans.length < 2 ? 'Abort' : 'Resign'),
+            ),
+          ),
+        ),
+      if (g is LichessGame && g.opponentDrawOffer && !g.over)
           ListTile(
             leading: const Icon(Icons.handshake),
             title: const Text('Draw offered'),
