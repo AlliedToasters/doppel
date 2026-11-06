@@ -13,11 +13,16 @@ assumed to be inherited from the move-choice teacher or ignored.
 |---|---|---|
 | Think time | How long does this player spend on this move? | Modeled (§5) |
 | Resignation | Does this player resign now instead of moving? | Modeled (§6) |
+| Blunders | Does this move throw away a large share of the player's winning chances? | Adopted, no results yet (§7) |
 
 Move choice itself is a research target, but at this time is only planned future work. Currently we use
 off-the-shelf models like Maia, and plan to leverage other chess-playing models such as ChessMimic when we begin
 modeling move choice. Until then, v0 distils move choice from Maia-3 (`doppel_lab/teacher.py`) and we check only
 that it does not regress (top-1 and perplexity, `doppel_lab/top1.py`).
+
+Blunders are the first capability that scores move choice itself. Every move model implies a blunder
+probability, the policy's mass on blundering moves, so blunders compare all the machines in §4 on how human
+their mistakes are, without changing what v0 trains.
 
 ## 2. The benchmark rule
 
@@ -138,7 +143,7 @@ Maia-3 about 3 s, Stockfish at 50,000 nodes about 5 s. Nothing is served; the pa
   Maia-3 top-1 rate and surprisal, mean volatility, worst drawdown, mean sharpness and shocks. `--tables` writes
   it as parquet next to the per-ply tables.
 
-**Finding, sharpness.** jk_182's formula (§8) depends on the draw probability: `(2 / log((1−W)(1−L)/(WL)))²` grows
+**Finding, sharpness.** jk_182's formula (§9) depends on the draw probability: `(2 / log((1−W)(1−L)/(WL)))²` grows
 without bound as D → 0. At 1500 blitz Maia-3 rarely gives a draw more than a few percent, so balanced positions
 score above the plot cap of 50, while lopsided ones score low. It was designed on Lc0's win/draw/loss for strong
 players; for our bands it needs a variant before it is used as a feature.
@@ -245,7 +250,66 @@ Allie's data agrees with ours on one label fact: 87% of its humans resign on the
 **Known gaps.** Off-turn resignations (12%). Some time losses are disguised resignations, where a player in a lost
 position stops moving; v0 counts them as negatives.
 
-## 7. Adding a capability
+## 7. Capability: blunders
+
+**Why.** Playing like a human includes making that human's mistakes, in the same kinds of positions. It also
+extends the think-time work directly: longer thinks predict more blunders, in every slice Anderson et al. looked
+at (§9). And it unlocks comparisons. Think time and resignation have few machine baselines, but every move model
+implies a blunder probability, so every machine in §4 can be scored on the same table.
+
+**Target.** For each own move, from the mover's view: 1 if the move drops their winning chances (Stockfish at
+50,000 nodes, §3.1) by ≥ 0.3, else 0. This is Lichess's blunder threshold, the class the analyzer already labels
+(`doppel_lab/analyzer/channels.py`). Every result is also reported at ≥ 0.2, which equals Maia's unit (a drop of
+10 points of win probability), so the numbers compare with the Maia paper. All positions are kept, including
+time trouble and lost positions; a nearly lost position can barely drop 0.3, and the prior absorbs that.
+
+**What v0 changes.** Nothing in training. Blunders score the move-choice part of a Doppel as a machine. A
+dedicated blunder head is a baseline only; it would not change how a Doppel plays.
+
+**Metrics.**
+
+1. AUC, average precision and log-loss gain over the prior, as in §6.
+2. Calibration: predicted P(blunder) against the observed rate in 10 bins (a reliability curve), and the expected
+   calibration error. A machine can rank well and still blunder twice as often as humans, and we need to see that.
+3. Rate match: mean predicted P(blunder) against the human rate, overall and by band, clock fraction and
+   difficulty bin. This is the number a Doppel has to match.
+4. Human noise floor: on positions humans faced at least 10 times, as in Maia's collective task, how well one
+   half of those humans' blunder rate predicts the other half's.
+
+**Scored against.**
+
+1. **Prior:** the blunder rate per band.
+2. **Heuristics, before the move:** material, clock fraction, time trouble, both ratings, legal moves, check,
+   tempo (tiers 0–1); plus Maia-3 policy entropy and top-move probability (tier 2) as a cheap difficulty proxy.
+3. **Heuristics, joint with the clock:** the same features plus this move's think fraction. This variant is not a
+   predictor a Doppel can use before moving; it measures the think-time and blunder link on our data.
+4. **Blunder potential** β, Anderson et al.'s difficulty measure: the fraction of legal moves that blunder, from
+   Stockfish on every legal move (tier 3, eval sets only). A policy-weighted version, β weighted by Maia-3's move
+   probabilities, is a second variant.
+5. **Machines, policy-implied:** P(blunder) = the sum of a policy's probabilities over the moves that blunder.
+   Maia-3, Allie 2.1, and the v0 Doppel, with z from the prior and from the posterior. A strong engine's best move
+   almost never blunders, so Stockfish gives the floor of a machine that plays perfectly by its own measure.
+
+**Data and cost.**
+
+- Training and heuristic labels need one eval before and after each ply, the `doppel_lab.analyze` pass: about
+  3 hours on 28 cores for 100k games (6.5 M positions).
+- Blunder potential and the policy-implied scores need a Stockfish score for every legal move, so they run on an
+  eval set of 2,000 val games (about 130k positions, about 30 legal moves each). A search over all legal moves
+  at once (MultiPV) is the plan. The node budget is set so the best move's score matches the single-line 50k-node
+  eval, and the cost is measured on 100 positions before the full run; the estimate is 1 to 4 hours on 28 cores.
+- Optional exact labels: in endgames with at most 5 pieces, a Syzygy tablebase (about 1 GB) gives the
+  game-theoretic result, as in Anderson et al. That subset checks how noisy the Stockfish labels are.
+
+**Known gaps.**
+
+- A Stockfish blunder is not always a real loss: at 1500 many blunders are never punished (§3.3, realized shock).
+  The target measures error against the engine, not against the outcome.
+- Labels at 50k nodes miss deep tactics that a 1M-node search finds. Spot checks at tier 4 measure how often.
+
+**Results.** None yet.
+
+## 8. Adding a capability
 
 1. Write its section here first: target definition, metrics, and which priors, heuristics and machines it is
    scored against.
@@ -255,7 +319,7 @@ position stops moving; v0 counts them as negatives.
 4. Add machine baselines or proxies.
 5. Only then add a head to the Doppel model.
 
-## 8. Literature
+## 9. Literature
 
 Prior work we build on, with the one-line finding that matters to us. "Read" means someone on the project has
 read the source in full; "abstract" means only its abstract or a summary so far.
