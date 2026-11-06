@@ -293,9 +293,23 @@ read the source in full; "abstract" means only its abstract or a summary so far.
   - Units: 10 points of win probability on a 0–1 scale is a drop of 0.2 in Lichess winning chances (−1..1),
     Lichess's "mistake" level, not its 0.3 "blunder".
   - Open direction they name: finding distinctions among players with the same rating. That is our per-game z.
-- **Error against a benchmark of perfection.** Anderson, Kleinberg, Mullainathan, *Assessing human error against
-  a benchmark of perfection*, ACM TKDD 11(4), 2017. Cited by Maia as prior work on errors by skill, time and
-  difficulty. Not yet read.
+- **Difficulty predicts human error better than skill or time.** Anderson, Kleinberg, Mullainathan, *Assessing
+  Human Error Against a Benchmark of Perfection*, KDD 2016 ([arXiv:1606.04956](https://arxiv.org/abs/1606.04956));
+  journal version ACM TKDD 11(4), 2017. Read.
+  - Ground truth from 6-piece tablebases: a blunder is a move that worsens the game-theoretic result. Data: 24.6M
+    instances from FICS 3-minute games, plus 880k from grandmaster games.
+  - **Blunder potential** β(P) = blunders / legal moves: the chance a random move blunders. The blunder rate rises
+    smoothly with β. Players act as if they are c times likelier to pick a non-blunder (c ≈ 15 on FICS, ≈ 100 for
+    grandmasters).
+  - On a balanced test set, difficulty features reach 0.75 accuracy; rating alone 0.55, time left alone 0.53, and
+    neither adds anything once difficulty is in. A step of 0.2 in β matters more than 600 rating points. With the
+    exact position fixed, rating still gives 0.62: skill matters within a position.
+  - Blunder rate is flat above about 10 s left in 3-minute games and rises sharply below.
+  - **Longer thinks predict more blunders**, at every time left and blunder potential and within fixed positions.
+    The authors read it as "the extra time suggests they didn't know what to do". Think time and error share a
+    cause, which is direct evidence for modeling them together.
+  - Some positions are skill-anomalous: stronger players blunder more there.
+  - Scope limits: endgames with at most 6 pieces only, FICS 3+0 in 2016, decision trees on hand features.
 
 ### Evaluation trajectories and per-game features
 
