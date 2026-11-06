@@ -36,7 +36,8 @@ data, so "as good as human-vs-human" is a visible ceiling.
 Rules that keep the comparison fair:
 
 - Held-out games only (`doppel_lab/split.py`); the same positions for every model being compared.
-- External human data (the Allie 2022 blitz test set, `doppel_lab/allie.py`) is a second test set, not a machine.
+- External human data (the original Allie paper's 2022 blitz test set, `doppel_lab/allie.py`) is a second test
+  set. Allie the model is also a machine (§4); the two uses are separate.
 - One rating band at a time; v0 work is the 1500 band.
 - Every source is adjudicated the same way (`doppel_lab/metrics.py`): a game "ends" at the first ply where
   |eval| ≥ 600 cp holds for 6 consecutive plies, because bots never resign and humans do.
@@ -111,9 +112,17 @@ Built from the features above and used across capabilities:
 | **Maia-3 79M** | Human move distribution by rating; win/draw/loss | Move-choice teacher; outcome calibration; frozen features for the think-time probe |
 | **ChessMimic** | Moves, a clock model (think-time distribution), a winner model | Think-time and outcome baselines |
 | **Stockfish 16** | Best play and eval | Labels and eval features only; it does not imitate humans |
-| **`heuristic_think_ms`** (`packages/doppel_model/doppel_model/think.py`) | Our production think-time placeholder | Must be benchmarked like any other machine (§5) |
+| **Allie** (original, ICLR 2025) | Moves, think time, resignation (a `<resign>` token), value; 355M decoder, blitz 2022 | Think-time and resignation baseline; published numbers only so far |
+| **Allie 2.1** (`yimingzhang/allie-2.1`, MIT) | Moves, think time (63-bin head), win/draw/loss; reads both clocks and the previous think time; all time controls | Strongest machine for both capabilities and for move choice; ~18 GB, so a warden job |
+| **`heuristic_think_ms`** (`packages/doppel_model/doppel_model/think.py`) | Our production think-time placeholder: a hand-set rule on clock, ply, legal moves and Maia-3 top-move probability, with lognormal noise; nothing fitted | Must be benchmarked like any other machine (§5) |
 
-None of these resigns. For resignation, the machine comparison uses proxies (§6).
+Only Allie resigns. The original Allie resigns through its `<resign>` token; Allie 2.1's bot resigns through a
+hazard fitted on its own win/draw/loss, ply, rating, time control and clock (`src/allie/lichess/README.md` in the
+Allie repo). Other machines are scored through proxies (§6).
+
+Allie 2.1 also matters for move choice: on the Allie repo's protocol it beats Maia-3 79M by 0.042 nats per move
+and 1.2 points of top-1, and unlike Maia-3 it reads the clock. That is a candidate teacher for later versions,
+not a change to v0.
 
 ## 5. Capability: think time
 
@@ -142,8 +151,21 @@ internal state, shows a similar average drop (0.197), so on this average the eff
 and clock. On the first move after a queen-loss shock (619 test events) the probe models with Maia-3 features
 under-predict human think time by 0.09 to 0.11 in log1p(s): humans take longer than a stateless prediction.
 
-**Open.** `heuristic_think_ms` has not been scored on held-out human games yet. It is the first baseline the v0
-think-time head has to beat on the same R² table.
+**Allie.** Not yet run on our data; the published numbers are not comparable to the table above:
+
+- Original Allie: Pearson r = 0.697 between predicted and human think time. The head is trained with squared
+  error on raw seconds, so r is on raw seconds, where long thinks dominate; ours is on log seconds. The test set
+  is 2022 blitz, all ratings, and drops the first 5 moves and every move with under 30 s on the clock. The model
+  under-predicts long thinks.
+- Allie 2.1 reports distributions, not correlations: on its July 2026 held-out games the bot's sampled think
+  times match human medians and 90th percentiles per time control (blitz: median 2 s human vs 2.4 s bot, 90th
+  percentile 11 vs 10.8).
+
+Both kinds of score belong in our table: R² and r on log seconds for prediction, and distribution distance for
+sampled think times.
+
+**Open.** `heuristic_think_ms` and Allie 2.1 have not been scored on held-out human games yet. They are the first
+baselines the v0 think-time head has to beat on the same table.
 
 ## 6. Capability: resignation
 
@@ -168,9 +190,19 @@ is from the real one.
 
 Reading: the hand features tell who is lost; they do not tell when the player gives up.
 
-**Machine proxies (to do).** No machine resigns, so we score the rules they could use: the adjudication rule
-(|eval| ≥ 600 cp for 6 plies, needs Stockfish), and a threshold on Maia-3 win/draw/loss. Both are scored on the
-same table as the hand features.
+**Machines (to do).** Scored on the same table as the hand features:
+
+1. **Original Allie.** It resigns when the `<resign>` token outscores every legal move and its value is below
+   −0.9. Published: true positive rate 86.4% and false positive rate 0.1%, per position, on 2022 blitz. Those
+   are per-position rates on a different test set and filter, so they must be rerun on our val set before they
+   are compared with our AUC and average precision.
+2. **Allie 2.1's resign hazard.** Fitted on Allie's own win/draw/loss, ply, rating, time control and clock. On
+   its held-out games humans resign in 22.5% of player-games and the hazard in 14%; P(loss) at resignation
+   matches humans at the 25th percentile and median (0.86, 0.95). This is the strongest resign baseline.
+3. **Proxies for machines that do not resign:** the adjudication rule (|eval| ≥ 600 cp for 6 plies, needs
+   Stockfish), and a threshold on Maia-3 win/draw/loss.
+
+Allie's data agrees with ours on one label fact: 87% of its humans resign on their own turn (ours: 88%).
 
 **Known gaps.** Off-turn resignations (12%). Some time losses are disguised resignations, where a player in a lost
 position stops moving; v0 counts them as negatives.
@@ -184,3 +216,65 @@ position stops moving; v0 counts them as negatives.
 3. Record the prior and heuristic baselines in `lab/results/` before any neural work.
 4. Add machine baselines or proxies.
 5. Only then add a head to the Doppel model.
+
+## 8. Literature
+
+Prior work we build on, with the one-line finding that matters to us. "Read" means someone on the project has
+read the source in full; "abstract" means only its abstract or a summary so far.
+
+### Human-imitation models
+
+- **Allie: think time, resignation and moves from one model.** Zhang, Jacob, Lai, Fried, Ippolito, *Human-aligned
+  Chess with a Bit of Search*, ICLR 2025, [arXiv:2410.03893](https://arxiv.org/abs/2410.03893). A 355M decoder
+  over the move sequence with policy, think-time and value heads, plus a `<resign>` token; adaptive search scales
+  with predicted think time. Think-time r = 0.697 (raw seconds), resign TPR 86.4% at FPR 0.1%. Read.
+- **Allie 2.1: a clock-reading successor that beats Maia-3.** [github.com/y0mingzhang/allie](https://github.com/y0mingzhang/allie)
+  (MIT), weights [`yimingzhang/allie-2.1`](https://huggingface.co/yimingzhang/allie-2.1). 9.2B mixture of experts,
+  1.2B active, every Lichess month from 2017 to 2026 and every time control. Clock inputs are Fourier features of
+  log seconds for both clocks and the previous think time; think time is a 63-bin side head. Resigning is a fitted
+  hazard, not a token. README and bot guide read.
+- **Maia-3: our move-choice teacher.** *Chessformer: A Unified Architecture for Chess Modeling*, [arXiv:2605.19091](https://arxiv.org/abs/2605.19091), weights
+  [MaiaChess/maia3](https://huggingface.co/collections/MaiaChess/maia3). Blitz only, no clock input. Used, not
+  yet read in full.
+
+### Evaluation trajectories and per-game features
+
+- **Volatility-weighted accuracy (Lichess).** [lichess.org/page/accuracy](https://lichess.org/page/accuracy).
+  Win chances from centipawns; the game is cut into sliding windows whose size depends on game length, and each
+  window's volatility is the standard deviation of win chances in it. The direct precedent for a volatility
+  feature. Read.
+- **Game volatility as one number.** jk_182, [Quantifying volatility of chess games](https://chessenginelab.substack.com/p/volatility)
+  ([Lichess copy](https://lichess.org/@/jk_182/blog/quantifying-volatility-of-chess-games/H6MWvX98)) and
+  [Comparing ways to calculate accuracy](https://chessenginelab.substack.com/p/different-accuracies). Weaker
+  players have more volatile games, so volatility is partly a rating signal. Abstract.
+- **Sharpness from win/draw/loss.** jk_182, [Evaluating sharpness using Lc0's WDL](https://chessenginelab.substack.com/p/evaluating-sharpness-using-lc0s-wdl),
+  [Calculating the sharpness of different players](https://chessenginelab.substack.com/p/calculating-the-sharpness-of-different).
+  A per-position "how easy is this to get wrong" score from win/draw/loss, borrowed from Lc0's WDL contempt
+  code. Depends on search nodes. Maia-3's win/draw/loss could supply it without Stockfish. Abstract.
+- **Path signatures over a game.** *Chess Signatures of Play*, 2026 preprint, [arXiv:2606.18544](https://arxiv.org/abs/2606.18544).
+  Each game is a path over plies with eval, complexity (spread of top-k engine evals) and time channels; the
+  signature turns the whole path into fixed-length features. The closest prior work to a trajectory-to-features
+  analyzer. Abstract.
+- **Long-range memory in move sequences.** Perotti et al., *Memory and long-range correlations in chess games*,
+  Physica A, 2013 ([record](https://catalogo.biblio.unc.edu.ar/Record/rdu-unc.28101/Details)). Rescaled-range
+  and detrended fluctuation analysis; stronger players show correlations over longer spans. Abstract.
+- **Rating from a game, move by move.** *Chess Rating Estimation from Moves and Clock Times Using a CNN-LSTM*, [arXiv:2409.11506](https://arxiv.org/abs/2409.11506), 2024. CNN plus
+  bidirectional LSTM over positions and clock times, on 1.2M Lichess games. Abstract.
+
+### Skill and complexity from engine analysis
+
+- **Position complexity raises error rates.** Guid & Bratko, *Computer analysis of world chess champions*, ICGA
+  Journal, 2006, and later stronger-engine replications ([ChessBase summary](https://en.chessbase.com/post/using-che-engines-to-estimate-human-skill)).
+  Players err more as positions get more complex. Abstract.
+- **Intrinsic ratings: sensitivity and consistency.** Regan & Haworth, *Intrinsic Chess Ratings*, AAAI 2011,
+  [paper](https://ojs.aaai.org/index.php/AAAI/article/view/7951); Regan, [Intrinsic Ratings Compendium](https://cse.buffalo.edu/~regan/papers/pdf/Reg12IPRs.pdf).
+  Two fitted parameters per player or event describe how move choice falls off with engine value; a
+  hand-crafted ancestor of a per-game style latent. Abstract.
+
+### Clock and tilt
+
+- **Do mistakes provoke new mistakes?** IEEE Transactions on Games ([PDF](https://www.nes.ru/files/faculty/Do-mistakes-provoke-new-mistakes-Evidence.pdf)).
+  Tests within-game tilt on tournament data; the counterpart to our shock analysis (§5). Abstract.
+- **Mistake rate by clock.** jk_182, [How does the clock impact the rate of mistakes?](https://chessenginelab.substack.com/p/mistakes-clock);
+  a 68M-game study of the Lichess low-time alarm ([forum post](https://lichess.org/forum/redirect/post/1SL2qHTI)).
+  Community analyses, not peer-reviewed. Abstract.
