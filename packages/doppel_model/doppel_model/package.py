@@ -1,4 +1,4 @@
-"""Model package loader (contracts/model_package.schema.json): <name>-<sha8>/{model.onnx, manifest.json}."""
+"""Model package loader (contracts/model_package.schema.json): <name>-<sha8>/{model.onnx, manifest.json, LICENSE, NOTICE}."""
 
 from __future__ import annotations
 

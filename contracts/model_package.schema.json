@@ -22,7 +22,8 @@
     "elo_range": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2},
     "z_prior": {"type": ["object", "null"], "description": "per-game z prior; null for stateless base models"},
     "clock_head": {"type": "boolean"},
-    "base_model": {"type": "object", "properties": {"family": {"type": "string"}, "size": {"type": "string"}, "license": {"type": "string"}}},
+    "base_model": {"type": "object", "properties": {"family": {"type": "string"}, "size": {"type": "string"}, "license": {"type": "string"}, "source": {"type": "string"}}},
+    "source": {"type": "string", "description": "where to get the corresponding source (AGPL-3.0 section 13); the package also ships LICENSE and NOTICE"},
     "lab_commit": {"type": "string"},
     "parity": {
       "type": "object",

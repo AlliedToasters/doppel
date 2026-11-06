@@ -3,6 +3,8 @@
     model.onnx      inputs  tokens (1, 64, 12*history+1) f32, elo_self (1,) i64, elo_opp (1,) i64
                     outputs logits_move (B, 4352), logits_value (B, 3)
     manifest.json   id, sha256, input spec, Elo range, lab commit, parity result
+    LICENSE         AGPL-3.0 text (the weights derive from Maia-3, which is AGPL-3.0)
+    NOTICE          attribution to Maia-3 (CSSLab) and where to get the corresponding source
 
 Parity: the lab torch model fed by maia3's own tokenizer vs ONNX Runtime fed by doppel_model's encoding, on
 positions sampled from held-out human games. Log-probs over legal moves must agree within --tol.
@@ -35,6 +37,22 @@ from doppel_lab.top1 import logprobs  # noqa: E402
 from doppel_model import ModelPackage  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+REPO = "https://github.com/AlliedToasters/doppel"
+
+
+def write_license(pkg_dir: Path, size: str, commit: str) -> None:
+    """LICENSE + NOTICE, so a package copied anywhere carries its AGPL terms and attribution."""
+    shutil.copyfile(ROOT / "LICENSE", pkg_dir / "LICENSE")
+    (pkg_dir / "NOTICE").write_text(
+        f"This model package contains weights derived from Maia3-{size.upper()} by the University of Toronto\n"
+        f"Computational Social Science Lab (CSSLab), https://huggingface.co/UofTCSSLab/Maia3-{size.upper()}\n"
+        "(code: https://github.com/CSSLab/maia3). Maia-3 code and weights are licensed under the GNU Affero\n"
+        "General Public License v3.0.\n\n"
+        "This package is distributed under the same license (see LICENSE). The corresponding source, including\n"
+        f"the export script that produced it (lab/doppel_lab/export_package.py), is at {REPO}\n"
+        f"(commit {commit or 'unknown'}).\n")
 
 
 class _Policy(torch.nn.Module):
@@ -142,10 +160,13 @@ def main():
         "input": {"encoding": "maia3", "history": hist, "clk_ponder": 0.0},
         "outputs": ["logits_move", "logits_value"],
         "elo_range": [600, 2800], "z_prior": None, "clock_head": False,
-        "base_model": {"family": "maia3", "size": a.model, "license": "AGPL-3.0"},
+        "base_model": {"family": "maia3", "size": a.model, "license": "AGPL-3.0",
+                       "source": f"https://huggingface.co/UofTCSSLab/Maia3-{a.model.upper()}"},
+        "source": REPO,
         "lab_commit": commit,
     }
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    write_license(tmp, a.model, commit)
     pkg = ModelPackage.load(tmp, threads=8)
     res = parity(eng, pkg, sample_positions(a.n_parity))
     manifest["parity"] = res | {"tol": a.tol, "pass": bool(res["max_abs_logp_diff"] <= a.tol)}
