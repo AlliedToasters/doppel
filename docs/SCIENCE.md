@@ -816,6 +816,27 @@ the surface and 0.532 for Maia's embedding. Top 5% AUC is 0.714, titled 0.599, a
 to the surface it changes nothing (rating 0.493, arena 0.715). Its 8 dims hold some rating and clock-style
 information, and none of it is new.
 
+**Pooled over a player's games** (`doppel_lab/players_suite.py`, `lab/results/players_pool_v0d.json`; 2,000
+held-out 2026-10 players, 80 3+0 games each; each per-game vector averaged over the player's first k games;
+rating R² by trees, 5-fold by player; re-ID = first k games vs a gallery of the last 40, top-1 in pools of 500):
+
+| View | R² k=1 | k=5 | k=10 | k=40 | Re-ID k=1 | k=5 | k=10 | k=40 |
+|---|---|---|---|---|---|---|---|---|
+| Surface | 0.110 | 0.317 | 0.413 | 0.577 | 2.0% | 15.9% | 27.6% | 50.0% |
+| v0d z (8 dims) | −0.053 | −0.025 | 0.031 | 0.051 | 0.6% | 0.9% | 1.1% | 2.8% |
+| Maia emb (PCA 64) | 0.310 | 0.645 | 0.750 | 0.869 | 7.5% | 27.3% | 46.5% | 77.1% |
+| Surface + Maia | **0.395** | **0.693** | **0.776** | **0.880** | **9.1%** | **41.0%** | **63.5%** | **90.5%** |
+
+A frozen Maia-3 embedding, averaged over 40 games, identifies a player among 500 in 77% of cases (90.5% with
+the surface features), and gives rating R² 0.87. Averaging is enough; nothing was trained. The v0d z does not
+pool: averaging adds nothing because there is almost no per-player signal in it to begin with (re-ID 2.8% at
+k = 40, chance 0.2%). Within one rating band (this suite spans all bands, so rating is a large share of what
+Maia's vector identifies), v0d z's rating R² near zero is expected; its failure at re-ID is not.
+
+For v0e this sets the bar and suggests the design: a multi-game set encoder whose input per game is at least
+as rich as Maia's embedding should reach ~77% re-ID at k = 40 for free. A z that cannot beat "average Maia's
+embedding" is not modelling the player.
+
 **Doppel v0d gate** (`doppel_lab/v0_gate.py`, `lab/results/v0_gate_v0d.json`, step 32,811, 1500 band): fail,
 2 of 5 checks pass.
 
