@@ -643,8 +643,11 @@ features averaged over a player's first k games in time order, never from rating
 298 for a constant. That is about +0.08 R² per doubling. It is the data-needs curve a per-player z should beat:
 the same accuracy from fewer games. Re-identification by k (`doppel_lab/reid_k.py`, 8,000 players with 80+
 games): the first k games are matched against a gallery of each player's last 40, in pools of 1,000. Top-1 is
-1.1% at k = 1, 10% at 5, 17% at 10, 25% at 20 and 33% at 40 (top-10: 8%, 36%, 51%, 62%, 71%). That is about half
-the 64% of interleaved halves, so style drifts across a month. A multi-game z should see at least 10–20 games.
+1.1% at k = 1, 10% at 5, 17% at 10, 25% at 20 and 33% at 40 (top-10: 8%, 36%, 51%, 62%, 71%). Drift is small
+(`reid_k.py drift`, players with 160+ games, 10-game probes). Probes right before the gallery get 21.2% top-1;
+probes 110 games earlier get 18.7%. The persistence study's 64% comes from more evidence: each half there is
+half of a player's games, often well over 40. Style is close to stationary over a month, and evidence size
+dominates. A multi-game z should see at least 10–20 games.
 
 Style transfer across time controls (`doppel_lab/style_transfer.py`, 2,277 held-out players with 20+ games at
 both 3+0 and 5+0): the cross-time-control Spearman of each feature against its within-3+0 split-half

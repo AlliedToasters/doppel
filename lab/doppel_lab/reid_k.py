@@ -1,6 +1,7 @@
 """Re-identification vs games of evidence: how many games does surface style need to pick a player out? (CPU)
 
     python -m doppel_lab.reid_k
+    python -m doppel_lab.reid_k drift     # fixed 10-game probes at increasing distance from the gallery
 
 Players as persistence.py (2026-10 held-out, 3+0, >= 80 games, up to 8,000). Gallery: the mean features of each
 player's last 40 games. Probe: the mean of their first k games (disjoint from the gallery). Standardised,
@@ -23,11 +24,12 @@ GALLERY, MIN_GAMES, N_PLAYERS, POOL = 40, 80, 8_000, 1_000
 c = pl.col
 
 
-def main():
+def main(drift: bool = False):
     rng = np.random.default_rng(SEED)
     g = pl.concat([pl.read_parquet(f) for f in sorted(CORPUS.glob("part-*.parquet"))])
     g = g.filter((c("base") == 180) & (c("inc") == 0)).with_row_index("t")
-    names = pl.concat([g["white"], g["black"]]).str.to_lowercase().value_counts().filter(c("count") >= MIN_GAMES)
+    min_games = 160 if drift else MIN_GAMES
+    names = pl.concat([g["white"], g["black"]]).str.to_lowercase().value_counts().filter(c("count") >= min_games)
     names = [n for n in names["white"].to_list() if held_out(n)]
     keep = set(rng.choice(sorted(names), min(N_PLAYERS, len(names)), replace=False).tolist())
     g = g.filter(c("white").str.to_lowercase().is_in(list(keep)) | c("black").str.to_lowercase().is_in(list(keep)))
@@ -35,7 +37,7 @@ def main():
     s = s.with_columns(k=pl.int_range(pl.len()).over("player"), n=pl.len().over("player"))
     gal = s.filter(c("k") >= c("n") - GALLERY).group_by("player").agg(c("elo").mean(), *[c(f).fill_nan(None).mean() for f in FEATS]).sort("player")
     players = gal["player"]
-    print(f"{gal.height:,} players with >= {MIN_GAMES} 3+0 games", flush=True)
+    print(f"{gal.height:,} players with >= {min_games} 3+0 games", flush=True)
     G = gal.select(FEATS).to_numpy().astype(float)
     elo_g = gal["elo"].to_numpy().astype(float)
     mu, sd = np.nanmean(G, 0), np.nanstd(G, 0)
@@ -52,8 +54,11 @@ def main():
 
     Gr = resid(G, elo_g)
     res = {"players": gal.height, "gallery_games": GALLERY, "pool": POOL, "ks": {}}
-    for k in KS:
-        pr = s.filter(c("k") < k).group_by("player").agg(c("elo").mean(), *[c(f).fill_nan(None).mean() for f in FEATS])
+    # drift: probe = games [a, a+10) counted back from the gallery's start (a = 0 is adjacent to the gallery)
+    windows = [(f"gap{a}", (c("k") >= c("n") - GALLERY - a - 10) & (c("k") < c("n") - GALLERY - a))
+               for a in (0, 10, 30, 60, 110)] if drift else [(str(k), c("k") < k) for k in KS]
+    for k, cond in windows:
+        pr = s.filter(cond).group_by("player").agg(c("elo").mean(), *[c(f).fill_nan(None).mean() for f in FEATS])
         pr = pl.DataFrame({"player": players}).join(pr, on="player", how="left")
         P = pr.select(FEATS).to_numpy().astype(float)
         Pr = resid(P, pr["elo"].to_numpy().astype(float))
@@ -64,11 +69,12 @@ def main():
             rank = (D < D[np.arange(POOL), np.arange(POOL)][:, None]).sum(1)
             t1 += (rank == 0).sum(); t10 += (rank < 10).sum(); n += POOL
         res["ks"][str(k)] = {"top1": t1 / n, "top10": t10 / n}
-        print(f"k={k:3d} probe games vs a {GALLERY}-game gallery: top-1 {t1 / n:.3f}  top-10 {t10 / n:.3f} "
+        print(f"{k:>6s} probe games vs a {GALLERY}-game gallery: top-1 {t1 / n:.3f}  top-10 {t10 / n:.3f} "
               f"(chance {1 / POOL:.3f})", flush=True)
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / "reid_k.json").write_text(json.dumps(res, indent=1) + "\n")
+    (RESULTS / ("reid_drift.json" if drift else "reid_k.json")).write_text(json.dumps(res, indent=1) + "\n")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(drift=len(sys.argv) > 1 and sys.argv[1] == "drift")
