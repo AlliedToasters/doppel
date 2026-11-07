@@ -547,6 +547,11 @@ book, and per-side likelihood under each band's book (`bandbook.py`). Gradient-b
 | Year, 2023+ vs ≤ 2020 (AUC) | 0.581 | 0.582 |
 | Rapid vs blitz (sanity, AUC) | 0.999 | 0.999 |
 
+A second suite, TWIC (80k games 2012–2026, FIDE ratings, no clocks, so move-only), is much harder for surface
+features: FIDE rating R² 0.094 (MAE 180.5 against 187.5 for a constant), year R² 0.04, era 2021+ AUC 0.62,
+online vs OTB among fast games 0.63, junior 0.56, fast vs classical OTB 0.56 (`lab/results/bench_surface_twic.json`).
+This is where an encoder has the most room.
+
 The arena score is mostly a clock artifact: its top permutation features are end-of-game clock, median think
 and tempo jitter, because arenas use a different time-control mix (84% without increment, against 73% in lobby
 games) and berserk halves the clock. The matched contrast above, with time control matched and berserk games
