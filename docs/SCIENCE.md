@@ -472,6 +472,14 @@ rating scale widened by about 600 points between the p25 and p95 tiers, which is
 month within 1.4 rating points, 0.5 plies and 0.3 pt of 1.e4 share; the flag rate is 1.0 pt higher on day 1. So the
 month heads stand in for the month, and the flag-rate decline (about 4 pt) is larger than the sampling bias.
 
+**Openings and results** (`doppel_lab/opening_perf.py`, 2026-10 corpus without 1500–1599 ratings): White
+scores above the Elo expectation in every band, least at 1600–1800 (+1.7 pt) and most at 2400 (+2.7 pt). Draws
+rise from 3.4% at 1200 to 8.1% at 2400. Per 4-ply line (≥ 20k games in a rating group), the residual against
+the group's mean is ±2–5 pt. At 1100–1499, 1.e4 e5 2.Nf3 f6 is the best line for White (+4.4 pt; Black's
+Damiano loses) and 1.e4 d5 2.Nf3 dxe4 the best for Black (−4.7 pt). At 1600–1999, 1.e4 e5 2.Nf3 d5 (the
+Elephant Gambit) scores −4.1 pt for White. At 2000+, both Scandinavian main lines favour Black (−2.1 and
+−2.2 pt). These residuals mix the opening with the kind of player who chooses it.
+
 **Opening fashion** (`doppel_lab/fashion.py`, `lab/results/fashion.json`): shares of named first-move lines by
 year, online (Lichess March heads) and over the board (TWIC classical, open events).
 
