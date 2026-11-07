@@ -1,0 +1,89 @@
+{
+  "run": "v0d",
+  "band": 1500,
+  "step": 32811,
+  "verdict": "fail",
+  "status": {
+    "z_used": "fail",
+    "accuracy": "pass",
+    "think": "pass",
+    "persistence": "fail",
+    "variance": "fail"
+  },
+  "checks": {
+    "z_used": {
+      "active_units": 8,
+      "kl_nats_per_half": 2.95558762550354,
+      "free_bits": 3.0,
+      "ce_post": 1.3326029777526855,
+      "ce_swap": 1.3341046571731567,
+      "z_swap_gain_nats": 0.0015016403049230576,
+      "z_swap_gain_ci": [
+        0.0012516253286563924,
+        0.0017607982299330653
+      ],
+      "parts": {
+        "active_units": true,
+        "kl": false,
+        "z_swap": true
+      },
+      "pass": false,
+      "rule": "active units >= 4; KL >= free bits + 1.0; z-swap gain CI > 0"
+    },
+    "accuracy": {
+      "top1_prior": 0.5596693158149719,
+      "top1_post": 0.5607314109802246,
+      "top1_teacher": 0.5601449012756348,
+      "pass": true,
+      "rule": "top-1 with prior z >= Maia-3 79M top-1 - 0.3 points"
+    },
+    "think": {
+      "r_log_prior": 0.6678196089451287,
+      "r_log_post": 0.7094575498170591,
+      "chessmimic": 0.56,
+      "pass": true,
+      "rule": "log-seconds r with prior z > ChessMimic's 0.56"
+    },
+    "persistence": {
+      "pass": false,
+      "rule": "doppel half-corr > maia3's, and doppel's CI lower bound > maia3's point",
+      "human": {
+        "n": 3968,
+        "r": 0.03899640739647329,
+        "ci": [
+          0.008512807028532864,
+          0.07164051962721353
+        ]
+      },
+      "maia3": {
+        "n": 1979,
+        "r": -0.05499592132538286,
+        "ci": [
+          -0.09988652377814926,
+          -0.011330073287801957
+        ]
+      },
+      "doppel": {
+        "n": 1986,
+        "r": -0.024183869488838074,
+        "ci": [
+          -0.07229739659280632,
+          0.017375334603161898
+        ]
+      }
+    },
+    "variance": {
+      "pass": false,
+      "rule": "per-game ACPL KS to humans: doppel <= maia3",
+      "ks_to_human": {
+        "maia3": 0.07118468719946525,
+        "doppel": 0.09083874419322352
+      },
+      "mean_acpl": {
+        "human": 61.776187903399396,
+        "maia3": 67.31863017777614,
+        "doppel": 67.98347026810775
+      }
+    }
+  }
+}

@@ -698,6 +698,23 @@ even though it never sees the clocks the surface features use, and the two combi
 clock-driven (arena, rapid) and on titled players, the surface wins. Era is close to chance for every view.
 These are the bars the Doppel z (`bench_doppel_<run>.json`, pending) and the Maia rating sweep must clear.
 
+**Doppel v0d gate** (`doppel_lab/v0_gate.py`, `lab/results/v0_gate_v0d.json`, step 32,811, 1500 band): fail,
+2 of 5 checks pass.
+
+1. Accuracy, pass: top-1 0.5597 with the prior z, against Maia-3's 0.5601.
+2. Think time, pass: log-seconds r 0.668 with the prior z (0.709 with the posterior), against ChessMimic's 0.56.
+3. z used, fail. 8 active units and a z-swap gain of +0.0015 nats (CI above 0), but the KL is 2.96 nats per
+   half-game, under the free-bits-plus-one bar of 4.0. The z carries barely more than the free bits allow.
+4. Persistence, fail. Half-game correlation is −0.024 for the Doppel and −0.055 for Maia-3, against +0.039 for
+   humans, whose CI is [0.009, 0.072]. The human signal is itself tiny at this resolution, so this check
+   has little power.
+5. Variance, fail. The KS distance of per-game ACPL to humans is 0.091 for the Doppel and 0.071 for Maia-3.
+   Mean ACPL is 68.0 for the Doppel, 67.3 for Maia-3 and 61.8 for humans.
+
+v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model. Next: raise the
+z's information (free bits or the KL weight), and make the persistence check per player over many games, as
+in the style-persistence study, not per half-game.
+
 **What this means for a Doppel.**
 
 1. Judge "weird" against the player's own band's book, not a pooled one: lines are band-specific (book exit
