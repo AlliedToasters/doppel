@@ -827,7 +827,9 @@ per-game ACPL distributions are nearly identical. Medians are 63.9 and 61.5, the
 vs 7.4% of games are above 120. Both are worse and wider than humans: median 57.9, IQR 37.0, 4.6% above 120.
 The gate statistic, KS(Doppel) − KS(Maia-3), has a bootstrap 95% CI of [−0.010, +0.045], which includes 0.
 The check should compare CIs, not point values. The real gap, synthetic play worse than human, is shared with
-Maia-3.
+Maia-3. It matches the policy-implied blunder rate in §7: sampled from at 1500, Maia-3 blunders 7.6% of the
+time against 6.75% for humans. A sampling temperature a little below 1 (or a band offset) is the cheap fix to
+test.
 
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 
