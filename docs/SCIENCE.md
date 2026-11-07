@@ -276,7 +276,14 @@ is autocorrelated: residual correlation with the side's previous move is +0.153,
 at 3, +0.068 at 5 and 0 by 10. Players have short "slow" and "fast" spells lasting about five moves, which no
 position feature explains. A think-time head needs recurrent state, or the recent think history (the
 `think_*_ewma`/`_roll` T0 channels), to reproduce them. Sampling each move's time independently would
-flatten them. Without difficulty controls (`think_ac_synth.py`, 3+0, the side's mean removed),
+flatten them.
+
+Players play the book from memory (`doppel_lab/book_think.py`, 87.7k train games with a book exit at plies 8–30,
+plies relative to the exit, both sides). Think time rises slowly through the book, from 2.0 s six plies before
+the exit to 2.9 s one ply before, then jumps to 3.9 s on the leaving move. The opponent's reply to the new
+position takes 3.7 s, against about 3.0 s on the trend. Maia-3 entropy rises at the exit too (1.68 vs 1.45), so
+part of the jump is a harder position. Book depth (the T1 book features) belongs in the think-time head's
+inputs. Without difficulty controls (`think_ac_synth.py`, 3+0, the side's mean removed),
 human 1500 sides show +0.157 at lag 1 and +0.083 at lag 5. ChessMimic's self-play shows +0.208 and +0.095,
 spells included and slightly too sticky. v0d self-play does not yet record clocks, so its spells can't be
 checked. Recording sampled think times in `selfplay.py` is a prerequisite for a timing check in the gate.
