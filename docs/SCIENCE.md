@@ -410,7 +410,14 @@ matched controls; Stockfish at the label budget on every legal move; Maia-3 79M 
 blunder, 84% of legal moves fail the label rule (only the refutation keeps the gain). Humans fail 30.9% of the
 time. Maia-3's policy-implied rate is 30.4%, but its top-1 move fails only 18.3%. In matched calm positions:
 human 6.5%, Maia-3 implied 7.9%, top-1 3.8%. So sampling from Maia-3 reproduces 1500 humans' missed
-punishments, and argmax play does not. This is the first policy-implied machine score for §7 item 5. Policy-implied machine
+punishments, and argmax play does not. This is the first policy-implied machine score for §7 item 5.
+
+On 6,000 random val positions (ply ≥ 2, blunder rate 6.75%), the policy-implied P(blunder) is the strongest
+pre-move predictor yet: AUC 0.932, AP 0.541. Blunder potential β (the share of legal moves that blunder) scores
+0.824 (AP 0.217), and Maia-3's entropy and top-move probability alone score about 0.60. The T2 table baseline
+reaches 0.850. Mean implied rate 7.6% vs 6.75% observed: Maia-3 at 1500 slightly over-blunders. The cost is
+Stockfish on every legal move (about 0.1 s of CPU per position at 50k nodes, 24 workers), so it suits labels
+and evaluation, not live play. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines

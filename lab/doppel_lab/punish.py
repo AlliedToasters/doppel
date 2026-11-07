@@ -124,9 +124,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=1500)
     ap.add_argument("--workers", type=int, default=24)
+    ap.add_argument("--random", action="store_true", help="a random val sample instead (policy-implied baseline)")
     a = ap.parse_args()
     rng = np.random.default_rng(0)
-    rows = sample(a.n, rng)
+    if a.random:
+        t = table.load("val", "T2", 1500, columns=["game_id", "mover", "ply", "maia_entropy", "maia_p_top", "blunder"])
+        t = t.filter((c("ply") >= 2) & c("maia_entropy").is_finite())
+        rows = t[np.sort(rng.choice(t.height, a.n, replace=False))].with_columns(group=pl.lit("random"))
+    else:
+        rows = sample(a.n, rng)
     games = dict(pl.read_parquet(V0 / "blunder_games_1500_val.parquet", columns=["game_id", "moves"]).iter_rows())
     evals = dict(pl.read_parquet(V0 / "evals_1500_val.parquet").iter_rows())
     tasks = [(games[r["game_id"]], r["ply"], evals[r["game_id"]][r["ply"]]) for r in rows.iter_rows(named=True)]
@@ -150,7 +156,18 @@ def main():
     with pl.Config(float_precision=4, tbl_cols=10):
         print(s)
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / "punish.json").write_text(json.dumps({"nodes": NODES, "summary": s.to_dicts()}, indent=1) + "\n")
+    if a.random:
+        from sklearn.metrics import average_precision_score, roc_auc_score
+        y = d["blunder"].cast(pl.Int8).to_numpy()
+        sc = {"maia_implied": d["maia_p"].to_numpy(), "beta": d["beta"].to_numpy(),
+              "maia_entropy": d["maia_entropy"].to_numpy(), "neg_maia_p_top": -d["maia_p_top"].to_numpy()}
+        out = {k: {"auc": float(roc_auc_score(y, v)), "ap": float(average_precision_score(y, v))} for k, v in sc.items()}
+        out["rate"] = float(y.mean())
+        out["maia_mean_implied"] = float(d["maia_p"].mean())
+        print(json.dumps(out, indent=1))
+        (RESULTS / "policy_implied_blunder.json").write_text(json.dumps({"nodes": NODES, "n": d.height, **out}, indent=1) + "\n")
+    else:
+        (RESULTS / "punish.json").write_text(json.dumps({"nodes": NODES, "summary": s.to_dicts()}, indent=1) + "\n")
 
 
 if __name__ == "__main__":
