@@ -898,7 +898,11 @@ sweep on the 91.5k-game bench suite, per side, best input by quadratic refinemen
   rating but not the time control, so its rating conditioning absorbs the difference.
 
 At the extremes (2400+) the offset turns strongly negative in every era (−40 to −280), which is Maia-3's
-training range running out. For v0's teacher: no global offset; if any, a per-time-control one.
+training range running out. For v0's teacher: no global offset. A per-time-control one is barely worth it
+(`doppel_lab/maia_offset_gain.py`, offsets fit on half the sides and scored on the other half, 900–2300): the
+best global offset is −10 and gains 0.01 mnats/move; per time control 1.2 mnats/move; per time control × year
+2.1 mnats/move. Against a mean of about −1,380 mnats/move this is noise-level. The offsets are real but cost
+almost nothing to ignore, because the likelihood curve is flat within ±100 of the nominal rating.
 
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 
