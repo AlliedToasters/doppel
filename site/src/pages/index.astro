@@ -1,0 +1,188 @@
+---
+import '@fontsource-variable/nunito';
+
+// Italian Game, Black to move. The hero board is plain markup, no JS.
+const FEN = 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R';
+const squares: (string | null)[] = FEN.split('/').flatMap((row) =>
+  [...row].flatMap((ch) => (/\d/.test(ch) ? Array(Number(ch)).fill(null) : [ch])),
+);
+const piece = (ch: string) => (ch === ch.toUpperCase() ? 'w' : 'b') + ch.toUpperCase();
+const LAST = new Set([61, 34]); // f1 -> c4 (Bc4); index 0 = a8
+
+const LICHESS = 'https://lichess.org/@/doppelbot';
+const GITHUB = 'https://github.com/AlliedToasters/doppel';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Doppel: chess opponents that play like people</title>
+    <meta name="description" content="Doppel builds chess opponents that play like real people at your level: human moves, human mistakes, human think times. Free and open source." />
+    <meta property="og:title" content="Doppel" />
+    <meta property="og:description" content="Chess opponents that play like people." />
+    <link rel="icon" type="image/png" href="/pieces/wN.png" />
+    <meta name="theme-color" content="#1A2329" />
+  </head>
+  <body>
+    <header class="wrap nav">
+      <a class="brand" href="/"><img src="/pieces/wN.png" alt="" width="36" height="36" />Doppel</a>
+      <a class="navlink" href={GITHUB}>GitHub</a>
+    </header>
+
+    <main>
+      <section class="wrap hero">
+        <div class="pitch">
+          <p class="tag">Early preview</p>
+          <h1>Chess opponents that play like <span class="hl">people</span>.</h1>
+          <p class="lede">
+            Most bots are engines with the strength turned down. A Doppel learns from millions of human games. The goal is a bot that
+            plays the moves a player at your level actually plays, makes the mistakes they make, and takes the time
+            they take.
+          </p>
+          <div class="ctas">
+            <a class="btn primary" href={LICHESS}>Challenge doppelbot on Lichess</a>
+            <a class="btn ghost" href={GITHUB}>Read the code</a>
+          </div>
+          <p class="soon">Browser and Android play are coming soon.</p>
+        </div>
+
+        <div class="boardbox" aria-hidden="true">
+          <div class="bubble">hmm… <b>0:08</b></div>
+          <div class="board">
+            {squares.map((ch, i) => {
+              const dark = (Math.floor(i / 8) + (i % 8)) % 2 === 1;
+              return (
+                <div class:list={['sq', dark ? 'd' : 'l', LAST.has(i) && 'last']}>
+                  {ch && <img src={`/pieces/${piece(ch)}.png`} alt="" loading="eager" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap cards">
+        <article class="card">
+          <div class="ico g">♟</div>
+          <h2>Your level, for real</h2>
+          <p>Pick a rating from 800 to 2400. The Doppel plays like that rating does, rather than playing perfect
+            moves and then throwing in a random blunder.</p>
+        </article>
+        <article class="card">
+          <div class="ico y">⏱</div>
+          <h2>Human clock habits <small>in research</small></h2>
+          <p>It should think longer when it's in trouble and play fast when the move is obvious. When its clock runs
+            low, it should get scrappy.</p>
+        </article>
+        <article class="card">
+          <div class="ico r">🌀</div>
+          <h2>Moods that last a game <small>in research</small></h2>
+          <p>Each game, a Doppel will be able to be sharp, cautious or on tilt, and it stays that way until the game ends,
+            just as a person across the board would.</p>
+        </article>
+      </section>
+
+      <section class="wrap open">
+        <h2>Open research</h2>
+        <p>
+          Doppel is AGPL-3.0, and so is the research behind it: how to measure whether a bot is human enough,
+          and every result, including the ones that failed. Released models are trained only on freely licensed
+          games.
+        </p>
+        <a class="btn ghost" href={GITHUB}>See the lab notes</a>
+      </section>
+    </main>
+
+    <footer class="wrap foot">
+      <span>© 2026 Doppel</span>
+      <a href={GITHUB}>Source</a>
+      <a href={LICHESS}>Lichess</a>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg: #1a2329;
+    --panel: #232f36;
+    --line: #2c3840;
+    --ink: #f3f1ea;
+    --muted: #a8b3ba;
+    --green: #34d399;
+    --red: #f43f5e;
+    --gold: #ffc53d;
+    --sq-l: #e9e4d4;
+    --sq-d: #5aa9a1;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: clip; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Nunito Variable', system-ui, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+</style>
+
+<style>
+  .nav { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.5rem; text-decoration: none; }
+  .navlink { color: var(--muted); text-decoration: none; font-weight: 700; }
+  .navlink:hover { color: var(--ink); }
+
+  .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; padding-top: 40px; padding-bottom: 72px; }
+  .tag { display: inline-block; margin: 0 0 12px; padding: 4px 12px; border-radius: 999px; background: #ffc53d22; color: var(--gold); font-weight: 800; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.08; margin: 0 0 20px; font-weight: 900; letter-spacing: -0.02em; }
+  .hl { color: var(--green); }
+  .lede { font-size: 1.15rem; color: var(--muted); margin: 0 0 28px; max-width: 34em; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .soon { color: var(--muted); font-size: 0.9rem; margin: 16px 0 0; }
+
+  .btn { display: inline-block; padding: 14px 22px; border-radius: 16px; font-weight: 900; text-decoration: none; transition: transform 80ms ease, box-shadow 80ms ease; }
+  .btn.primary { background: var(--green); color: #0f1418; box-shadow: 0 5px 0 #1f9d72; }
+  .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 0 #1f9d72; }
+  .btn.primary:active { transform: translateY(5px); box-shadow: 0 0 0 #1f9d72; }
+  .btn.ghost { border: 2px solid var(--line); box-shadow: 0 5px 0 var(--line); }
+  .btn.ghost:active { transform: translateY(5px); box-shadow: none; }
+  .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+  .boardbox { position: relative; }
+  .board { display: grid; grid-template-columns: repeat(8, 1fr); aspect-ratio: 1; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 0 #0f1418, 0 24px 60px #0008; transform: rotate(-2deg); }
+  .sq { display: grid; place-items: center; }
+  .sq.l { background: var(--sq-l); }
+  .sq.d { background: var(--sq-d); }
+  .sq.last { box-shadow: inset 0 0 0 100px #ffc53d66; }
+  .sq img { width: 88%; height: 88%; object-fit: contain; }
+  .bubble { position: absolute; top: -40px; right: 8px; z-index: 2; background: var(--ink); color: #0f1418; padding: 8px 14px; border-radius: 16px 16px 4px 16px; font-weight: 800; box-shadow: 0 4px 0 #0005; animation: bob 2.4s ease-in-out infinite; }
+  .bubble b { color: var(--red); }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+  @media (prefers-reduced-motion: reduce) { .bubble { animation: none; } .btn { transition: none; } }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-bottom: 72px; }
+  .card { background: var(--panel); border: 2px solid var(--line); border-radius: 20px; padding: 24px; }
+  .card h2 { font-size: 1.25rem; margin: 14px 0 8px; font-weight: 900; }
+  .card p { margin: 0; color: var(--muted); }
+  .card h2 small { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: 0.7rem; font-weight: 800; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ico { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 1.6rem; color: #0f1418; }
+  .ico.g { background: var(--green); }
+  .ico.y { background: var(--gold); }
+  .ico.r { background: var(--red); }
+
+  .open { padding-bottom: 88px; max-width: 760px; text-align: center; }
+  .open h2 { font-size: 2rem; font-weight: 900; margin: 0 0 12px; }
+  .open p { color: var(--muted); font-size: 1.1rem; margin: 0 0 24px; }
+
+  .foot { display: flex; gap: 20px; border-top: 2px solid var(--line); padding-top: 24px; padding-bottom: 40px; color: var(--muted); font-size: 0.9rem; }
+  .foot span { margin-right: auto; }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 16px; }
+    .boardbox { max-width: 420px; width: 100%; margin: 0 auto; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>

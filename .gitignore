@@ -15,3 +15,7 @@ client/backend_url.local
 
 # exported model packages (lab -> backend); published to object storage later
 /models/
+
+# deploy secrets
+deploy/.env
+deploy/secrets/

@@ -1,0 +1,33 @@
+# Cloudflare proxies in front (SSL mode Full (strict)); Caddy gets its own Let's Encrypt cert over HTTP-01.
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy api:8612
+	}
+	handle_path /play/* {
+		root * /srv/play
+		try_files {path} /index.html
+		file_server
+	}
+	redir /play /play/
+	handle {
+		root * /srv/site
+		file_server
+	}
+	handle_errors 404 {
+		root * /srv/site
+		rewrite * /404.html
+		file_server
+	}
+}

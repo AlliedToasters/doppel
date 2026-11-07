@@ -1,0 +1,9 @@
+# Allowlist: the backend images need only the uv workspace manifests and the backend + shared packages.
+*
+!pyproject.toml
+!uv.lock
+!packages/
+!backend/
+!lab/pyproject.toml
+**/__pycache__
+**/tests/
