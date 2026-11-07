@@ -18,6 +18,14 @@
    "surface+maia_policy": {
     "mae": 178.52872787517057,
     "r2": 0.11809138937114128
+   },
+   "maia_sweep": {
+    "mae": 161.76989940502918,
+    "r2": 0.28178204835790244
+   },
+   "surface+maia_policy+sweep": {
+    "mae": 159.4813773116579,
+    "r2": 0.306449168489177
    }
   },
   "year": {
@@ -38,6 +46,14 @@
    "surface+maia_policy": {
     "mae": 3.1929419993937427,
     "r2": 0.06286929598054247
+   },
+   "maia_sweep": {
+    "mae": 3.254062065093488,
+    "r2": 0.03409437966771567
+   },
+   "surface+maia_policy+sweep": {
+    "mae": 3.181040062757946,
+    "r2": 0.06674590426594684
    }
   },
   "era_2021plus": {
@@ -54,6 +70,12 @@
    },
    "surface+maia_policy": {
     "auc": 0.6781685909384911
+   },
+   "maia_sweep": {
+    "auc": 0.6392464818431927
+   },
+   "surface+maia_policy+sweep": {
+    "auc": 0.6827404862642857
    }
   },
   "online_fast": {
@@ -70,6 +92,12 @@
    },
    "surface+maia_policy": {
     "auc": 0.6793405172252975
+   },
+   "maia_sweep": {
+    "auc": 0.67457509227949
+   },
+   "surface+maia_policy+sweep": {
+    "auc": 0.6943106647481156
    }
   },
   "junior": {
@@ -86,6 +114,12 @@
    },
    "surface+maia_policy": {
     "auc": 0.5658496722917836
+   },
+   "maia_sweep": {
+    "auc": 0.5307648381486527
+   },
+   "surface+maia_policy+sweep": {
+    "auc": 0.5723402424933297
    }
   },
   "fast_otb": {
@@ -102,6 +136,12 @@
    },
    "surface+maia_policy": {
     "auc": 0.6688913065367289
+   },
+   "maia_sweep": {
+    "auc": 0.6276416836156651
+   },
+   "surface+maia_policy+sweep": {
+    "auc": 0.6947716040409361
    }
   }
  }

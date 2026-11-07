@@ -810,6 +810,11 @@ OTB among fast games from 0.630 to 0.703, fast vs classical OTB from 0.564 to 0.
 0.581. Without clocks the surface has little to work with, and move quality carries the signal. Online play
 and fast OTB play are visible in the moves themselves.
 
+The rating sweep on TWIC (`lab/results/bench_maia3_twic.json`) doubles FIDE rating R² from 0.140 (embedding)
+to 0.282, 0.306 with surface and policy. It is far below the Lichess 0.744 because TWIC ratings sit mostly
+above 2000, where the sweep's top input (2400) and Maia-3's training range run out, and the rating range is
+narrow. On era, online vs OTB, junior and fast OTB the sweep adds little over the embedding.
+
 The v0d Doppel z (`doppel_lab/bench_doppel.py`, `lab/results/bench_doppel_v0d.json`; the posterior mean per
 side and game half, 8 dims) is far weaker than both. Rating R² is 0.207 (trees; 0.144 linear) against 0.492 for
 the surface and 0.532 for Maia's embedding. Top 5% AUC is 0.714, titled 0.599, arena 0.686, era 0.576. Added
