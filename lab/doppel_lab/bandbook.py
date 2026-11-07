@@ -84,9 +84,10 @@ def main():
 
 
 
-def bench_features():
+def bench_features(suite: str = "lichess"):
     """Per game and side: mean log10 q of plies 1-20 under each group's book (move-only features) -> bench."""
-    from doppel_lab.bench import BENCH
+    from doppel_lab.bench import suite_dir
+    BENCH = suite_dir(suite)
     rng = np.random.default_rng(SEED)
     books = {}
     for name, df in load("train", N_BOOK, rng).items():
@@ -125,4 +126,4 @@ def bench_features():
 
 if __name__ == "__main__":
     import sys
-    main() if len(sys.argv) < 2 else {"bench": bench_features}[sys.argv[1]]()
+    main() if len(sys.argv) < 2 else {"bench": bench_features}[sys.argv[1]](*(sys.argv[2:3] or ["lichess"]))

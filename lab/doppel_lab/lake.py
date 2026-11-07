@@ -141,6 +141,18 @@ def parse_chunk(args):
     return out, bad
 
 
+def decoded(fh):
+    """Lines as text: UTF-8, else Windows-1252 (older TWIC issues), else UTF-8 with replacement."""
+    for raw in fh:
+        try:
+            yield raw.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                yield raw.decode("cp1252")
+            except UnicodeDecodeError:
+                yield raw.decode("utf-8", errors="replace")
+
+
 def games(stream):
     """(headers, movetext) pairs; movetext may span lines. Tolerates junk between games."""
     headers, body = {}, []
@@ -191,7 +203,7 @@ def main():
     ap.add_argument("--max-games", type=int, default=0, help="stop after this many games read (0 = all)")
     ap.add_argument("--workers", type=int, default=8)
     a = ap.parse_args()
-    stream = sys.stdin if a.src == "-" else open(a.src, encoding="utf-8", errors="replace")
+    stream = decoded(sys.stdin.buffer if a.src == "-" else open(a.src, "rb"))
     w = Writer(Path(a.out))
     t0, bad, sent = time.time(), 0, 0
     inflight = threading.BoundedSemaphore(3 * a.workers)

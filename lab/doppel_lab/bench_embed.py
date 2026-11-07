@@ -31,14 +31,15 @@ BLOCK = 4_000
 SCAL = ["lp_mean", "lp_std", "ent_mean", "top1", "rank_mean"]
 
 
-def run(device: str, workers: int, batch: int, limit: int = 0, out_name: str = "maia3.npz"):
+def run(device: str, workers: int, batch: int, limit: int = 0, out_name: str = "maia3.npz", suite: str = "lichess"):
     import torch
 
     from doppel_lab.engines import Maia3
-    games = pl.read_parquet(BENCH / "games.parquet").select("game_id", "moves")
+    from doppel_lab.bench import suite_dir
+    games = pl.read_parquet(suite_dir(suite) / "games.parquet").select("game_id", "moves")
     if limit:
         games = games.head(limit)
-    out = BENCH / out_name
+    out = suite_dir(suite) / out_name
     model = Maia3("79m", device).model.eval()
     pooled = {}
     model.last_ln.register_forward_hook(lambda m, i, o: pooled.__setitem__("x", o))
@@ -102,24 +103,26 @@ def run(device: str, workers: int, batch: int, limit: int = 0, out_name: str = "
     print(f"done -> {out}", flush=True)
 
 
-def probe():
+def probe(suite: str = "lichess"):
     from sklearn.decomposition import PCA
     from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
     from sklearn.linear_model import LogisticRegression, Ridge
     from sklearn.metrics import mean_absolute_error, r2_score, roc_auc_score
     from sklearn.preprocessing import StandardScaler
 
-    from doppel_lab.bench import SEED, TASKS
-    z = np.load(BENCH / "maia3.npz", allow_pickle=True)
+    from doppel_lab.bench import SEED, SUITES, suite_dir
+    TASKS, D = SUITES[suite], suite_dir(suite)
+    z = np.load(D / "maia3.npz", allow_pickle=True)
     gid = pl.DataFrame({"game_id": z["game_ids"], "i": np.arange(len(z["game_ids"]))})
     E = z["emb"].astype(np.float32).reshape(len(gid), -1)
     S = z["scal"].reshape(len(gid), -1)
     S = np.concatenate([S, S[:, :len(SCAL)] - S[:, len(SCAL):]], 1)        # + White minus Black
-    tasks = pl.read_parquet(BENCH / "tasks.parquet").join(gid, on="game_id")
-    surf = pl.read_parquet(BENCH / "surface.parquet")
-    scols = [k for k in surf.columns if k != "game_id"]
+    tasks = pl.read_parquet(D / "tasks.parquet").join(gid, on="game_id")
+    surf = pl.read_parquet(D / "surface.parquet")
+    scols = [k for k in surf.columns if k != "game_id" and surf[k].null_count() < surf.height]
     d = tasks.join(surf, on="game_id")
-    surface = json.loads((RESULTS / "bench_surface.json").read_text())["tasks"]
+    sname_ = "bench_surface.json" if suite == "lichess" else f"bench_surface_{suite}.json"
+    surface = json.loads((RESULTS / sname_).read_text())["tasks"]
     res = {"tasks": {}}
     for name, (flt, lab, kind) in TASKS.items():
         x = d.filter(flt).with_columns(y=lab)
@@ -152,7 +155,7 @@ def probe():
         res["tasks"][name] = r
         key = "r2" if kind == "reg" else "auc"
         print(f"{name:13s} " + "  ".join(f"{k} {v[key]:.3f}" for k, v in r.items()), flush=True)
-    (RESULTS / "bench_maia3.json").write_text(json.dumps(res, indent=1) + "\n")
+    (RESULTS / ("bench_maia3.json" if suite == "lichess" else f"bench_maia3_{suite}.json")).write_text(json.dumps(res, indent=1) + "\n")
 
 
 if __name__ == "__main__":
@@ -164,9 +167,11 @@ if __name__ == "__main__":
     r.add_argument("--gpu-ok", action="store_true")
     r.add_argument("--limit", type=int, default=0)
     r.add_argument("--out", default="maia3.npz")
-    sub.add_parser("probe")
+    r.add_argument("--suite", default="lichess")
+    pr = sub.add_parser("probe")
+    pr.add_argument("--suite", default="lichess")
     a = ap.parse_args()
     if a.cmd == "run":
-        run("cuda" if a.gpu_ok else "cpu", a.workers, a.batch, a.limit, a.out)
+        run("cuda" if a.gpu_ok else "cpu", a.workers, a.batch, a.limit, a.out, a.suite)
     else:
-        probe()
+        probe(a.suite)

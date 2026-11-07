@@ -40,10 +40,32 @@ BENCH = ROOT / "data" / "bench"
 BOOK = ROOT / "data" / "v0" / "book"
 RESULTS = ROOT / "lab" / "results"
 PER_YEAR = 8_000
+TWIC_N = 80_000
 TITLED_PER_YEAR = 1_500
 HUMAN_TITLES = ["GM", "IM", "FM", "CM", "NM", "WGM", "WIM", "WFM", "WCM", "WNM"]
 SEED = 0
 c = pl.col
+
+
+def suite_dir(suite: str) -> Path:
+    """lichess lives at data/bench/ (the first suite); others in data/bench/<suite>/."""
+    return BENCH if suite == "lichess" else BENCH / suite
+
+
+def sample_twic() -> pl.DataFrame:
+    """TWIC 2012-2026 with both FIDE ratings, >= 20 plies; no clocks. One random sample, labels per task."""
+    from doppel_lab.twic_science import load
+    rng = np.random.default_rng(SEED)
+    df = load().filter(c("elo").is_not_null() & (c("plies") >= 20))
+    df = df[np.sort(rng.choice(df.height, min(TWIC_N, df.height), replace=False))]
+    df = df.with_columns(white=pl.lit(None, pl.String), black=pl.lit(None, pl.String))
+    t = pl.read_parquet(LAKE.parent / "twic" / "*" / "*.parquet", columns=["game_id", "white", "black"]).unique("game_id")
+    df = df.drop("white", "black").join(t, on="game_id", how="left")
+    df = df.with_columns(clocks=pl.lit(None, pl.List(pl.Float32)), base=pl.lit(None, pl.Int32),
+                         inc=pl.lit(None, pl.Int32), elo_mean=c("elo"), in_main=pl.lit(True),
+                         fold=(c("white").fill_null("").str.to_lowercase().hash(SEED) % 5).cast(pl.Int8))
+    return df.select("game_id", "year", "white", "black", "white_elo", "black_elo", "base", "inc", "moves", "clocks",
+                     "elo_mean", "medium", "speed", "age", "in_main", "fold")
 
 
 def sample() -> pl.DataFrame:
@@ -111,11 +133,12 @@ def book_cols(g: pl.DataFrame) -> pl.DataFrame:
                          "b_book_logq": np.add.reduceat(np.where(~white, logq, 0), start)})
 
 
-def build():
+def build(suite: str = "lichess"):
     from doppel_lab.features.table import _concat
     from doppel_lab.game_science import AGG
     t = time.time()
-    g = sample()
+    g = sample() if suite == "lichess" else sample_twic()
+    out = suite_dir(suite)
     print(f"{g.height:,} games sampled ({g['in_main'].sum():,} main) in {time.time() - t:.0f}s", flush=True)
     rows = g.select("game_id", "white_elo", "black_elo", "base", "inc", "moves", "clocks").to_dicts()
     with Pool(12) as p:
@@ -130,10 +153,10 @@ def build():
     feats = (g.select("game_id", plies=c("moves").list.len()).join(w, on="game_id").join(b, on="game_id")
              .with_columns([(c(f"w_{k}") - c(f"b_{k}")).alias(f"d_{k}") for k in t0])
              .join(book_cols(g), on="game_id"))
-    BENCH.mkdir(parents=True, exist_ok=True)
-    g.drop("moves", "clocks").write_parquet(BENCH / "tasks.parquet")
-    g.select("game_id", "moves", "clocks", "base", "inc").write_parquet(BENCH / "games.parquet")
-    feats.write_parquet(BENCH / "surface.parquet")
+    out.mkdir(parents=True, exist_ok=True)
+    g.drop("moves", "clocks").write_parquet(out / "tasks.parquet")
+    g.select("game_id", "moves", "clocks", "base", "inc").write_parquet(out / "games.parquet")
+    feats.write_parquet(out / "surface.parquet")
     print(f"surface features: {feats.width - 1} columns for {feats.height:,} games, {time.time() - t:.0f}s", flush=True)
 
 
@@ -149,15 +172,27 @@ TASKS = {  # name: (filter on tasks, label expression, kind)
 }
 
 
-def surface():
+TASKS_TWIC = {  # move-only: TWIC has no clocks
+    "elo_fide": (c("in_main"), c("elo_mean"), "reg"),
+    "year": (c("in_main"), c("year").cast(pl.Float64), "reg"),
+    "era_2021plus": ((c("year") >= 2021) | (c("year") <= 2016), c("year") >= 2021, "clf"),
+    "online_fast": (c("speed") == "fast", c("medium") == "online", "clf"),
+    "junior": ((c("medium") == "otb") & (c("speed") == "classical") & (c("age") != "senior") & (c("elo_mean") < 2300),
+               c("age") == "junior", "clf"),
+    "fast_otb": ((c("medium") == "otb") & (c("age") == "open"), c("speed") == "fast", "clf"),
+}
+SUITES = {"lichess": TASKS, "twic": TASKS_TWIC}
+
+
+def surface(suite: str = "lichess"):
     from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
     from sklearn.metrics import mean_absolute_error, r2_score, roc_auc_score
-    tasks = pl.read_parquet(BENCH / "tasks.parquet")
-    feats = pl.read_parquet(BENCH / "surface.parquet")
-    cols = [k for k in feats.columns if k != "game_id"]
+    tasks = pl.read_parquet(suite_dir(suite) / "tasks.parquet")
+    feats = pl.read_parquet(suite_dir(suite) / "surface.parquet")
+    cols = [k for k in feats.columns if k != "game_id" and feats[k].null_count() < feats.height]
     d = tasks.join(feats, on="game_id")
     res = {"features": cols, "tasks": {}}
-    for name, (flt, lab, kind) in TASKS.items():
+    for name, (flt, lab, kind) in SUITES[suite].items():
         x = d.filter(flt).with_columns(y=lab)
         X, y, fold = x.select(cols).to_numpy().astype(float), x["y"].to_numpy().astype(float), x["fold"].to_numpy()
         pred = np.empty(len(y))
@@ -178,8 +213,8 @@ def surface():
             print(f"{name:13s} n={len(y):6d} pos {r['pos_rate']:.3f} AUC {r['auc']:.3f}", flush=True)
         res["tasks"][name] = r
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / "bench_surface.json").write_text(json.dumps(res, indent=1) + "\n")
+    (RESULTS / ("bench_surface.json" if suite == "lichess" else f"bench_surface_{suite}.json")).write_text(json.dumps(res, indent=1) + "\n")
 
 
 if __name__ == "__main__":
-    {"build": build, "surface": surface}[sys.argv[1]]()
+    {"build": build, "surface": surface}[sys.argv[1]](*(sys.argv[2:3] or ["lichess"]))
