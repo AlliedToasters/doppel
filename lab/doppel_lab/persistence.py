@@ -77,6 +77,8 @@ def side_feats(g: pl.DataFrame) -> pl.DataFrame:
              "flag_loss": (lost & (term == "Time forfeit")).astype(float),
              "resign_loss": (lost & (term == "Normal")).astype(float), "plies": cnt.astype(float) * 0 + g["moves"].list.len().to_numpy(),
              "book_t1": t1, "weird_rate": weird[side]}
+        if "t" in g.columns:                       # stream position, so callers can order a player's games
+            d["t"] = g["t"].to_numpy()
         if side == 0:
             d |= {"w_e4": (first == "e2e4").astype(float), "w_d4": (first == "d2d4").astype(float)}
         else:

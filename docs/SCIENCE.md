@@ -638,9 +638,13 @@ player's own other visits gets 79–85% top-1. So in repeated positions, which a
 personalised model tops out near 80% top-1, against about 45% for a perfect population model. That gap is the
 room a per-player z has to fill. Later, unrepeated positions have no direct floor. How fast the signal accumulates
 (`doppel_lab/games_needed.py`, 8,000 of those players with 40+ games): rating predicted from the same style
-features averaged over k games, never from rating itself, goes from R² 0.17 (MAE 268) at one game to 0.40 (226)
-at 5, 0.49 (209) at 10, 0.58 (190) at 20 and 0.65 (172) at 40, against MAE 298 for a constant. That is about
-+0.08 R² per doubling. It is the data-needs curve a per-player z should beat: the same accuracy from fewer games.
+features averaged over a player's first k games in time order, never from rating itself, goes from R² 0.18
+(MAE 265) at one game to 0.42 (224) at 5, 0.52 (203) at 10, 0.59 (186) at 20 and 0.66 (169) at 40, against MAE
+298 for a constant. That is about +0.08 R² per doubling. It is the data-needs curve a per-player z should beat:
+the same accuracy from fewer games. Re-identification by k (`doppel_lab/reid_k.py`, 8,000 players with 80+
+games): the first k games are matched against a gallery of each player's last 40, in pools of 1,000. Top-1 is
+1.1% at k = 1, 10% at 5, 17% at 10, 25% at 20 and 33% at 40 (top-10: 8%, 36%, 51%, 62%, 71%). That is about half
+the 64% of interleaved halves, so style drifts across a month. A multi-game z should see at least 10–20 games.
 
 Style transfer across time controls (`doppel_lab/style_transfer.py`, 2,277 held-out players with 20+ games at
 both 3+0 and 5+0): the cross-time-control Spearman of each feature against its within-3+0 split-half
@@ -707,6 +711,12 @@ OTB among fast games from 0.630 to 0.703, fast vs classical OTB from 0.564 to 0.
 0.581. Without clocks the surface has little to work with, and move quality carries the signal. Online play
 and fast OTB play are visible in the moves themselves.
 
+The v0d Doppel z (`doppel_lab/bench_doppel.py`, `lab/results/bench_doppel_v0d.json`; the posterior mean per
+side and game half, 8 dims) is far weaker than both. Rating R² is 0.207 (trees; 0.144 linear) against 0.492 for
+the surface and 0.532 for Maia's embedding. Top 5% AUC is 0.714, titled 0.599, arena 0.686, era 0.576. Added
+to the surface it changes nothing (rating 0.493, arena 0.715). Its 8 dims hold some rating and clock-style
+information, and none of it is new.
+
 **Doppel v0d gate** (`doppel_lab/v0_gate.py`, `lab/results/v0_gate_v0d.json`, step 32,811, 1500 band): fail,
 2 of 5 checks pass.
 
@@ -726,7 +736,7 @@ Diagnosis (`data/v0/runs/v0d/log.jsonl`): the training KL climbs from 2.0 to 2.9
 3.0 free-bits floor for all 32.8k steps. Below the floor the KL is free, so the penalty is not what limits z.
 The decoder finds little more to read from one half-game. The z-swap gain is 0.0015 nats per move, about
 0.05 nats per half-game. That matches the baselines above: one game of surface style predicts rating at R²
-0.17, ten games at 0.49, and re-identification needs a player's full history. Lowering the KL weight or raising
+0.18, ten games at 0.52, and re-identification needs a player's full history. Lowering the KL weight or raising
 free bits would only add noise to z. The stronger fix is evidence: encode z from several games by the same
 player (a set encoder over k games, k = 5–20) and make the persistence check per player across many games, as
 in the style-persistence study.
@@ -739,7 +749,7 @@ in the style-persistence study.
    Rating-conditioned models (Maia-3's Elo inputs, our `elo_self`/`elo_opp`) should see an uncertainty signal.
 3. Style is very stable within a player (opening choice split-half ρ ≈ 0.97, think 0.93) and transfers
    across blitz speeds. A per-player z should re-identify at least as well as surface style plus rating (81%
-   top-1 among 1,000) and beat the games-needed curve (R² 0.49 for rating at 10 games).
+   top-1 among 1,000) and beat the games-needed curve (R² 0.52 for rating at 10 games).
 4. The previous game's result is a cheap input for the think-time head: after a loss, players move 0.12 s
    faster and lose within 40 plies 1.4 pt more often.
 5. Clock state changes strength: in mutual time trouble, rating matters about half as much (Elo scale 1,152

@@ -16,7 +16,7 @@ import json
 import numpy as np
 import polars as pl
 
-from doppel_lab.persistence import CORPUS, FEATS, MIN_GAMES, RESULTS, SEED, held_out, side_feats
+from doppel_lab.persistence import CORPUS, FEATS, RESULTS, SEED, held_out, side_feats
 
 KS = (1, 2, 5, 10, 20, 40)
 N_PLAYERS = 8_000
@@ -34,7 +34,7 @@ def main():
     keep = sorted(names["white"].to_list())
     keep = set(rng.choice(keep, min(N_PLAYERS, len(keep)), replace=False).tolist())
     g = g.filter(c("white").str.to_lowercase().is_in(list(keep)) | c("black").str.to_lowercase().is_in(list(keep)))
-    s = side_feats(g).filter(c("player").is_in(list(keep)))
+    s = side_feats(g).filter(c("player").is_in(list(keep))).sort("t")   # side_feats stacks White rows before Black
     s = s.with_columns(k=pl.int_range(pl.len()).over("player"))
     print(f"{len(keep):,} players with >= {max(KS)} 3+0 games", flush=True)
     res = {"players": len(keep), "ks": {}}
