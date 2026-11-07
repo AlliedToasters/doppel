@@ -676,6 +676,12 @@ in both versions. Players move faster as a session runs on, by 0.05–0.14 s per
 (final game dropped) at games 5–17+. They also lose quickly less often (early loss −0.6 to −0.9 pt). A
 session-index input to the think-time head is cheap; a "fatigue" score penalty has no support here.
 
+Rematches (`doppel_lab/rematch.py`, 230k pairs of games between the same two accounts within 60 minutes):
+the first game's winner scores 0.554 in the rematch. Against the expectation from the rematch's own ratings,
+which already include game 1's rating exchange, that is −0.2 pt (SE 0.1). The split by colour is White's
+edge, +1.5 pt as White and −1.8 pt as Black. There is no matchup edge and no loser's tilt beyond what the
+ratings already price in.
+
 **Style persistence** (`doppel_lab/persistence.py`, `lab/results/persistence.json`): the bar for a style
 latent. 20,000 held-out players with at least 40 games at 3+0 in 2026-10 (one time control, so time-control
 choice can't pass for style); each player's games split into odd and even halves. Split-half Spearman across
