@@ -698,6 +698,12 @@ even though it never sees the clocks the surface features use, and the two combi
 clock-driven (arena, rapid) and on titled players, the surface wins. Era is close to chance for every view.
 These are the bars the Doppel z (`bench_doppel_<run>.json`, pending) and the Maia rating sweep must clear.
 
+On TWIC (move-only, `lab/results/bench_maia3_twic.json`), Maia's embedding wins every task. FIDE rating R²
+rises from 0.094 to 0.140 and year R² from 0.036 to 0.064. Era 2021+ AUC goes from 0.619 to 0.688, online vs
+OTB among fast games from 0.630 to 0.703, fast vs classical OTB from 0.564 to 0.652, and junior from 0.563 to
+0.581. Without clocks the surface has little to work with, and move quality carries the signal. Online play
+and fast OTB play are visible in the moves themselves.
+
 **Doppel v0d gate** (`doppel_lab/v0_gate.py`, `lab/results/v0_gate_v0d.json`, step 32,811, 1500 band): fail,
 2 of 5 checks pass.
 
