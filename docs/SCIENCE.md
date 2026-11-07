@@ -827,10 +827,20 @@ rating R² by trees, 5-fold by player; re-ID = first k games vs a gallery of the
 
 | View | R² k=1 | k=5 | k=10 | k=40 | Re-ID k=1 | k=5 | k=10 | k=40 |
 |---|---|---|---|---|---|---|---|---|
-| Surface | 0.110 | 0.317 | 0.413 | 0.577 | 2.0% | 15.9% | 27.6% | 50.0% |
-| v0d z (8 dims) | −0.053 | −0.025 | 0.031 | 0.051 | 0.6% | 0.9% | 1.1% | 2.8% |
-| Maia emb (PCA 64) | 0.310 | 0.645 | 0.750 | 0.869 | 7.5% | 27.3% | 46.5% | 77.1% |
-| Surface + Maia | **0.395** | **0.693** | **0.776** | **0.880** | **9.1%** | **41.0%** | **63.5%** | **90.5%** |
+| Surface | 0.113 | 0.312 | 0.427 | 0.572 | 2.0% | 15.9% | 27.6% | 50.0% |
+| v0d z (8 dims) | −0.078 | −0.038 | 0.015 | 0.066 | 0.6% | 0.9% | 1.1% | 2.8% |
+| Maia emb (PCA 64) | 0.310 | 0.637 | 0.739 | 0.867 | 7.5% | 27.3% | 46.5% | 77.1% |
+| Maia rating sweep (9 dims) | 0.575 | 0.759 | 0.794 | 0.838 | 1.4% | 2.9% | 4.7% | 10.7% |
+| Surface + Maia | 0.396 | 0.693 | 0.760 | 0.880 | 9.1% | 41.0% | 63.5% | 90.5% |
+| Surface + Maia + sweep | **0.644** | **0.847** | **0.883** | **0.937** | **9.4%** | **42.4%** | **66.8%** | **91.8%** |
+
+(Rerun 2026-11-07 with deterministic folds; rating R² moved by ≤ 0.02 from the first run, re-ID unchanged.)
+
+The rating sweep and the embedding measure different things. The sweep (how likely the moves are at each
+rating input) is the best single rating view at every k (0.575 from one game, vs 0.310 for the embedding), but it
+barely identifies anyone (10.7% at k = 40): it measures strength, and many players share a strength. The
+embedding is the reverse: it carries who the player is. Together they reach R² 0.937 and 91.8% re-ID at k = 40.
+So a v0e z should get both: the sweep as a strength feature, and a set encoder over per-game embeddings for style.
 
 A frozen Maia-3 embedding, averaged over 40 games, identifies a player among 500 in 77% of cases (90.5% with
 the surface features), and gives rating R² 0.87. Averaging is enough; nothing was trained. The v0d z does not
