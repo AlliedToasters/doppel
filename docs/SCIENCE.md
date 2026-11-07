@@ -395,7 +395,15 @@ moves played much slower than the player's own pace in that game still blunder 3
 moves 2.2 pt less. A long think marks trouble the player senses beyond what Maia's entropy captures; it does not
 fix it, which is why think time adds to the T1 blunder baseline. Sides whose think time tracks difficulty
 (Spearman of think vs entropy across their moves, quintiles −0.08 → 0.51) blunder a little less (8.1% → 7.4%),
-with the gain flat from the middle quintile on. Policy-implied machine
+with the gain flat from the middle quintile on.
+
+Blunders cluster (`doppel_lab/blunder_chain.py`; rates compared inside cells of Maia-3 entropy decile x the
+mover's win chances x clock fraction). Right after the opponent blunders, the mover blunders 29.9% of the time
+against 5.6% otherwise (+22.8 pt matched, z = 337). A position that is winning because of a fresh blunder
+usually needs one exact reply, and missing it counts as a blunder, so this is mostly "fails to punish": 1500
+players miss the refutation about 30% of the time. After their own blunder, players blunder again 16.4% vs
+6.7% (+9.8 pt matched), partly because an unrescued hanging piece stays hanging. For a Doppel, both are
+targets worth matching: a 1500 Doppel that always punishes blunders is not playing like a 1500. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines

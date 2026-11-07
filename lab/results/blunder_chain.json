@@ -1,0 +1,19 @@
+{
+ "rows": 5975662,
+ "own_after_own_blunder": {
+  "treated": 422773,
+  "matched_base_rate": 0.06510914375388202,
+  "matched_effect": 0.09839230974480405,
+  "se": 0.0005498270445262599,
+  "raw_rate_after": 0.16350145349868606,
+  "raw_rate_otherwise": 0.06693110559206208
+ },
+ "own_after_opponent_blunder": {
+  "treated": 439390,
+  "matched_base_rate": 0.07037906157554855,
+  "matched_effect": 0.2283464442393312,
+  "se": 0.0006771931969082904,
+  "raw_rate_after": 0.2987255058148797,
+  "raw_rate_otherwise": 0.05590910273194669
+ }
+}
