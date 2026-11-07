@@ -435,6 +435,13 @@ Captures blunder 0.79x, checks 0.82x and moves right after the opponent's captur
 are easier. A piece left on an attacked, undefended square (a crude static test) blunders 1.29x. Escaping an
 attacked piece changes nothing (0.99x). None of these lifts comes close to the position-level features above.
 
+The most common early blunders at 1500 (`doppel_lab/traps.py`, plies 4–24, `lab/results/traps.json`) are
+nearly all f7/f2 tactics in open games. 4.Ng5? in the Scotch (1.e4 e5 2.Nf3 Nc6 3.d4 exd4) appears 105 times.
+3...Bc5? in the Petrov-Italian (1.e4 e5 2.Nf3 Nf6 3.Bc4) is played in 32% of visits, and is a blunder because
+of Nxe5. Then come the early Bxf7+ shots. In the King's Gambit, after 3.fxe5 the recapture loses almost every
+time (89–100% of visits). These are candidate lesson content for the client, but the labels come from 50k-node
+evals, so each line needs a check at depth before it ships.
+
 The machine check (`doppel_lab/punish.py`, 1,500 val positions right after an opponent's blunder plus 1,500
 matched controls; Stockfish at the label budget on every legal move; Maia-3 79M at 1500 vs 1500): after a
 blunder, 84% of legal moves fail the label rule (only the refutation keeps the gain). Humans fail 30.9% of the
