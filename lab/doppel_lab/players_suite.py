@@ -97,14 +97,15 @@ def score(run: str = "v0d"):
         for k in KS:
             m = k_ < k
             P = pool(X, m)
+            Ps = np.nan_to_num((P - mu_) / sd_)
             y = pool(elo[:, None], m)[:, 0]
+            P = P[:, [j for j in range(P.shape[1]) if len(np.unique(P[np.isfinite(P[:, j]), j])) >= 2]]  # HGB needs 2+ values
             pred = np.empty(len(y))
             for f in range(5):
                 tr, te = fold != f, fold == f
                 pred[te] = HistGradientBoostingRegressor(max_iter=200, learning_rate=0.05,
                                                          random_state=SEED).fit(P[tr], y[tr]).predict(P[te])
             r2 = float(r2_score(y, pred))
-            Ps = np.nan_to_num((P - mu_) / sd_)
             t1 = n = 0
             for _ in range(max(1, len(up) // POOL)):
                 ii = rng.choice(len(up), POOL, replace=False)
