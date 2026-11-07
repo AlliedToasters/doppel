@@ -416,6 +416,12 @@ players miss the refutation about 30% of the time. After their own blunder, play
 6.7% (+9.8 pt matched), partly because an unrescued hanging piece stays hanging. For a Doppel, both are
 targets worth matching: a 1500 Doppel that always punishes blunders is not playing like a 1500.
 
+Move types matter less than position (`doppel_lab/blunder_kind.py`, 1.8 M own moves, 30k train games, base
+rate 7.45%). Queen and knight moves blunder 1.21x and 1.16x as often as the average move, king moves 0.67x.
+Captures blunder 0.79x, checks 0.82x and moves right after the opponent's capture 0.86x, since forcing moves
+are easier. A piece left on an attacked, undefended square (a crude static test) blunders 1.29x. Escaping an
+attacked piece changes nothing (0.99x). None of these lifts comes close to the position-level features above.
+
 The machine check (`doppel_lab/punish.py`, 1,500 val positions right after an opponent's blunder plus 1,500
 matched controls; Stockfish at the label budget on every legal move; Maia-3 79M at 1500 vs 1500): after a
 blunder, 84% of legal moves fail the label rule (only the refutation keeps the gain). Humans fail 30.9% of the
