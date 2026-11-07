@@ -145,7 +145,8 @@ def build(suite: str = "lichess"):
         parts = p.map(_task, rows, chunksize=64)
     ply = _concat(parts)
     ply = ply.with_columns([c(k).fill_nan(None) for k, ty in ply.schema.items() if ty.is_float()])
-    t0 = {k: e for k, (tier, e, _) in AGG.items() if tier == "T0"}
+    # T0 aggregates whose source columns exist (TWIC has no clocks, so no think/clock columns)
+    t0 = {k: e for k, (tier, e, _) in AGG.items() if tier == "T0" and set(e.meta.root_names()) <= set(ply.columns)}
     sides = (ply.sort("game_id", "ply").group_by("game_id", "mover", maintain_order=True)
              .agg([e.alias(k) for k, e in t0.items()])).with_columns([c(k).cast(pl.Float64) for k in t0])
     w = sides.filter(c("mover") == 0).select("game_id", *[c(k).alias(f"w_{k}") for k in t0])
