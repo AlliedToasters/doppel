@@ -278,6 +278,15 @@ under 10% of the base. Weak players are short of time from the start; strong pla
 it in long, complex games. The pattern is U-shaped in rating, so a think head conditioned on rating alone must
 not be monotone.
 
+**Think time changes which move is played** (`doppel_lab/think_policy.py`, 1500 train table, clock ≥ 10%).
+At fixed Maia-3 entropy, long thinks move humans away from Maia's top choice. In the middle entropy quintile,
+the played move is Maia's top-1 62% of the time at 1 s, 59% at 2–3 s, 51% at 4–10 s and 42% at 11 s+. In the
+easiest quintile it runs 95% → 71%. The same holds among non-blunders (63% → 45% in the middle quintile), so a
+slow move is often a different, considered move, not just a worse one. Move and think time are therefore not
+independent. A Doppel that samples think time and move separately will play long thinks too intuitively.
+Condition the policy on the sampled think time, or sample the two jointly; v0's residual policy already sees
+the think features of earlier moves, but not this move's.
+
 **Long thinks cluster** (`doppel_lab/think_ac.py`, 6.0 M own moves, 1500 train table). Maia-3 entropy and
 top-move probability, clock, ply and the side's own pace in the game explain R² 0.30 of log think. The rest
 is autocorrelated: residual correlation with the side's previous move is +0.153, then +0.143 at lag 2, +0.114
