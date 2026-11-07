@@ -504,6 +504,26 @@ younger players go deeper into book and play longer games. Draw rates are U-shap
 **OTB titles** at matched FIDE rating: see `titles` in `lab/results/twic_science.json` (filled by the full TWIC
 re-run).
 
+**Encoder benchmark** (`doppel_lab/bench.py`, `bench_embed.py`, `bench_doppel.py`). This is the harness for the
+question above: can a learned match encoder beat surface features? Every model sees only the game's move and
+clock stream, never headers, and all are scored on the same games and folds (grouped by White's account). The
+Lichess suite has 91.5k games from 2018–2026 March heads. Maia-3 gets 1500 vs 1500 as its rating input so it
+cannot read the label. Surface features: T0 side aggregates, book exits and weird moves against the 2026-10
+book, and per-side likelihood under each band's book (`bandbook.py`). Gradient-boosted trees, 5-fold CV:
+
+| Task | Surface, v1 | Surface + band books |
+|---|---|---|
+| Mean rating (R²) | 0.406 | 0.492 (MAE 199) |
+| Within-year rating percentile (R²) | 0.395 | 0.487 |
+| Top 5% of the year (AUC) | 0.832 | 0.885 |
+| Arena vs lobby (AUC) | 0.701 | 0.703 |
+| Titled player, among the top 10% (AUC) | 0.666 | 0.689 |
+| Year, 2023+ vs ≤ 2020 (AUC) | 0.581 | 0.582 |
+| Rapid vs blitz (sanity, AUC) | 0.999 | 0.999 |
+
+Encoder results (Maia-3 embeddings and policy scalars, the Maia rating sweep, the v0 Doppel z) are added when the
+GPU jobs finish: `lab/results/bench_maia3.json`, `bench_doppel_<run>.json`.
+
 **Data limits found.** The public dumps hold rated games only, so true casual games are not available. Every
 BOT game in them is BOT vs BOT, so BOT-vs-human contrasts need another source. TWIC mixes online events
 (Titled Tuesday) with over-the-board ones, so an over-the-board vs online split needs an event/site classifier.
