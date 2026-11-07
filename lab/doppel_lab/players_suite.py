@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import sys
+import zlib
 
 import numpy as np
 import polars as pl
@@ -71,13 +72,18 @@ def score(run: str = "v0d"):
     sides = sides.join(surf.select("t", "player", "elo", *FEATS), on=["t", "player"], how="left")
     S = sides.select(FEATS).to_numpy().astype(float)
     views = {"surface": S, "doppel_z": zd, "maia_emb": em, "surface+doppel_z": np.c_[S, zd], "surface+maia": np.c_[S, em]}
+    if (D / "maia3_sweep.npz").exists():                 # per-side mean log-lik of the moves at 9 rating inputs
+        w = np.load(D / "maia3_sweep.npz", allow_pickle=True)
+        assert (w["game_ids"] == gids).all()
+        sw = w["ll"][idx, col].astype(float)
+        views |= {"maia_sweep": sw, "surface+maia+sweep": np.c_[S, em, sw]}
     players = sides["player"].to_numpy()
     k_ = sides["k"].to_numpy()
     elo = sides["elo"].to_numpy().astype(float)
     up = np.unique(players)
     pi = {p: i for i, p in enumerate(up)}
     pidx = np.array([pi[p] for p in players])
-    fold = np.array([hash(p) % 5 for p in up])
+    fold = np.array([zlib.crc32(p.encode()) % 5 for p in up])   # str hash() is salted per process
 
     def pool(X, mask):
         out = np.zeros((len(up), X.shape[1]))
