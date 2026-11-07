@@ -57,8 +57,8 @@ def loader(ds, batch, workers, shuffle, seed=0):
 def evaluate(model: DoppelV0, ld, device: str, max_batches: int | None = None) -> dict:
     from sklearn.metrics import average_precision_score, roc_auc_score
     model.eval()
-    acc = {k: [] for k in ("ce_t", "ce_q", "ce_p", "top_t", "top_q", "top_p", "kl", "mu_q", "think_true",
-                           "think_q", "think_p", "res_y", "res_w", "res_q", "res_p")}
+    acc = {k: [] for k in ("ce_t", "ce_q", "ce_p", "ce_s", "swap_ok", "game", "top_t", "top_q", "top_p", "kl",
+                           "mu_q", "think_true", "think_q", "think_p", "res_y", "res_w", "res_q", "res_p")}
     for i, b in enumerate(ld):
         if max_batches and i >= max_batches:
             break
@@ -74,17 +74,24 @@ def evaluate(model: DoppelV0, ld, device: str, max_batches: int | None = None) -
             emb = model.residual.board(tok)
             sid, has = b["sid"], b["played"] >= 0
             pl_idx = b["played"].clamp(min=0)
+            # z-swap control: each sample gets the posterior mean of a sample from another game in the batch.
+            sg = torch.zeros(len(mu_q), dtype=b["game"].dtype, device=sid.device).index_put_((sid,), b["game"])
+            swap = torch.roll(torch.arange(len(mu_q), device=sid.device), len(mu_q) // 2)
             out = {}
-            for tag, z in (("q", mu_q[sid]), ("p", z_p[sid])):
+            for tag, z in (("q", mu_q[sid]), ("p", z_p[sid]), ("s", mu_q[swap][sid])):
                 lg = (t_logp + model.residual(emb, z, b["elo_self"], b["elo_opp"]).float())
                 lp = lg.masked_fill(~mask, -1e9).log_softmax(-1)
                 acc[f"ce_{tag}"].append(-lp.gather(1, pl_idx[:, None])[:, 0][has].cpu())
+                if tag == "s":
+                    continue
                 acc[f"top_{tag}"].append((lp.argmax(-1) == pl_idx)[has].cpu())
                 mu_t, _ = model.think(pooled, b["clk"], b["tempo"], z)
                 out[f"think_{tag}"] = model.think.seconds(mu_t.float(), b["think"][:, 1], b["think"][:, 2])
                 out[f"res_{tag}"] = torch.sigmoid(model.resign(pooled, value, b["clk"], z).float())
         acc["ce_t"].append(-t_logp.gather(1, pl_idx[:, None])[:, 0][has].cpu())
         acc["top_t"].append((t_logp.argmax(-1) == pl_idx)[has].cpu())
+        acc["swap_ok"].append((sg[swap][sid] != b["game"])[has].cpu())
+        acc["game"].append(b["game"][has].cpu())
         kl_d = 0.5 * (lv_p - lv_q + ((lv_q.exp() + (mu_q - mu_p) ** 2) / lv_p.exp()) - 1)
         acc["kl"].append(kl_d.float().sum(-1).cpu())
         acc["mu_q"].append(mu_q.float().cpu())
@@ -108,6 +115,19 @@ def evaluate(model: DoppelV0, ld, device: str, max_batches: int | None = None) -
          "mu_var_by_dim": [round(float(v), 4) for v in var],
          "think_r_log_post": float(np.corrcoef(lt, np.log1p(c["think_q"]))[0, 1]),
          "think_r_log_prior": float(np.corrcoef(lt, np.log1p(c["think_p"]))[0, 1])}
+    # Paired per-position gain of the player's own z over a swapped z, CI by bootstrap over games.
+    ok = c["swap_ok"] > 0.5
+    d, g = (c["ce_s"] - c["ce_q"])[ok], c["game"][ok].astype(np.int64)
+    _, gi = np.unique(g, return_inverse=True)
+    sums, cnt = np.bincount(gi, d), np.bincount(gi)
+    rng = np.random.default_rng(0)
+    boots = []
+    for _ in range(1000):
+        pick = rng.integers(0, len(sums), len(sums))
+        boots.append(sums[pick].sum() / cnt[pick].sum())
+    r["ce_swap"] = float(c["ce_s"][ok].mean())
+    r["z_swap_gain_nats"] = float(d.mean())
+    r["z_swap_gain_ci"] = [float(x) for x in np.percentile(boots, [2.5, 97.5])]
     y, w = c["res_y"], c["res_w"]
     if 0 < y.sum() < len(y):
         for tag, key in (("post", "res_q"), ("prior", "res_p")):
