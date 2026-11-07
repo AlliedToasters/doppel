@@ -47,14 +47,16 @@ def tokens(lp, rank, ent, clock, base, inc, color, ctx):
     return np.array(enc, np.float32)
 
 
-def embed(run: str) -> tuple[np.ndarray, np.ndarray]:
+def embed(run: str, suite: str = "lichess") -> tuple[np.ndarray, np.ndarray]:
+    from doppel_lab.bench import suite_dir
+    D = suite_dir(suite)
     s = torch.load(ROOT / "data" / "v0" / "runs" / run / "ckpt.pt", map_location="cpu", weights_only=False)
     enc = Encoder()
     enc.load_state_dict({k[len("encoder."):]: v for k, v in s["model"].items() if k.startswith("encoder.")})
     enc.eval()
-    z = np.load(BENCH / "maia3.npz", allow_pickle=True)
+    z = np.load(D / "maia3.npz", allow_pickle=True)
     off = z["pos_off"]
-    g = pl.read_parquet(BENCH / "games.parquet", columns=["game_id", "clocks", "base", "inc"])
+    g = pl.read_parquet(D / "games.parquet", columns=["game_id", "clocks", "base", "inc"])
     assert (g["game_id"].to_numpy() == z["game_ids"]).all()
     G = g.height
     mu = np.zeros((G, 2, 2, 8), np.float32)
