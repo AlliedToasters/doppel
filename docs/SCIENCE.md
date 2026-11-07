@@ -459,6 +459,23 @@ Online blitz is close to stationary on surface features. The tier gradient (bott
 8.5 → 10.5, weird rate 3.8% → 1.6%) is about ten times any change across years, and holds every year. The
 rating scale widened by about 600 points between the p25 and p95 tiers, which is why tiers are percentiles.
 
+**Opening fashion** (`doppel_lab/fashion.py`, `lab/results/fashion.json`): shares of named first-move lines by
+year, online (Lichess March heads) and over the board (TWIC classical, open events).
+
+| Line | Online 2013 | Online 2026 | OTB 2012 | OTB 2026 | OTB 2600+ 2012 | OTB 2600+ 2025 |
+|---|---|---|---|---|---|---|
+| London | 2.1% | 6.2% | 1.4% | 2.9% (peak 4.1% in 2018) | 0.2% | 1.7% |
+| Caro-Kann | 2.6% | 5.2% | 3.8% | 5.9% | 4.4% | 2.6% |
+| Sicilian | 9.8% | 9.6% (peak 12.0% in 2020) | 20.4% | 22.1% | 13.3% | 14.9% |
+| Italian | 3.1% | 3.5% | 1.5% | 3.2% | 1.2% | 9.6% |
+| Queen's Gambit | 4.7% | 3.5% | 7.1% | 6.4% | 12.1% | 7.3% |
+
+Fashion moves by several points over a decade, unlike the surface features above, and it moves differently by
+medium and tier. The London grew online and stayed, while over the board it peaked in 2018 and faded. The
+elite's Italian renaissance barely shows below 2600. A natural experiment came out null: after Netflix's "The
+Queen's Gambit" (October 2020), the Queen's Gambit share online fell from 2020-03 to 2021-03 (4.2% → 3.9%,
+bottom quarter z = −5.3). Only the top 5% rose (2.4% → 2.9%, z = 2.3).
+
 **Populations** (`doppel_lab/populations.py`, rating-matched by coarsened exact matching on year, time control,
 own and opponent rating). Arena tournament vs lobby games, a competitive-vs-casual proxy, differ very little:
 +1.2 plies, 0.04 s faster per move, 0.3 pt fewer weird moves. At matched rating, titled players (blitz, 6,670
