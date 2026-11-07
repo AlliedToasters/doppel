@@ -18,6 +18,7 @@ import argparse
 import json
 import math
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -79,7 +80,7 @@ def evaluate(model: DoppelV0, ld, device: str, max_batches: int | None = None) -
             swap = torch.roll(torch.arange(len(mu_q), device=sid.device), len(mu_q) // 2)
             out = {}
             for tag, z in (("q", mu_q[sid]), ("p", z_p[sid]), ("s", mu_q[swap][sid])):
-                lg = (t_logp + model.residual(emb, z, b["elo_self"], b["elo_opp"]).float())
+                lg = (t_logp + model.residual(emb, z, b["elo_self"], b["elo_opp"], mask).float())
                 lp = lg.masked_fill(~mask, -1e9).log_softmax(-1)
                 acc[f"ce_{tag}"].append(-lp.gather(1, pl_idx[:, None])[:, 0][has].cpu())
                 if tag == "s":
@@ -179,7 +180,7 @@ def train(args):
         return args.lr * warm * 0.5 * (1 + math.cos(math.pi * min(1.0, s / total)))
 
     model.train()
-    done = False
+    done, sat_run = False, 0
     while not done and step < total:
         ds.epoch = epoch
         skip = step - epoch * steps_per_epoch  # resume mid-epoch: skip batches already seen (same permutation)
@@ -205,6 +206,16 @@ def train(args):
                 log.write(json.dumps(rec) + "\n")
                 log.flush()
                 print(json.dumps(rec), flush=True)
+                # Tripwire: a saturated residual has no gradient and does not recover (v0b). Stop, keep the
+                # checkpoint for a post-mortem, exit non-zero so warden marks the job failed.
+                sat_run = sat_run + 1 if parts["res_sat"] > args.sat_abort else 0
+                if sat_run >= 5:
+                    save()
+                    msg = f"ABORT: residual saturated (res_sat {parts['res_sat']:.2f} > {args.sat_abort}) for 5 logs at step {step}"
+                    log.write(json.dumps({"step": step, "abort": msg}) + "\n")
+                    log.flush()
+                    print(msg, flush=True)
+                    sys.exit(3)
             if step % args.ckpt_every == 0:
                 save()
             if step % args.val_every == 0 or step == total:
@@ -262,6 +273,7 @@ if __name__ == "__main__":
     t.add_argument("--kl-warmup", type=int, default=5000)
     t.add_argument("--free-bits", type=float, default=3.0)
     t.add_argument("--alpha", type=float, default=0.5)
+    t.add_argument("--sat-abort", type=float, default=0.25, help="abort if this share of legal-move corrections is saturated")
     t.add_argument("--log-every", type=int, default=50)
     t.add_argument("--ckpt-every", type=int, default=1000)
     t.add_argument("--val-every", type=int, default=2000)

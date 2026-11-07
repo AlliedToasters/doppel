@@ -30,6 +30,7 @@ from doppel_lab.v0_data import CLK_FEATS, ENC_FEATS, HIST, TEMPO_FEATS
 Z = 8
 NMOVES = 4352
 CAP = 10.0  # max |logit correction| in nats
+SAT = 0.95  # |correction| above SAT*CAP counts as saturated (tanh gradient < 0.1)
 
 
 class Trunk(nn.Module):
@@ -136,14 +137,19 @@ class Residual(nn.Module):
         cur = tok[:, :, 12 * (HIST - 1):12 * HIST]
         return self.piece(cur) + self.sq
 
-    def forward(self, emb, z, elo_self, elo_opp):
+    def forward(self, emb, z, elo_self, elo_opp, mask):
+        """mask: (B, NMOVES) legal moves. Scores are centred over legal moves before the cap: a shift shared by
+        every legal move does not change the policy, gets no gradient, and so drifts freely (v0b: it ran into
+        the +-CAP tanh plateau by step 650, the policy equalled the teacher's and the gradient was gone)."""
         c = torch.cat([z, ((elo_self.float() - 1500) / 400)[:, None], ((elo_opp.float() - 1500) / 400)[:, None]], -1)
         x = self.tf(emb + self.ctx(c)[:, None, :])
         f, t = self.q_from(x), self.q_to(x)
         s = torch.einsum("bid,bjd->bij", f, t) / math.sqrt(self.dh)
         flat = s.reshape(len(x), 4096)
         promo = s[:, self.pf, self.pt] + self.promo(x[:, 56:64])[:, self.pt - 56, self.pp]
-        s = torch.cat([flat, promo], 1)
+        s = torch.cat([flat, promo], 1).float()
+        m = mask.float()
+        s = s - ((s * m).sum(1, keepdim=True) / m.sum(1, keepdim=True).clamp(min=1))
         return CAP * torch.tanh(s / CAP)
 
 
@@ -226,7 +232,7 @@ def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha:
     z = z_s[sid]
 
     emb = model.residual.board(tok)
-    s_logits = t_logp + model.residual(emb, z, b["elo_self"], b["elo_opp"])
+    s_logits = t_logp + model.residual(emb, z, b["elo_self"], b["elo_opp"], mask)
     s_logp = s_logits.masked_fill(~mask, -1e9).log_softmax(-1)
     has_move = b["played"] >= 0
     pl_idx = b["played"].clamp(min=0)
@@ -239,7 +245,7 @@ def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha:
     std_p = (0.5 * lv_p).exp()
     for _ in range(model.S):
         zp = (mu_p + torch.randn_like(mu_p) * std_p)[sid]
-        lg = t_logp + model.residual(emb, zp, b["elo_self"], b["elo_opp"])
+        lg = t_logp + model.residual(emb, zp, b["elo_self"], b["elo_opp"], mask)
         mix.append(lg.masked_fill(~mask, -1e9).log_softmax(-1))
     mix_logp = torch.logsumexp(torch.stack(mix), 0) - math.log(model.S)
     t_p = t_logp.exp()
@@ -264,5 +270,6 @@ def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha:
     parts = {"loss": total.item(), "ce": L_pol.item(), "ce_teacher": ce_t[has_move].mean().item(),
              "marg": L_marg.item(), "kl_nats": kl.mean().item(), "think_nll": L_think.item(),
              "resign_bce": L_res.item(), "top1": top1.item(), "top1_teacher": top1_t.item(),
-             "res_abs": (s_logits - t_logp).abs()[mask].mean().item()}
+             "res_abs": (s_logits - t_logp).abs()[mask].mean().item(),
+             "res_sat": ((s_logits - t_logp).abs() > SAT * CAP)[mask].float().mean().item()}
     return total, parts

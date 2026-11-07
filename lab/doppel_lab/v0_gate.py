@@ -95,7 +95,7 @@ class Doppel:
         with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.device.startswith("cuda")):
             t_logits, _, _ = self.m.trunk(tok, es, eo)
             t_logp = t_logits.float().masked_fill(~mask, -1e9).log_softmax(-1)
-            res = self.m.residual(self.m.residual.board(tok), zt, es, eo).float()
+            res = self.m.residual(self.m.residual.board(tok), zt, es, eo, mask).float()
         logp = (t_logp + res).masked_fill(~mask, float("-inf")).log_softmax(-1)
         picks = torch.multinomial(logp.exp(), 1, generator=gen)[:, 0].cpu().numpy()
         out = []

@@ -59,3 +59,22 @@ def test_step0_is_teacher_and_heads_learn():
         opt.step()
     assert p["loss"] < first
     assert all(not q.requires_grad for q in m.trunk.parameters())  # the teacher never trains
+
+
+def test_residual_centred_over_legal_moves():
+    """A shift shared by all legal moves must not survive (v0b's residual drifted into the +-CAP plateau)."""
+    import torch
+    from doppel_lab.v0_model import CAP, NMOVES, Residual, Z
+    torch.manual_seed(0)
+    r = Residual()
+    torch.nn.init.normal_(r.q_to.weight, std=0.5)
+    with torch.no_grad():
+        r.q_from.weight.add_(5.0)  # large common component -> big same-sign scores before centring
+    B = 4
+    emb = torch.randn(B, 64, 256)
+    mask = torch.zeros(B, NMOVES, dtype=torch.bool)
+    mask[:, torch.randperm(NMOVES)[:30]] = True
+    out = r(emb, torch.randn(B, Z), torch.full((B,), 1500), torch.full((B,), 1500), mask)
+    legal = out[mask].view(B, -1)
+    assert (legal.abs() < CAP).all()
+    assert (legal.max(1).values > 0).all() and (legal.min(1).values < 0).all()
