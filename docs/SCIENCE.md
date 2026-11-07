@@ -425,7 +425,13 @@ resignation): the median resigner stands at win chances −0.87, and 70% resign 
 or wins 15% of the time; from (−0.8, −0.6] 26%. So a resignation at −0.87 gives up about a 15% chance of a
 draw or better, mostly through the opponent's later blunders and the clock. About 3% resign at −0.2 or better,
 which are mostly sides short of time or abandoning games. The resign head should copy this distribution; it
-should not resign at engine-hopeless positions only. Policy-implied machine
+should not resign at engine-hopeless positions only.
+
+The clock is the main reason to play on (`doppel_lab/flag_hope.py`, 104k lost positions, win chances ≤ −0.6, 3+0
+and other blitz): with equal clocks, the losing side saves 19.6% of the time. A lead of over 30% of the base
+raises that to 38.3%, and 25.4% of positions are won on time outright. Trailing by over 30%, the save rate is
+7.5%. Saves on the board (the opponent blunders back, or abandons) stay at 7–13% whatever the clocks. The resign
+head should see the clock difference, not only the eval. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines
