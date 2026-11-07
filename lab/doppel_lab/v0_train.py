@@ -152,7 +152,13 @@ def train(args):
     run.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(args.seed)
     model = build(args.fake_trunk, device)
-    opt = torch.optim.AdamW(model.heads_parameters(), lr=args.lr, weight_decay=0.01)
+    # Residual gets its own param group (lower lr, own clip): in v0c a shared lr/clip with the think/resign
+    # heads left it chasing noise, ending worse than the teacher it starts equal to.
+    named = [(n, p) for n, p in model.named_parameters() if not n.startswith("trunk.") and p.requires_grad]
+    res_p = [p for n, p in named if n.startswith("residual.")]
+    oth_p = [p for n, p in named if not n.startswith("residual.")]
+    opt = torch.optim.AdamW([{"params": res_p, "scale": args.res_lr_mult, "name": "residual"},
+                             {"params": oth_p, "scale": 1.0, "name": "other"}], lr=args.lr, weight_decay=0.01)
     step, epoch = 0, 0
     ck = run / "ckpt.pt"
     if ck.exists():
@@ -180,7 +186,7 @@ def train(args):
         return args.lr * warm * 0.5 * (1 + math.cos(math.pi * min(1.0, s / total)))
 
     model.train()
-    done, sat_run = False, 0
+    done, sat_run, worse_run = False, 0, 0
     while not done and step < total:
         ds.epoch = epoch
         skip = step - epoch * steps_per_epoch  # resume mid-epoch: skip batches already seen (same permutation)
@@ -191,17 +197,18 @@ def train(args):
             b = to_dev(b, device)
             beta = min(1.0, step / args.kl_warmup)
             for gp in opt.param_groups:
-                gp["lr"] = lr_at(step)
+                gp["lr"] = lr_at(step) * gp["scale"]
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda"):
                 loss, parts = losses(model, b, beta=beta, free_bits=args.free_bits, alpha=args.alpha)
             opt.zero_grad(set_to_none=True)
             loss.backward()
-            gn = torch.nn.utils.clip_grad_norm_(model.heads_parameters(), 1.0)
+            gn_res = torch.nn.utils.clip_grad_norm_(res_p, 1.0)
+            gn = torch.nn.utils.clip_grad_norm_(oth_p, 1.0)
             opt.step()
             step += 1
             if step % args.log_every == 0:
                 el = time.time() - t0
-                rec = {"step": step, "epoch": epoch, "beta": round(beta, 3), "lr": lr_at(step), "grad_norm": gn.item(),
+                rec = {"step": step, "epoch": epoch, "beta": round(beta, 3), "lr": lr_at(step), "grad_norm": gn.item(), "grad_norm_res": gn_res.item(),
                        "positions": int(b["tok"].shape[0]), "elapsed_s": round(el), **parts}
                 log.write(json.dumps(rec) + "\n")
                 log.flush()
@@ -223,6 +230,17 @@ def train(args):
                 log.write(json.dumps({"step": step, "val": r}) + "\n")
                 log.flush()
                 print("VAL", json.dumps(r), flush=True)
+                # Tripwire: a zero residual reproduces the teacher, so sustained val CE above it is an
+                # optimisation failure (v0c), not a capacity limit.
+                gap = r["ce_post"] - r["ce_teacher"]
+                worse_run = worse_run + 1 if step >= args.teacher_abort_after and gap > args.teacher_abort else 0
+                if worse_run >= 2:
+                    save()
+                    msg = f"ABORT: val ce_post exceeds teacher by {gap:.4f} > {args.teacher_abort} for 2 vals at step {step}"
+                    log.write(json.dumps({"step": step, "abort": msg}) + "\n")
+                    log.flush()
+                    print(msg, flush=True)
+                    sys.exit(4)
             if step >= total:
                 done = True
                 break
@@ -269,6 +287,9 @@ if __name__ == "__main__":
     t.add_argument("--max-steps", type=int, default=0)
     t.add_argument("--max-minutes", type=float, default=225)
     t.add_argument("--lr", type=float, default=3e-4)
+    t.add_argument("--res-lr-mult", type=float, default=0.1, help="residual lr = lr * this")
+    t.add_argument("--teacher-abort", type=float, default=0.005, help="abort if val ce_post - ce_teacher exceeds this")
+    t.add_argument("--teacher-abort-after", type=int, default=6000)
     t.add_argument("--warmup", type=int, default=500)
     t.add_argument("--kl-warmup", type=int, default=5000)
     t.add_argument("--free-bits", type=float, default=3.0)
