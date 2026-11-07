@@ -1,0 +1,218 @@
+{
+ "white": {
+  "players": 21303,
+  "by_rating": [
+   {
+    "bin": 800,
+    "players": 342,
+    "breadth_bits": 1.7560364479675346,
+    "rho_breadth_vs_resid": -0.13983734744268578
+   },
+   {
+    "bin": 900,
+    "players": 431,
+    "breadth_bits": 1.5700855599742942,
+    "rho_breadth_vs_resid": -0.09075490035896729
+   },
+   {
+    "bin": 1000,
+    "players": 670,
+    "breadth_bits": 1.4274131242634922,
+    "rho_breadth_vs_resid": -0.01820896312825778
+   },
+   {
+    "bin": 1100,
+    "players": 920,
+    "breadth_bits": 1.393369090412713,
+    "rho_breadth_vs_resid": -0.01653140158643841
+   },
+   {
+    "bin": 1200,
+    "players": 1261,
+    "breadth_bits": 1.317052478692772,
+    "rho_breadth_vs_resid": -0.08388031672617327
+   },
+   {
+    "bin": 1300,
+    "players": 1507,
+    "breadth_bits": 1.2700914837068795,
+    "rho_breadth_vs_resid": -0.010629265909266895
+   },
+   {
+    "bin": 1400,
+    "players": 1818,
+    "breadth_bits": 1.2688877639259477,
+    "rho_breadth_vs_resid": -0.05693083327942649
+   },
+   {
+    "bin": 1500,
+    "players": 2144,
+    "breadth_bits": 1.2616086134187383,
+    "rho_breadth_vs_resid": -0.014470584716492204
+   },
+   {
+    "bin": 1600,
+    "players": 2205,
+    "breadth_bits": 1.2511002976870267,
+    "rho_breadth_vs_resid": -0.03186680713229947
+   },
+   {
+    "bin": 1700,
+    "players": 2226,
+    "breadth_bits": 1.3192475583060481,
+    "rho_breadth_vs_resid": -0.02077345783464878
+   },
+   {
+    "bin": 1800,
+    "players": 2224,
+    "breadth_bits": 1.3340977192637282,
+    "rho_breadth_vs_resid": -0.02751499589592747
+   },
+   {
+    "bin": 1900,
+    "players": 1910,
+    "breadth_bits": 1.3783841343416303,
+    "rho_breadth_vs_resid": -0.0173609507835004
+   },
+   {
+    "bin": 2000,
+    "players": 1399,
+    "breadth_bits": 1.4040480346840896,
+    "rho_breadth_vs_resid": -0.06605126697812246
+   },
+   {
+    "bin": 2100,
+    "players": 1002,
+    "breadth_bits": 1.4280400268409117,
+    "rho_breadth_vs_resid": -0.08347881242367329
+   },
+   {
+    "bin": 2200,
+    "players": 637,
+    "breadth_bits": 1.4773440030087526,
+    "rho_breadth_vs_resid": -0.0002978925064718137
+   },
+   {
+    "bin": 2300,
+    "players": 330,
+    "breadth_bits": 1.4755660894842033,
+    "rho_breadth_vs_resid": 0.0439359205405
+   },
+   {
+    "bin": 2400,
+    "players": 277,
+    "breadth_bits": 1.5292717968720457,
+    "rho_breadth_vs_resid": 0.024847961717776357
+   }
+  ],
+  "rho_breadth_rating": 0.03363524460579936
+ },
+ "black": {
+  "players": 19586,
+  "by_rating": [
+   {
+    "bin": 800,
+    "players": 308,
+    "breadth_bits": 1.4298005367691473,
+    "rho_breadth_vs_resid": -0.036669067157880264
+   },
+   {
+    "bin": 900,
+    "players": 378,
+    "breadth_bits": 1.3671063802451424,
+    "rho_breadth_vs_resid": -0.0940142286498608
+   },
+   {
+    "bin": 1000,
+    "players": 610,
+    "breadth_bits": 1.2945789097934182,
+    "rho_breadth_vs_resid": 0.0158298841205247
+   },
+   {
+    "bin": 1100,
+    "players": 834,
+    "breadth_bits": 1.3047614366031257,
+    "rho_breadth_vs_resid": 0.01106419465894601
+   },
+   {
+    "bin": 1200,
+    "players": 1147,
+    "breadth_bits": 1.2796415432403494,
+    "rho_breadth_vs_resid": -0.0400271786506602
+   },
+   {
+    "bin": 1300,
+    "players": 1394,
+    "breadth_bits": 1.2302537390215496,
+    "rho_breadth_vs_resid": -0.006737116299183937
+   },
+   {
+    "bin": 1400,
+    "players": 1670,
+    "breadth_bits": 1.2438400566140504,
+    "rho_breadth_vs_resid": -0.055779442739345875
+   },
+   {
+    "bin": 1500,
+    "players": 2012,
+    "breadth_bits": 1.2631279849463697,
+    "rho_breadth_vs_resid": -0.017609771016095697
+   },
+   {
+    "bin": 1600,
+    "players": 2024,
+    "breadth_bits": 1.2357690146709315,
+    "rho_breadth_vs_resid": -0.03936971647144664
+   },
+   {
+    "bin": 1700,
+    "players": 2075,
+    "breadth_bits": 1.2517629922050668,
+    "rho_breadth_vs_resid": -0.02873979543297625
+   },
+   {
+    "bin": 1800,
+    "players": 2069,
+    "breadth_bits": 1.2865959557740831,
+    "rho_breadth_vs_resid": -0.02074174922378876
+   },
+   {
+    "bin": 1900,
+    "players": 1764,
+    "breadth_bits": 1.3110281664362395,
+    "rho_breadth_vs_resid": -0.028150461659222612
+   },
+   {
+    "bin": 2000,
+    "players": 1306,
+    "breadth_bits": 1.316681911859108,
+    "rho_breadth_vs_resid": 0.025292646839178656
+   },
+   {
+    "bin": 2100,
+    "players": 887,
+    "breadth_bits": 1.3376888818374555,
+    "rho_breadth_vs_resid": -0.01916407105956011
+   },
+   {
+    "bin": 2200,
+    "players": 572,
+    "breadth_bits": 1.389823111372372,
+    "rho_breadth_vs_resid": -0.007831626759425319
+   },
+   {
+    "bin": 2300,
+    "players": 301,
+    "breadth_bits": 1.418597169565628,
+    "rho_breadth_vs_resid": 0.02096732314147818
+   },
+   {
+    "bin": 2400,
+    "players": 235,
+    "breadth_bits": 1.4672900348954288,
+    "rho_breadth_vs_resid": -0.02550886593234958
+   }
+  ],
+  "rho_breadth_rating": 0.07231269548212316
+ }
+}

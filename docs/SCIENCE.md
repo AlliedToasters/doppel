@@ -574,6 +574,12 @@ think CV 1.01, time-trouble share 1.02, flag losses 0.93. Mean think keeps its r
 (3.9 → 5.2 s per move, 2.2% → 1.7% of the base clock). So one z per player can serve several blitz speeds, with
 the think-time head scaling by the clock.
 
+Repertoire breadth (`doppel_lab/repertoire.py`, 21k held-out players, entropy of their first two moves as White
+over exactly 30 games at 3+0) is U-shaped in rating: 1.76 bits at 800 (unsettled), 1.25 around 1500–1600 (a
+fixed repertoire), 1.53 at 2400 (deliberate variety); Black replies to 1.e4/1.d4 follow the same shape (1.43 →
+1.23 → 1.47). Within a rating bin, a narrower repertoire goes with slightly better results than the rating
+predicts (Spearman −0.02 to −0.14, strongest at 800–900), and the link is gone above 2200.
+
 **Encoder benchmark** (`doppel_lab/bench.py`, `bench_embed.py`, `bench_doppel.py`). This is the harness for the
 question above: can a learned match encoder beat surface features? Every model sees only the game's move and
 clock stream, never headers, and all are scored on the same games and folds (grouped by White's account). The
