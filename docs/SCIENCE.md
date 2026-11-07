@@ -495,7 +495,10 @@ below 2000 than their face value. Ratings in 1500–1599 in particular carry lit
 Time scrambles (`doppel_lab/scramble.py`, same corpus without 1500–1599 ratings): when both sides fall under
 10 s (1.4 M games, 76% of them ending on time, 9% drawn), the fitted Elo scale is 1,152, against 607 in calm
 games where neither side drops under 30 s. A favourite by about 175 points scores 0.601 in a scramble and 0.675
-in a calm game. Rating matters about half as much once both clocks run down. Selection inflates this somewhat:
+in a calm game. Rating matters about half as much once both clocks run down. Across the corpus's blitz time controls
+(`doppel_lab/tc_scale.py`), the fitted scale barely moves: 634 at 3+0, 643 at 3+2, 692 at 5+0, 653 at 5+3, while
+flag rates fall from 27% to 18%. Lichess pools blitz into one rating, so this is the same rating predicting at
+different speeds. A clock change of this size matters far less than whether the clocks actually run low. Selection inflates this somewhat:
 a favourite who reaches a scramble has already failed to win cleanly.
 
 **Era** (`doppel_lab/vintage.py`, the first 150k games of each March 2013–2026, `lab/results/vintage_lichess.json`).
