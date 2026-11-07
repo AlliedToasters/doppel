@@ -401,6 +401,23 @@ prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800,
 Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
 grows about 0.5 ply per doubling of the corpus. Position (transposition) keys add about 2 plies.
 
+Band-specific books (`doppel_lab/bandbook.py`, `lab/results/bandbook.json`): six rating groups, each with its own
+book of 350k train games, scoring 10k held-out games of every group. Every group stays in book longest, and
+plays the fewest weird moves, against its own group's book. The diagonal wins every row. Mean T1 exit, own
+book vs the extremes:
+
+| Games from | ≤900 book | own book | 2300+ book |
+|---|---|---|---|
+| ≤900 | 8.9 | 8.9 | 6.8 |
+| 1500 | 9.2 | 10.0 | 8.3 |
+| 2300+ | 8.4 | 13.0 | 13.0 |
+
+So two effects are separate. Opening lines are band-specific: a 2300+ game leaves a ≤900 book at ply 8.4.
+And depth in one's own band's book still rises with rating (8.9 → 13.0 at equal book size), so strong players
+also conform more. The asymmetry is in the weird-move rate: strong players' moves are rarely weird to a weak
+book (2.5%), while weak players' moves often are to a strong book (13.5%). For a Doppel, the band-matched book
+is the right reference for "weird", not a pooled one.
+
 **Upsets** (gap ≥ 300, 38,930 heldout games). The underdog wins about 21% at every gap from 300 to 700,
 against an Elo expectation of 12% → 1.4%, so large Lichess gaps mostly mean a mis-rated account. From the
 first 30 plies, upsets are predictable: AUC 0.60 (gap and time control) → 0.78 (+ early T0 features).
