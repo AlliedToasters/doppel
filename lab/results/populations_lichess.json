@@ -1,0 +1,266 @@
+{
+ "sides": 3472078,
+ "contrasts": [
+  {
+   "name": "arena_vs_lobby",
+   "blitz": {
+    "score_minus_exp": {
+     "att": -0.0001941574043403144,
+     "se": 0.001425566226733922,
+     "control_mean": 0.0002908632550970591,
+     "treated_n": 218308,
+     "strata": 10022
+    },
+    "flag_loss": {
+     "att": 0.0014240702609598585,
+     "se": 0.0011353054765157807,
+     "control_mean": 0.13812647300818282,
+     "treated_n": 218308,
+     "strata": 10022
+    },
+    "think_mean": {
+     "att": -0.04333387167123411,
+     "se": 0.00749413916901165,
+     "control_mean": 4.462675616615839,
+     "treated_n": 128273,
+     "strata": 6123
+    },
+    "think_cv": {
+     "att": -0.00043451308156267396,
+     "se": 0.0014129103676701316,
+     "control_mean": 1.014010840633055,
+     "treated_n": 128236,
+     "strata": 6122
+    },
+    "trouble_share": {
+     "att": 0.0024826978244046278,
+     "se": 0.00046548106911946884,
+     "control_mean": 0.04892643977726219,
+     "treated_n": 128273,
+     "strata": 6123
+    },
+    "weird_rate": {
+     "att": -0.002548453454723014,
+     "se": 0.000578022295138769,
+     "control_mean": 0.04273254217094287,
+     "treated_n": 215772,
+     "strata": 9976
+    },
+    "t1": {
+     "att": -0.06643935955776865,
+     "se": 0.010492120738276461,
+     "control_mean": 9.315912580878104,
+     "treated_n": 218308,
+     "strata": 10022
+    },
+    "plies": {
+     "att": 1.2463408574467165,
+     "se": 0.1055167973059351,
+     "control_mean": 69.24561088046485,
+     "treated_n": 218308,
+     "strata": 10022
+    }
+   },
+   "rapid": {
+    "score_minus_exp": {
+     "att": -0.0016575046729421954,
+     "se": 0.0029069166443701556,
+     "control_mean": 0.001683515232455026,
+     "treated_n": 43135,
+     "strata": 3776
+    },
+    "flag_loss": {
+     "att": -0.005766067441257625,
+     "se": 0.0016304874215419482,
+     "control_mean": 0.07466603266671258,
+     "treated_n": 43135,
+     "strata": 3776
+    },
+    "think_mean": {
+     "att": -0.197836378022006,
+     "se": 0.03733758085205369,
+     "control_mean": 9.291817209797701,
+     "treated_n": 24239,
+     "strata": 2763
+    },
+    "think_cv": {
+     "att": 0.00807914385331227,
+     "se": 0.002677755383495381,
+     "control_mean": 1.0027242308024413,
+     "treated_n": 24238,
+     "strata": 2763
+    },
+    "trouble_share": {
+     "att": 0.0026672980888419,
+     "se": 0.000592479675795406,
+     "control_mean": 0.01923319659452229,
+     "treated_n": 24239,
+     "strata": 2763
+    },
+    "weird_rate": {
+     "att": -0.002945624695848233,
+     "se": 0.0011197875747083052,
+     "control_mean": 0.04737609372135664,
+     "treated_n": 42535,
+     "strata": 3742
+    },
+    "t1": {
+     "att": 0.025942145654539464,
+     "se": 0.01946689983256495,
+     "control_mean": 9.032316808790807,
+     "treated_n": 43135,
+     "strata": 3776
+    },
+    "plies": {
+     "att": 0.49806875949025026,
+     "se": 0.21417623586055046,
+     "control_mean": 65.86307648219284,
+     "treated_n": 43135,
+     "strata": 3776
+    }
+   }
+  },
+  {
+   "name": "titled_vs_untitled",
+   "blitz": {
+    "score_minus_exp": {
+     "att": 0.01975226289272284,
+     "se": 0.0062667290303909245,
+     "control_mean": -0.01580636510379739,
+     "treated_n": 6670,
+     "strata": 1359
+    },
+    "flag_loss": {
+     "att": 0.004377755036012443,
+     "se": 0.004287766355863794,
+     "control_mean": 0.1142129496116637,
+     "treated_n": 6670,
+     "strata": 1359
+    },
+    "think_mean": {
+     "att": 0.06027620736463424,
+     "se": 0.018356788173481877,
+     "control_mean": 3.9407378726771767,
+     "treated_n": 5884,
+     "strata": 1111
+    },
+    "think_cv": {
+     "att": 0.006875230178809001,
+     "se": 0.005039082109413816,
+     "control_mean": 1.1884914078032613,
+     "treated_n": 5884,
+     "strata": 1111
+    },
+    "trouble_share": {
+     "att": 0.006230163353357078,
+     "se": 0.0019243328461135461,
+     "control_mean": 0.07408037232735798,
+     "treated_n": 5884,
+     "strata": 1111
+    },
+    "weird_rate": {
+     "att": -0.005305330923921156,
+     "se": 0.001684347389902708,
+     "control_mean": 0.029578026332263252,
+     "treated_n": 6657,
+     "strata": 1356
+    },
+    "t1": {
+     "att": 0.05940974425877582,
+     "se": 0.05247030618242751,
+     "control_mean": 10.4711749633874,
+     "treated_n": 6670,
+     "strata": 1359
+    },
+    "plies": {
+     "att": -0.34843967002956916,
+     "se": 0.4445710923844389,
+     "control_mean": 79.36703037467724,
+     "treated_n": 6670,
+     "strata": 1359
+    }
+   },
+   "rapid": {
+    "score_minus_exp": {
+     "att": -0.04651054892502085,
+     "se": 0.041037226403598144,
+     "control_mean": 0.004849050655487327,
+     "treated_n": 125,
+     "strata": 83
+    },
+    "flag_loss": {
+     "att": 0.017222124015867937,
+     "se": 0.012459345897892802,
+     "control_mean": 0.030777875984132067,
+     "treated_n": 125,
+     "strata": 83
+    },
+    "think_mean": {
+     "att": 0.40677818027177215,
+     "se": 0.3635141392345631,
+     "control_mean": 10.032411045859186,
+     "treated_n": 82,
+     "strata": 64
+    },
+    "think_cv": {
+     "att": -0.0067038088233633214,
+     "se": 0.03110477045536341,
+     "control_mean": 1.2587417908626424,
+     "treated_n": 82,
+     "strata": 64
+    },
+    "trouble_share": {
+     "att": 0.023008351822668416,
+     "se": 0.010796447159498769,
+     "control_mean": 0.053129025493134065,
+     "treated_n": 82,
+     "strata": 64
+    },
+    "weird_rate": {
+     "att": -0.02734992149546749,
+     "se": 0.01094501140609004,
+     "control_mean": 0.03134992149546749,
+     "treated_n": 125,
+     "strata": 83
+    },
+    "t1": {
+     "att": 0.30239399837533054,
+     "se": 0.3023089723861575,
+     "control_mean": 10.249606001624668,
+     "treated_n": 125,
+     "strata": 83
+    },
+    "plies": {
+     "att": -0.17852213758762583,
+     "se": 2.599056554855253,
+     "control_mean": 73.12252213758762,
+     "treated_n": 125,
+     "strata": 83
+    }
+   }
+  },
+  {
+   "name": "bot_vs_human",
+   "blitz": {
+    "score_minus_exp": null,
+    "flag_loss": null,
+    "think_mean": null,
+    "think_cv": null,
+    "trouble_share": null,
+    "weird_rate": null,
+    "t1": null,
+    "plies": null
+   },
+   "rapid": {
+    "score_minus_exp": null,
+    "flag_loss": null,
+    "think_mean": null,
+    "think_cv": null,
+    "trouble_share": null,
+    "weird_rate": null,
+    "t1": null,
+    "plies": null
+   }
+  }
+ ]
+}
