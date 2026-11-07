@@ -222,8 +222,14 @@ def game_checks(run: str, band: int, rng) -> dict:
     pers = {"pass": bool(hc["doppel"]["r"] > hc["maia3"]["r"] and hc["doppel"]["ci"][0] > hc["maia3"]["r"]),
             "rule": "doppel half-corr > maia3's, and doppel's CI lower bound > maia3's point", **hc}
     ks = {k: float(stats.ks_2samp(st[k][:, 0], st["human"][:, 0]).statistic) for k in ("maia3", "doppel")}
+    gap = []                       # report-only: bootstrap CI of KS(doppel) - KS(maia3); the rule is unchanged
+    for _ in range(500):
+        h = rng.choice(st["human"][:, 0], len(st["human"]))
+        gap.append(stats.ks_2samp(rng.choice(st["doppel"][:, 0], len(st["doppel"])), h).statistic
+                   - stats.ks_2samp(rng.choice(st["maia3"][:, 0], len(st["maia3"])), h).statistic)
     var = {"pass": bool(ks["doppel"] <= ks["maia3"]), "rule": "per-game ACPL KS to humans: doppel <= maia3",
-           "ks_to_human": ks, "mean_acpl": {k: float(v[:, 0].mean()) for k, v in st.items()}}
+           "ks_to_human": ks, "ks_gap_ci": [float(v) for v in np.percentile(gap, [2.5, 97.5])],
+           "mean_acpl": {k: float(v[:, 0].mean()) for k, v in st.items()}}
     return {"persistence": pers, "variance": var}
 
 
