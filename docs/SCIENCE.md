@@ -501,8 +501,34 @@ All |z| > 10 except the 18–24 draw rate. The score column is the known rating 
 their improvement, an older player's trails their decline. The other columns are style at equal strength:
 younger players go deeper into book and play longer games. Draw rates are U-shaped in age.
 
-**OTB titles** at matched FIDE rating: see `titles` in `lab/results/twic_science.json` (filled by the full TWIC
-re-run).
+**Over the board** (`doppel_lab/twic_science.py`, TWIC issues 920–1669, 2012–2026, 2.9 M games,
+`lab/results/twic_science.json`). Medium, speed and age group are classified from TWIC's own conventions: a
+Site ending in " INT" marks online play, and event names mark speed and junior/senior events. Era, classical
+open events, own-year books at equal N (25k games):
+
+| | 2014 | 2018 | 2021 | 2026 |
+|---|---|---|---|---|
+| Own-year book exit, T1 (ply) | 12.72 | 12.51 | 13.27 | 13.19 |
+| 6-ply opening entropy (bits) | 9.19 | 9.24 | 8.90 | 8.76 |
+| 1.e4 / 1.d4 | 45% / 36% | 45% / 35% | 47% / 35% | 50% / 31% |
+| Draw rate | 31.7% | 31.7% | 33.2% | 33.4% |
+
+Unlike online blitz, over-the-board classical play changed, with a step at the 2021 return from the pandemic:
+deeper book, fewer distinct openings, more 1.e4, slightly more draws. Draw rate rises steeply with strength in
+every year (about 25% below 2200, 55% at 2600+).
+
+Matched contrasts (FIDE rating in 50-point bins and year):
+
+| Contrast | Draws | Short draws (≤ 40 plies) | Book exit | Weird moves | Plies |
+|---|---|---|---|---|---|
+| Online vs OTB, fast games | −9.8 pt (of 19.0%) | −1.8 pt | −0.7 | +1.3 pt | +0.6 |
+| Junior vs open, classical OTB | −0.3 pt | −2.8 pt (of 4.1%) | +1.8 | −1.0 pt | +5.9 |
+| Fast vs classical, OTB | −17.8 pt (of 39.9%) | −4.1 pt | −1.8 | +0.7 pt | +4.9 |
+
+Titles at matched rating (per side, classical OTB): no strength premium. Score minus Elo expectation is −0.5 pt
+for GMs (z = −0.8) and +0.3 pt for IMs. GMs draw 5.2 pt more than untitled players of the same rating and
+leave book 0.5 ply earlier; CMs, often juniors, score 1.7 pt above expectation (z = 13), consistent with the
+age table's rating lag.
 
 **Encoder benchmark** (`doppel_lab/bench.py`, `bench_embed.py`, `bench_doppel.py`). This is the harness for the
 question above: can a learned match encoder beat surface features? Every model sees only the game's move and
