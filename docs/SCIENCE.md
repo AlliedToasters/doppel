@@ -538,6 +538,14 @@ Damiano loses) and 1.e4 d5 2.Nf3 dxe4 the best for Black (−4.7 pt). At 1600–
 Elephant Gambit) scores −4.1 pt for White. At 2000+, both Scandinavian main lines favour Black (−2.1 and
 −2.2 pt). These residuals mix the opening with the kind of player who chooses it.
 
+Leaving the book costs a little (`doppel_lab/novelty.py`, 10.6 M held-out blitz games; book = the 22.7 M-game
+train table). The side that plays the first move into a position with fewer than 2 book games scores about
+1 pt below its Elo expectation, after removing White's edge. When that move comes from a well-known position
+(100+ book games), the side found an almost unplayed move in a common position, and the cost rises to 3–4 pt:
+−4.4 pt at 800, −3.0 pt at 1600–2000, −3.9 pt at 2400. The later it happens, the worse: −3.3 pt before ply 8,
+−6.7 pt at plies 14–19. An off-book move in a known position is usually a mistake, at every level. That
+supports a "weird move" feature that conditions on how well known the parent position is.
+
 **Opening fashion** (`doppel_lab/fashion.py`, `lab/results/fashion.json`): shares of named first-move lines by
 year, online (Lichess March heads) and over the board (TWIC classical, open events).
 
