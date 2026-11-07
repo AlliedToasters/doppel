@@ -612,6 +612,14 @@ Tilt is real but small in results, and clear in tempo: players speed up and lose
 loss, more so after losing on time. For a Doppel, the previous game's result is a cheap conditioning signal
 for the think-time head.
 
+**Session fatigue** (`doppel_lab/fatigue.py`, 3.3 M sides in 563k sessions, session fixed effects, game
+index dummies vs game 1). The score effect is not identified. With all games, scores fall 1–2.6 pt later in
+a session. Dropping each session's final game flips that to +1.2–2.5 pt. Both come from the stopping rule:
+players quit after losses, so final games skew toward losses and kept games away from them. Two effects hold
+in both versions. Players move faster as a session runs on, by 0.05–0.14 s per move (all games) or 0.10–0.30 s
+(final game dropped) at games 5–17+. They also lose quickly less often (early loss −0.6 to −0.9 pt). A
+session-index input to the think-time head is cheap; a "fatigue" score penalty has no support here.
+
 **Style persistence** (`doppel_lab/persistence.py`, `lab/results/persistence.json`): the bar for a style
 latent. 20,000 held-out players with at least 40 games at 3+0 in 2026-10 (one time control, so time-control
 choice can't pass for style); each player's games split into odd and even halves. Split-half Spearman across
