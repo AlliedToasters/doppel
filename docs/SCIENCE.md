@@ -679,8 +679,24 @@ and tempo jitter, because arenas use a different time-control mix (84% without i
 games) and berserk halves the clock. The matched contrast above, with time control matched and berserk games
 dropped, finds almost no behavioural difference. Read arena AUC as a time-control detector.
 
-Encoder results (Maia-3 embeddings and policy scalars, the Maia rating sweep, the v0 Doppel z) are added when the
-GPU jobs finish: `lab/results/bench_maia3.json`, `bench_doppel_<run>.json`.
+Maia-3 79M, rating-blind, on the Lichess suite (`lab/results/bench_maia3.json`). maia_linear is the mean
+final-layer embedding per side (PCA 256 + ridge/logistic); maia_policy is trees on the policy scalars (mean
+played-move log-prob and its spread, entropy, top-1 match, mean rank):
+
+| Task | Surface + books | Maia linear | Maia policy | Surface + Maia policy |
+|---|---|---|---|---|
+| Mean rating (R²) | 0.492 | **0.532** | 0.320 | **0.564** |
+| Rating percentile (R²) | 0.487 | 0.529 | 0.303 | 0.553 |
+| Top 5% (AUC) | 0.885 | 0.880 | 0.670 | 0.889 |
+| Arena (AUC) | 0.703 | 0.610 | 0.534 | 0.705 |
+| Titled (AUC) | 0.689 | 0.627 | 0.549 | 0.696 |
+| Era 2023+ (AUC) | 0.582 | 0.548 | 0.511 | 0.584 |
+| Rapid (sanity, AUC) | 0.999 | 0.651 | 0.573 | 0.999 |
+
+A frozen general-purpose encoder beats the surface features on rating from moves alone (R² 0.532 vs 0.492),
+even though it never sees the clocks the surface features use, and the two combine to 0.564. On everything
+clock-driven (arena, rapid) and on titled players, the surface wins. Era is close to chance for every view.
+These are the bars the Doppel z (`bench_doppel_<run>.json`, pending) and the Maia rating sweep must clear.
 
 **What this means for a Doppel.**
 
