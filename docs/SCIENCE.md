@@ -634,6 +634,13 @@ for GMs (z = −0.8) and +0.3 pt for IMs. GMs draw 5.2 pt more than untitled pla
 leave book 0.5 ply earlier; CMs, often juniors, score 1.7 pt above expectation (z = 13), consistent with the
 age table's rating lag.
 
+Short draws over the board (`doppel_lab/short_draws.py`, TWIC classical; ½–½ in 20 moves or fewer): 1.5% of
+games at 1400, 5.1% at 2200, peaking at 9.0% at 2500, then 2.9% at 2700, where elite round-robins discourage
+them. Evenly matched pairs agree most: 10.1% within 100 points, 0.7% at 400+. Last rounds double the rate
+(pairs within 200 points): at 2200–2499, 14.6% in the last round vs 8.4% in middle rounds, and 13.8% vs 8.7%
+at 2500+. That is tournament strategy, not chess skill, and it is something an OTB Doppel would need to know
+the event context to copy.
+
 **Tilt** (`doppel_lab/tilt.py`, `lab/results/tilt.json`): 2.7 M pairs of consecutive games by the same
 player within 60 minutes, Lichess month heads 2018–2026 (562k sessions). Effects are within session (fixed
 effects) minus a permutation null that shuffles game order within each session. The naive within-player
