@@ -624,6 +624,20 @@ dropped, finds almost no behavioural difference. Read arena AUC as a time-contro
 Encoder results (Maia-3 embeddings and policy scalars, the Maia rating sweep, the v0 Doppel z) are added when the
 GPU jobs finish: `lab/results/bench_maia3.json`, `bench_doppel_<run>.json`.
 
+**What this means for a Doppel.**
+
+1. Judge "weird" against the player's own band's book, not a pooled one: lines are band-specific (book exit
+   8.9 → 13.0 plies in own-band books, and 6.8 for a ≤900 game in a 2300+ book).
+2. Treat ratings below 2000 as noisy, and 1500–1599 as close to uninformative (the provisional start).
+   Rating-conditioned models (Maia-3's Elo inputs, our `elo_self`/`elo_opp`) should see an uncertainty signal.
+3. Style is very stable within a player (opening choice split-half ρ ≈ 0.97, think 0.93) and transfers
+   across blitz speeds. A per-player z should re-identify at least as well as surface style plus rating (81%
+   top-1 among 1,000) and beat the games-needed curve (R² 0.49 for rating at 10 games).
+4. The previous game's result is a cheap input for the think-time head: after a loss, players move 0.12 s
+   faster and lose within 40 plies 1.4 pt more often.
+5. Clock state changes strength: in mutual time trouble, rating matters about half as much (Elo scale 1,152
+   vs 607).
+
 **Data limits found.** The public dumps hold rated games only, so true casual games are not available. Every
 BOT game in them is BOT vs BOT, so BOT-vs-human contrasts need another source. TWIC mixes online events
 (Titled Tuesday) with over-the-board ones, so an over-the-board vs online split needs an event/site classifier.
