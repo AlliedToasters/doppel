@@ -1,0 +1,61 @@
+{
+ "games": 5119971,
+ "plies": {
+  "4": {
+   "repeat_pairs": 758628,
+   "visits": 3292181,
+   "self_agreement": 0.8391924123261976,
+   "population_agreement": 0.31731345082298196,
+   "loo_modal_top1": 0.8492212305459511
+  },
+  "6": {
+   "repeat_pairs": 605226,
+   "visits": 2004133,
+   "self_agreement": 0.8555888853286907,
+   "population_agreement": 0.4096029851899019,
+   "loo_modal_top1": 0.8333843113206558
+  },
+  "8": {
+   "repeat_pairs": 375930,
+   "visits": 1058543,
+   "self_agreement": 0.8348605770159809,
+   "population_agreement": 0.4510615810164498,
+   "loo_modal_top1": 0.8100247226612428
+  },
+  "10": {
+   "repeat_pairs": 199322,
+   "visits": 512137,
+   "self_agreement": 0.813708221821124,
+   "population_agreement": 0.34506598181447395,
+   "loo_modal_top1": 0.7980677045399961
+  },
+  "12": {
+   "repeat_pairs": 96861,
+   "visits": 234941,
+   "self_agreement": 0.8117897139832261,
+   "population_agreement": 0.4755719631277393,
+   "loo_modal_top1": 0.7929905806138563
+  },
+  "14": {
+   "repeat_pairs": 46775,
+   "visits": 110161,
+   "self_agreement": 0.8096453151884874,
+   "population_agreement": 0.44402356302152196,
+   "loo_modal_top1": 0.7907698731856102
+  },
+  "16": {
+   "repeat_pairs": 22542,
+   "visits": 51600,
+   "self_agreement": 0.8033141713407964,
+   "population_agreement": 0.5795105502516661,
+   "loo_modal_top1": 0.7894186046511628
+  },
+  "20": {
+   "repeat_pairs": 5345,
+   "visits": 11823,
+   "self_agreement": 0.7724935732647815,
+   "population_agreement": 0.5815144326556757,
+   "loo_modal_top1": 0.7854182525585722
+  }
+ }
+}
