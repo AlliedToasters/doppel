@@ -615,6 +615,14 @@ Tilt is real but small in results, and clear in tempo: players speed up and lose
 loss, more so after losing on time. For a Doppel, the previous game's result is a cheap conditioning signal
 for the think-time head.
 
+**Adapting to the opponent** (`doppel_lab/opp_adapt.py`, 4.5 M held-out 3+0 sides, player x colour fixed
+effects). Players barely change their opening for the opponent. They leave their modal first move or reply
+21.6% of the time, and that moves by under 1 pt from a 300-point-weaker to a 300-point-stronger opponent. Pace
+does move. Against opponents 50–150 points stronger, players take 0.04–0.10 s more per move, and 0.12 s more
+at +300. Against weaker ones they take 0.04–0.09 s less. Part of this is the game itself, since stronger
+opponents set harder positions. A Doppel's opening choice can ignore the opponent's rating; its think-time
+head can use it (`elo_opp` is already an input).
+
 **Session fatigue** (`doppel_lab/fatigue.py`, 3.3 M sides in 563k sessions, session fixed effects, game
 index dummies vs game 1). The score effect is not identified. With all games, scores fall 1–2.6 pt later in
 a session. Dropping each session's final game flips that to +1.2–2.5 pt. Both come from the stopping rule:
