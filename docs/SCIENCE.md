@@ -840,7 +840,7 @@ forced (p_top > 0.9), humans blunder 0.7% and sampled Maia 1.7%. Where a quarter
 blunder, the rates are 3.0% vs 4.9%. In the hardest positions (> 90% of moves blunder), sampled Maia is close
 to humans (23.4% vs 21.3%). The long tail of low-probability moves adds up to blunders humans don't make.
 Truncating the tail does no better (`temperature.py truncation`). Reaching the human rate takes min-p 0.05 or
-top-p about 0.93. That removes the human's actual move from the support in 4.8% or about 4.5% of positions, and
+top-p about 0.93. That removes the human's actual move from the support in 4.8% or about 4% of positions, and
 cuts entropy to 1.08, below temperature's 1.18 at the same blunder rate. Humans do play tail moves; they just
 don't play the tail's blunders. Of the global fixes, T ≈ 0.87 costs least. The precise fix is the residual:
 learn to move mass off blundering tail moves specifically, for example with a blunder-aware auxiliary target
