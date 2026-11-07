@@ -669,7 +669,9 @@ reaches the same position again, they repeat their move 84% of the time at ply 4
 ply 20. Two different players in the same positions agree 32–58% of the time. Predicting each visit from the
 player's own other visits gets 79–85% top-1. So in repeated positions, which are mostly openings, a perfectly
 personalised model tops out near 80% top-1, against about 45% for a perfect population model. That gap is the
-room a per-player z has to fill. Later, unrepeated positions have no direct floor. How fast the signal accumulates
+room a per-player z has to fill. Consistency rises with strength (plies 8–16 pooled): self-agreement is 0.75
+at 800, 0.80 at 1600, 0.86 at 2000 and 0.92 at 2400. Strong players have a prepared, fixed repertoire, so a
+strong player's Doppel can predict them better. Later, unrepeated positions have no direct floor. How fast the signal accumulates
 (`doppel_lab/games_needed.py`, 8,000 of those players with 40+ games): rating predicted from the same style
 features averaged over a player's first k games in time order, never from rating itself, goes from R² 0.18
 (MAE 265) at one game to 0.42 (224) at 5, 0.52 (203) at 10, 0.59 (186) at 20 and 0.66 (169) at 40, against MAE

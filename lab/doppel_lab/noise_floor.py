@@ -24,7 +24,7 @@ c = pl.col
 
 
 def main():
-    g = pl.concat([pl.read_parquet(f, columns=["white", "black", "moves", "base", "inc"])
+    g = pl.concat([pl.read_parquet(f, columns=["white", "black", "white_elo", "black_elo", "moves", "base", "inc"])
                    for f in sorted(CORPUS.glob("part-*.parquet"))])
     g = g.filter((c("base") == 180) & (c("inc") == 0))
     print(f"{g.height:,} 3+0 games", flush=True)
@@ -54,6 +54,21 @@ def main():
         out["plies"][str(k)] = r
         print(f"ply {k:2d}: {r['repeat_pairs']:>9,} (player, position) repeats, {r['visits']:>10,} visits; "
               f"self-agreement {self_agree:.3f}, between players {pop_agree:.3f}, own-mode top-1 {loo:.3f}", flush=True)
+    # by rating band (the mover's rating at that game), plies 8-16 pooled
+    rows = []
+    for k in (8, 10, 12, 14, 16):
+        rows.append(g.filter(c("moves").list.len() > k).select(
+            player=pl.when(k % 2 == 0).then(c("white")).otherwise(c("black")).str.to_lowercase(),
+            elo=pl.when(k % 2 == 0).then(c("white_elo")).otherwise(c("black_elo")),
+            pre=pl.lit(str(k) + ":") + c("moves").list.head(k).list.join(" "), mv=c("moves").list.get(k)))
+    x = pl.concat(rows)
+    pe = x.group_by("player").agg(e=c("elo").mean())
+    cnt = x.group_by("player", "pre", "mv").len().with_columns(c("len").cast(pl.Float64))
+    per = cnt.group_by("player", "pre").agg(N=c("len").sum(), s2=(c("len") * (c("len") - 1)).sum()).filter(c("N") >= 2)
+    per = per.join(pe, on="player").with_columns(band=(c("e") // 200 * 200).clip(800, 2400))
+    by = per.group_by("band").agg(pairs=pl.len(), self_agreement=c("s2").sum() / (c("N") * (c("N") - 1)).sum()).sort("band")
+    out["by_band_plies_8_16"] = by.to_dicts()
+    print("self-agreement by rating band (plies 8-16):", ", ".join(f"{int(r['band'])}: {r['self_agreement']:.3f}" for r in by.to_dicts()))
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / "noise_floor.json").write_text(json.dumps(out, indent=1) + "\n")
 

@@ -57,5 +57,52 @@
    "population_agreement": 0.5815144326556757,
    "loo_modal_top1": 0.7854182525585722
   }
- }
+ },
+ "by_band_plies_8_16": [
+  {
+   "band": 800.0,
+   "pairs": 7090,
+   "self_agreement": 0.7541501301583238
+  },
+  {
+   "band": 1000.0,
+   "pairs": 25004,
+   "self_agreement": 0.7594032549728752
+  },
+  {
+   "band": 1200.0,
+   "pairs": 53846,
+   "self_agreement": 0.7848858442435175
+  },
+  {
+   "band": 1400.0,
+   "pairs": 96717,
+   "self_agreement": 0.7779970538690875
+  },
+  {
+   "band": 1600.0,
+   "pairs": 154641,
+   "self_agreement": 0.7976878039689196
+  },
+  {
+   "band": 1800.0,
+   "pairs": 184738,
+   "self_agreement": 0.8163773424165249
+  },
+  {
+   "band": 2000.0,
+   "pairs": 141030,
+   "self_agreement": 0.8552178770949721
+  },
+  {
+   "band": 2200.0,
+   "pairs": 60042,
+   "self_agreement": 0.8963323548447455
+  },
+  {
+   "band": 2400.0,
+   "pairs": 18322,
+   "self_agreement": 0.9179547415361268
+  }
+ ]
 }
