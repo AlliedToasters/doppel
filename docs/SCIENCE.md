@@ -457,7 +457,9 @@ Books are rebuilt per year at equal N, tiers are within-year rating percentiles,
 
 Online blitz is close to stationary on surface features. The tier gradient (bottom quarter → top 5%: book exit
 8.5 → 10.5, weird rate 3.8% → 1.6%) is about ten times any change across years, and holds every year. The
-rating scale widened by about 600 points between the p25 and p95 tiers, which is why tiers are percentiles.
+rating scale widened by about 600 points between the p25 and p95 tiers, which is why tiers are percentiles. Sampling check: the first 100k games of a month (2026-10, held-out stream) match a random 100k of the same
+month within 1.4 rating points, 0.5 plies and 0.3 pt of 1.e4 share; the flag rate is 1.0 pt higher on day 1. So the
+month heads stand in for the month, and the flag-rate decline (about 4 pt) is larger than the sampling bias.
 
 **Opening fashion** (`doppel_lab/fashion.py`, `lab/results/fashion.json`): shares of named first-move lines by
 year, online (Lichess March heads) and over the board (TWIC classical, open events).
