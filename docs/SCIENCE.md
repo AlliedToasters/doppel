@@ -387,7 +387,15 @@ All sets are calibrated (ECE ≤ 0.0014). Players below 1450 are under-predicted
 Final fit on train (100k games, 6.98 M moves, blunder rate 6.47%), scored on val
 (`lab/results/blunder_baselines_1500_train.json`): T0 AUC 0.734 (AP 0.139, log-loss gain +0.095), T1 0.760
 (+0.117), T1 + think 0.766 (+0.123), T2 0.850 (AP 0.312, +0.235); ECE ≤ 0.0010 for all. At ≥ 0.2: T0 0.723,
-T2 0.828. The CV numbers held, so these are the blunder bars. Policy-implied machine
+T2 0.828. The CV numbers held, so these are the blunder bars.
+
+Think time and blunders at fixed difficulty (`doppel_lab/think_value.py`, train table, ply ≥ 10, clock ≥ 10%):
+raw think quintiles run from a 4.2% to an 11.2% blunder rate, the confounded view. Within Maia-3 entropy deciles,
+moves played much slower than the player's own pace in that game still blunder 3.8 pt more, and much faster
+moves 2.2 pt less. A long think marks trouble the player senses beyond what Maia's entropy captures; it does not
+fix it, which is why think time adds to the T1 blunder baseline. Sides whose think time tracks difficulty
+(Spearman of think vs entropy across their moves, quintiles −0.08 → 0.51) blunder a little less (8.1% → 7.4%),
+with the gain flat from the middle quintile on. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines
