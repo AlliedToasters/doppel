@@ -567,6 +567,13 @@ features averaged over k games, never from rating itself, goes from R² 0.17 (MA
 at 5, 0.49 (209) at 10, 0.58 (190) at 20 and 0.65 (172) at 40, against MAE 298 for a constant. That is about
 +0.08 R² per doubling. It is the data-needs curve a per-player z should beat: the same accuracy from fewer games.
 
+Style transfer across time controls (`doppel_lab/style_transfer.py`, 2,277 held-out players with 20+ games at
+both 3+0 and 5+0): the cross-time-control Spearman of each feature against its within-3+0 split-half
+reliability. Opening choice transfers at 0.88–0.97 of its reliability, book exit 1.03, weird-move rate 1.06,
+think CV 1.01, time-trouble share 1.02, flag losses 0.93. Mean think keeps its rank order (0.84) but rescales
+(3.9 → 5.2 s per move, 2.2% → 1.7% of the base clock). So one z per player can serve several blitz speeds, with
+the think-time head scaling by the clock.
+
 **Encoder benchmark** (`doppel_lab/bench.py`, `bench_embed.py`, `bench_doppel.py`). This is the harness for the
 question above: can a learned match encoder beat surface features? Every model sees only the game's move and
 clock stream, never headers, and all are scored on the same games and folds (grouped by White's account). The
