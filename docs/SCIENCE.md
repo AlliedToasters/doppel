@@ -404,6 +404,13 @@ grows about 0.5 ply per doubling of the corpus. Position (transposition) keys ad
 **Upsets** (gap ≥ 300, 38,930 heldout games). The underdog wins about 21% at every gap from 300 to 700,
 against an Elo expectation of 12% → 1.4%, so large Lichess gaps mostly mean a mis-rated account. From the
 first 30 plies, upsets are predictable: AUC 0.60 (gap and time control) → 0.78 (+ early T0 features).
+Following the held-out sides through the month (`doppel_lab/misrating.py`): big-gap games bunch in an account's
+first 10 games of the month (32–50% of these sides, against 11% of all sides). A losing favourite drops 107 Elo
+in that one game, a sign of a highly uncertain (provisional or returning) rating. After the game there is no
+further drift in any group (−6 to +5). Using the favourite's previous-game rating swing as a pre-game
+uncertainty proxy: favourites with a swing of 80+ lose 38% (Elo expects 8.5%), but settled favourites (swing
+under 10, 93% of sides) still lose 17.9% against 7.2%. So rating uncertainty explains part of the excess, and
+the rest says the Elo curve's tails are too thin for Lichess blitz at gaps of 300 or more.
 
 **Era** (`doppel_lab/vintage.py`, the first 150k games of each March 2013–2026, `lab/results/vintage_lichess.json`).
 Books are rebuilt per year at equal N, tiers are within-year rating percentiles, blitz only.
