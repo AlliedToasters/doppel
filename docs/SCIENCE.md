@@ -270,6 +270,14 @@ under-predict human think time by 0.09 to 0.11 in log1p(s): humans take longer t
 Both kinds of score belong in our table: R² and r on log seconds for prediction, and distribution distance for
 sampled think times.
 
+**Long thinks cluster** (`doppel_lab/think_ac.py`, 6.0 M own moves, 1500 train table). Maia-3 entropy and
+top-move probability, clock, ply and the side's own pace in the game explain R² 0.30 of log think. The rest
+is autocorrelated: residual correlation with the side's previous move is +0.153, then +0.143 at lag 2, +0.114
+at 3, +0.068 at 5 and 0 by 10. Players have short "slow" and "fast" spells lasting about five moves, which no
+position feature explains. A think-time head needs recurrent state, or the recent think history (the
+`think_*_ewma`/`_roll` T0 channels), to reproduce them. Sampling each move's time independently would
+flatten them.
+
 **Open.** `heuristic_think_ms` and Allie 2.1 have not been scored on held-out human games yet. They are the first
 baselines the v0 think-time head has to beat on the same table.
 
