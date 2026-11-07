@@ -22,6 +22,7 @@ services:
       DOPPEL_INFER_URL: http://infer:8614
       DOPPEL_DB_URL: postgresql+psycopg://doppel:${POSTGRES_PASSWORD}@db:5432/doppel
       DOPPEL_REQUIRE_AUTH: "1"
+      DOPPEL_PUBLIC_URL: https://${DOMAIN}
     depends_on:
       db: {condition: service_healthy}
       infer: {condition: service_started}

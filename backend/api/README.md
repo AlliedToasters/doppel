@@ -15,10 +15,13 @@ Bot moves come from `backend/infer` over HTTP. Accounts, consent, ratings and th
 | `GET` / `PATCH` / `DELETE /api/me` | profile with consent and rating; rename; delete the account and its games |
 | `GET /api/consent`, `PUT /api/me/consent {training, version}` | consent text; grant (must match the current version) or withdraw |
 | `GET /api/me/games` | the account's games, newest first |
+| `GET /api/auth/lichess/start?client=web\|app` | Sign in with Lichess (identity only, PKCE, no scopes): 302 to lichess.org |
+| `GET /api/auth/lichess/callback` | reads the Lichess id once, revokes the Lichess token, redirects to the client with a one-time `login_code` |
+| `POST /api/auth/lichess/exchange {code}` | login code -> Doppel token for this device; links or merges the caller's anonymous account (`lichess_login.py`) |
 
 Accounts (`accounts.py`): send `Authorization: Bearer <token>`. A game made with a token can only be read or
 played with it (403 otherwise; the WebSocket closes with 4403). Anonymous games still work until
-`DOPPEL_REQUIRE_AUTH=1`.
+`DOPPEL_REQUIRE_AUTH=1`. Sign-in redirects are built from `DOPPEL_PUBLIC_URL` (the URL clients reach the api at).
 
 Ratings (`ratings.py`): MAP Bradley-Terry on the Elo scale over all rated games (over, with an account, both
 sides moved twice). Each `package@bot_elo` is an opponent anchored at its Elo setting (sd 100); users start

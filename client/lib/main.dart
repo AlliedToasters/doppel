@@ -94,6 +94,15 @@ class _PlayScreenState extends State<PlayScreen> {
       bots = await listBots();
       if (bots.isNotEmpty) botId = bots.first.$1;
       await Account.ensure();
+      try {
+        final linked = await Account.finishWebLink(); // web: back from Lichess sign-in with ?login_code=
+        if (linked != null && mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Signed in as ${linked['lichess']['username']}')));
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
       final resumed = await ServerGame.resumeSaved(_label);
       if (resumed != null) {
         if (resumed.pace != pace) resumed.setPace(pace);
@@ -436,6 +445,44 @@ class _PlayScreenState extends State<PlayScreen> {
                     'Your rating: ${(me!['rating']['rating'] as num).round()} '
                     '± ${(me!['rating']['rd'] as num).round()} (${me!['rating']['games']} rated games)',
                   ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.person),
+                  title: Text(me!['lichess'] != null
+                      ? 'Doppel account: ${me!['lichess']['username']}'
+                      : 'Doppel account: guest'),
+                  subtitle: Text(
+                    me!['lichess'] != null
+                        ? 'Linked to Lichess. Sign in the same way on another device to get your games there.'
+                        : 'Link Lichess to keep your games and rating across devices. Doppel checks who you are '
+                            'once and keeps no access to your Lichess account.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  trailing: me!['lichess'] != null
+                      ? TextButton(
+                          onPressed: () async {
+                            try {
+                              await Account.signOut();
+                              final m = await Account.me();
+                              set(() => me = m);
+                            } catch (_) {}
+                          },
+                          child: const Text('Sign out'),
+                        )
+                      : FilledButton(
+                          onPressed: () async {
+                            try {
+                              final u = await Account.linkLichess();
+                              if (u != null) set(() => me = u);
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                              }
+                            }
+                          },
+                          child: const Text('Link Lichess'),
+                        ),
+                ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Help train doppels'),

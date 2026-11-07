@@ -56,6 +56,43 @@ class User(Base):
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     install_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     display_name: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Signed in with Lichess (identity only: no Lichess token is kept). lichess_id is Lichess's stable lowercase id.
+    lichess_id: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True, index=True)
+    lichess_username: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class AuthToken(Base):
+    """Extra bearer tokens for an account (one per signed-in device); the first device's token is User.token_hash.
+    Only sha256 hashes are stored."""
+
+    __tablename__ = "auth_tokens"
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    created_at: Mapped[float] = mapped_column(Float, default=time.time)
+
+
+class OAuthPending(Base):
+    """A Lichess sign-in in flight: the PKCE verifier for its state, kept 10 minutes."""
+
+    __tablename__ = "oauth_pending"
+
+    state: Mapped[str] = mapped_column(String(64), primary_key=True)
+    verifier: Mapped[str] = mapped_column(String(128))
+    client: Mapped[str] = mapped_column(String(8))  # "web" | "app": where the callback sends the browser
+    created_at: Mapped[float] = mapped_column(Float, default=time.time)
+
+
+class LoginCode(Base):
+    """A verified Lichess identity waiting to be exchanged for a Doppel token (one use, 2 minutes). Codes go
+    to the client in a redirect URL, so only their hash is stored and the token itself never appears in a URL."""
+
+    __tablename__ = "login_codes"
+
+    code_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    lichess_id: Mapped[str] = mapped_column(String(32))
+    lichess_username: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[float] = mapped_column(Float, default=time.time)
 
 
 class Consent(Base):
@@ -124,14 +161,22 @@ _ADDED = [  # additive columns for databases created by an earlier skeleton
 ]
 
 
+_ADDED_USERS = [("lichess_id", "VARCHAR(32)"), ("lichess_username", "VARCHAR(32)")]
+
+
 def make_sessionmaker(url: str | None = None):
     url = url or os.environ.get("DOPPEL_DB_URL", "sqlite:///data/api.db")
     kw = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
     engine = create_engine(url, **kw)
     Base.metadata.create_all(engine)  # skeleton: additive columns only until the schema settles (then Alembic)
     have = {c["name"] for c in inspect(engine).get_columns("games")}
+    have_u = {c["name"] for c in inspect(engine).get_columns("users")}
     with engine.begin() as conn:
         for col, ddl in _ADDED:
             if col not in have:
                 conn.execute(text(f"ALTER TABLE games ADD COLUMN {col} {ddl}"))
+        for col, ddl in _ADDED_USERS:
+            if col not in have_u:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {ddl}"))
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_lichess_id ON users (lichess_id)"))
     return sessionmaker(engine, expire_on_commit=False)

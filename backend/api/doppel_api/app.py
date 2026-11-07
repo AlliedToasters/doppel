@@ -27,7 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from . import accounts, ratings, rules
+from . import accounts, lichess_login, ratings, rules
 from .db import Game, Ply, make_sessionmaker
 
 
@@ -58,12 +58,16 @@ async def lifespan(app: FastAPI):
     if not hasattr(app.state, "infer"):
         app.state.infer = Infer(httpx.AsyncClient(base_url=os.environ.get("DOPPEL_INFER_URL", "http://127.0.0.1:8614"),
                                                   timeout=10))
+    if not hasattr(app.state, "lichess"):
+        app.state.lichess = httpx.AsyncClient(base_url=lichess_login.LICHESS, timeout=10,
+                                              headers={"user-agent": "doppel-api (+https://doppelbot.org)"})
     yield
 
 
 accounts.install_log_redaction()
 app = FastAPI(title="Doppel API", lifespan=lifespan)
 app.include_router(accounts.router)
+app.include_router(lichess_login.router)
 _locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 _sockets: dict[str, set[WebSocket]] = defaultdict(set)
 _bot_busy: set[str] = set()  # games whose bot turn is in flight

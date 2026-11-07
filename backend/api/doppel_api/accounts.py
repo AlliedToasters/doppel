@@ -6,7 +6,10 @@ device's install_id claims the games it played before accounts existed.
 
 Training consent is opt-in, versioned and withdrawable. Only games of users who hold it at export time are
 exported; withdrawing turns that user's previously exported games into tombstones (see export.py).
-Deleting the account removes its games, plies, consents and ratings.
+Deleting the account removes its games, plies, consents, ratings and tokens.
+
+Signing in with Lichess (lichess_login.py) attaches a verified Lichess id to the account and lets more devices
+sign in to it; each device gets its own token.
 """
 
 from __future__ import annotations
@@ -22,7 +25,7 @@ from fastapi import APIRouter, HTTPException, Request, WebSocket
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, select, update
 
-from .db import Consent, Game, Ply, Rating, User
+from .db import AuthToken, Consent, Game, Ply, Rating, User
 
 CONSENT_VERSION = "training-v1"
 CONSENT_TEXT = (
@@ -67,7 +70,11 @@ def require_auth() -> bool:
 def user_from_token(sess, token: str | None) -> User | None:
     if not token:
         return None
-    u = sess.scalar(select(User).where(User.token_hash == hash_token(token)))
+    h = hash_token(token)
+    u = sess.scalar(select(User).where(User.token_hash == h))
+    if u is None:
+        t = sess.get(AuthToken, h)
+        u = sess.get(User, t.user_id) if t is not None else None
     if u is None:
         raise HTTPException(401, "unknown token")
     return u
@@ -102,6 +109,7 @@ def me(sess, u: User) -> dict:
     n_games = len(sess.scalars(select(Game.id).where(Game.user_id == u.id)).all())
     return {
         "id": u.id, "display_name": u.display_name, "created_at": u.created_at, "games": n_games,
+        "lichess": {"id": u.lichess_id, "username": u.lichess_username} if u.lichess_id else None,
         "consent": {"training": c is not None, "version": c.version if c else None,
                     "current_version": CONSENT_VERSION},
         "rating": {"rating": r.rating, "rd": r.rd, "games": r.games} if r else None,
@@ -196,6 +204,7 @@ def delete_me(request: Request):
         sess.execute(delete(Game).where(Game.id.in_(ids)))
         sess.execute(delete(Rating).where(Rating.subject == f"user:{u.id}"))
         sess.execute(delete(Consent).where(Consent.user_id == u.id))
+        sess.execute(delete(AuthToken).where(AuthToken.user_id == u.id))
         sess.delete(u)
         sess.commit()
         return {"deleted_games": len(ids)}
