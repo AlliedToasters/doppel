@@ -403,7 +403,14 @@ against 5.6% otherwise (+22.8 pt matched, z = 337). A position that is winning b
 usually needs one exact reply, and missing it counts as a blunder, so this is mostly "fails to punish": 1500
 players miss the refutation about 30% of the time. After their own blunder, players blunder again 16.4% vs
 6.7% (+9.8 pt matched), partly because an unrescued hanging piece stays hanging. For a Doppel, both are
-targets worth matching: a 1500 Doppel that always punishes blunders is not playing like a 1500. Policy-implied machine
+targets worth matching: a 1500 Doppel that always punishes blunders is not playing like a 1500.
+
+The machine check (`doppel_lab/punish.py`, 1,500 val positions right after an opponent's blunder plus 1,500
+matched controls; Stockfish at the label budget on every legal move; Maia-3 79M at 1500 vs 1500): after a
+blunder, 84% of legal moves fail the label rule (only the refutation keeps the gain). Humans fail 30.9% of the
+time. Maia-3's policy-implied rate is 30.4%, but its top-1 move fails only 18.3%. In matched calm positions:
+human 6.5%, Maia-3 implied 7.9%, top-1 3.8%. So sampling from Maia-3 reproduces 1500 humans' missed
+punishments, and argmax play does not. This is the first policy-implied machine score for §7 item 5. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines

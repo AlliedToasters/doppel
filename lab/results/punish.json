@@ -1,0 +1,23 @@
+{
+ "nodes": 50000,
+ "summary": [
+  {
+   "group": "after_opp_blunder",
+   "n": 1500,
+   "human": 0.30866666666666664,
+   "maia_implied": 0.30396655588238686,
+   "maia_top1": 0.18266666666666667,
+   "beta": 0.8388270761553852,
+   "all_moves_blunder": 0.0006666666666666666
+  },
+  {
+   "group": "matched_control",
+   "n": 1500,
+   "human": 0.06533333333333333,
+   "maia_implied": 0.07885640367582478,
+   "maia_top1": 0.038,
+   "beta": 0.5143385189355649,
+   "all_moves_blunder": 0.0
+  }
+ ]
+}
