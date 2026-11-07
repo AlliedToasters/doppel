@@ -530,6 +530,25 @@ for GMs (z = −0.8) and +0.3 pt for IMs. GMs draw 5.2 pt more than untitled pla
 leave book 0.5 ply earlier; CMs, often juniors, score 1.7 pt above expectation (z = 13), consistent with the
 age table's rating lag.
 
+**Tilt** (`doppel_lab/tilt.py`, `lab/results/tilt.json`): 2.7 M pairs of consecutive games by the same
+player within 60 minutes, Lichess month heads 2018–2026 (562k sessions). Effects are within session (fixed
+effects) minus a permutation null that shuffles game order within each session. The naive within-player
+estimate is badly biased by overlap (a game's score is one pair's outcome and the next pair's regressor): raw
++12.7 pt "reverse tilt" in score, of which the null reproduces +12.9 pt (Miller & Sanjurjo's finite-sequence
+bias). Corrected, after a loss compared with after a win:
+
+| Next game | After a loss | After two losses |
+|---|---|---|
+| Score − Elo expectation | −0.28 pt (z = −4.5) | −0.67 pt (z = −7.5) |
+| Lost within 40 plies | +1.4 pt (z = 38) | +1.1 pt |
+| Think per move | −0.12 s (z = −51); a further −0.17 s if the loss was on time | −0.07 s |
+| Same time control as before | −0.8 pt | −0.9 pt |
+| Plays again within 60 min | −4.0 pt (83.8% vs 87.7%, z = −87) | |
+
+Tilt is real but small in results, and clear in tempo: players speed up and lose quickly more often after a
+loss, more so after losing on time. For a Doppel, the previous game's result is a cheap conditioning signal
+for the think-time head.
+
 **Encoder benchmark** (`doppel_lab/bench.py`, `bench_embed.py`, `bench_doppel.py`). This is the harness for the
 question above: can a learned match encoder beat surface features? Every model sees only the game's move and
 clock stream, never headers, and all are scored on the same games and folds (grouped by White's account). The
