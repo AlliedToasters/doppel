@@ -795,7 +795,14 @@ played-move log-prob and its spread, entropy, top-1 match, mean rank):
 A frozen general-purpose encoder beats the surface features on rating from moves alone (R² 0.532 vs 0.492),
 even though it never sees the clocks the surface features use, and the two combine to 0.564. On everything
 clock-driven (arena, rapid) and on titled players, the surface wins. Era is close to chance for every view.
-These are the bars the Doppel z (`bench_doppel_<run>.json`, pending) and the Maia rating sweep must clear.
+These are the bars the Doppel z (`bench_doppel_<run>.json`) must clear.
+
+**Maia's rating sweep is a much better rating estimator than its embedding** (`bench_embed.py probe`, sweep
+features = per-side mean log-likelihood of the moves played at 9 rating inputs 800–2400, plus the argmax
+rating). From one game, rating R² 0.744 (vs 0.532 embedding, 0.492 surface), percentile 0.754, top 5% AUC
+0.959, titled 0.744. Surface + policy + sweep: 0.783 rating R², 0.966 top 5%. The sweep adds nothing on era or
+clock tasks (arena 0.631, rapid 0.631). This is the real bar for any Doppel z on rating: 0.744 from one game,
+from a model that was trained with ratings as an input.
 
 On TWIC (move-only, `lab/results/bench_maia3_twic.json`), Maia's embedding wins every task. FIDE rating R²
 rises from 0.094 to 0.140 and year R² from 0.036 to 0.064. Era 2021+ AUC goes from 0.619 to 0.688, online vs
@@ -849,11 +856,23 @@ from per-move labels like these.
 The simplest fix is the rating input (`temperature.py elo`). The same 6,000 positions come from players
 averaging 1550. Run at self and opponent rating 1700, Maia-3 blunders at the human rate (6.67%, 1.01x).
 Human-move log-likelihood is also best there among the inputs tried: −1.3038 at 1700, against −1.3077 at
-1500, −1.3335 at 1900 and −1.4090 at 2100. So Maia-3 reads 2026-10 Lichess ratings about 150 points low.
-That fits the vintage study (§8): the rating scale has widened since Maia's 2016–2019 training data. Neither
-temperature nor truncation is needed. Feeding Maia-3, and v0's teacher, the rating plus about 150 improves
-both likelihood and blunder realism. Next: a finer grid (1600–1800) and the same check in other bands, since
-the offset probably depends on rating.
+1500, −1.3335 at 1900 and −1.4090 at 2100. A quadratic through 1500/1700/1900 puts the likelihood peak near
+1620, so the likelihood-optimal offset on these positions is about +75, not +150. The blunder-rate match at
+1700 is partly the temperature excess above: a stronger input trims the tail.
+
+**The offset is small on average and depends on time control** (`doppel_lab/maia_offset.py`, the 9-rating
+sweep on the 91.5k-game bench suite, per side, best input by quadratic refinement of the pooled log-likelihood,
+`lab/results/maia_offset.json`). For 2024–26 the offset is +2 to +55 in every 100-point band from 900 to
+2300; at 1500 it is +10. It is not a constant "+150" correction. Two things move it more than rating does:
+- **Era.** Sides rated 1450–1649: +7 (2018), +33 (2019), −70 (2020), −116 (2021), −88 (2022), −41 (2023),
+  +5 (2024), +2 (2025), +27 (2026). The 2020–23 dip matches the pandemic influx of new players, who play
+  worse than their rating says.
+- **Time control.** Same band: 3+2 +54, 5+3 +97, 3+0 −45, 5+0 +7, 10+0 −111, 10+5 −65. With an increment,
+  players at a given rating play like stronger players; at 10+0 like weaker ones. Maia-3's input carries the
+  rating but not the time control, so its rating conditioning absorbs the difference.
+
+At the extremes (2400+) the offset turns strongly negative in every era (−40 to −280), which is Maia-3's
+training range running out. For v0's teacher: no global offset; if any, a per-time-control one.
 
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 

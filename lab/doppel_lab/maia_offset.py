@@ -36,7 +36,7 @@ def best(curve: np.ndarray) -> float:
 
 
 def main():
-    z = np.load(BENCH / "maia3_sweep.npz")
+    z = np.load(BENCH / "maia3_sweep.npz", allow_pickle=True)
     t = pl.read_parquet(BENCH / "tasks.parquet", columns=["game_id", "white_elo", "black_elo", "year", "in_main"])
     gi = {g: i for i, g in enumerate(z["game_ids"])}
     t = t.filter(c("game_id").is_in(list(gi))).with_columns(i=c("game_id").replace_strict(gi, return_dtype=pl.Int64))
@@ -45,8 +45,9 @@ def main():
     for col, k in (("white_elo", 0), ("black_elo", 1)):
         x = t.select("i", "year", elo=c(col))
         L = ll[x["i"].to_numpy(), k]
-        rows.append(x.with_columns(pl.Series("ll", list(L))))
-    s = pl.concat(rows).filter(c("ll").list.eval(pl.element().is_finite()).list.all())
+        ok = np.isfinite(L).all(1)
+        rows.append(x.filter(pl.Series(ok)).with_columns(pl.Series("ll", L[ok].tolist())))
+    s = pl.concat(rows)
     s = s.with_columns(bin=(c("elo") // 100 * 100).clip(700, 2600),
                        era=pl.when(c("year") <= 2020).then(pl.lit("2018-20")).when(c("year") <= 2023).then(pl.lit("2021-23"))
                        .otherwise(pl.lit("2024-26")))

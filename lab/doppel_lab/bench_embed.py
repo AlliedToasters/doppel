@@ -190,7 +190,7 @@ def probe(suite: str = "lichess"):
     S = np.concatenate([S, S[:, :len(SCAL)] - S[:, len(SCAL):]], 1)        # + White minus Black
     SW = None
     if (D / "maia3_sweep.npz").exists():
-        w = np.load(D / "maia3_sweep.npz")
+        w = np.load(D / "maia3_sweep.npz", allow_pickle=True)
         assert (w["game_ids"] == z["game_ids"]).all()
         ll = w["ll"].reshape(len(gid), -1)                                   # (G, 2 * len(ELOS))
         el = np.array(ELOS, float)
