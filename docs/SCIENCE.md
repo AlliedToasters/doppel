@@ -835,7 +835,11 @@ The implied blunder rate is 7.60% at T = 1, 6.98% at T = 0.9 and 6.69% at T = 0.
 humans. T ≈ 0.87 matches. The cost: mean top-move probability rises from 0.557 to about 0.60 and entropy falls
 from 1.34 to 1.18. Synthetic play becomes slightly too predictable, and likelihood is best at T = 1 by
 construction. Matching both needs the residual to move mass off blunders specifically, not a global
-temperature.
+temperature. The excess sits in the policy's tail (`temperature.py where`). Where Maia's top move is almost
+forced (p_top > 0.9), humans blunder 0.7% and sampled Maia 1.7%. Where a quarter to a half of legal moves
+blunder, the rates are 3.0% vs 4.9%. In the hardest positions (> 90% of moves blunder), sampled Maia is close
+to humans (23.4% vs 21.3%). The long tail of low-probability moves adds up to blunders humans don't make.
+Truncating the tail (top-p or min-p sampling) targets this more precisely than temperature does.
 
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 
