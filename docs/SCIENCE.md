@@ -206,7 +206,7 @@ Maia-3 about 3 s, Stockfish at 50,000 nodes about 5 s. Nothing is served; the pa
   Maia-3 top-1 rate and surprisal, mean volatility, worst drawdown, mean sharpness and shocks. `--tables` writes
   it as parquet next to the per-ply tables.
 
-**Finding, sharpness.** jk_182's formula (§9) depends on the draw probability: `(2 / log((1−W)(1−L)/(WL)))²` grows
+**Finding, sharpness.** jk_182's formula (§10) depends on the draw probability: `(2 / log((1−W)(1−L)/(WL)))²` grows
 without bound as D → 0. At 1500 blitz Maia-3 rarely gives a draw more than a few percent, so balanced positions
 score above the plot cap of 50, while lopsided ones score low. It was designed on Lc0's win/draw/loss for strong
 players; for our bands it needs a variant before it is used as a feature.
@@ -317,7 +317,7 @@ position stops moving; v0 counts them as negatives.
 
 **Why.** Playing like a human includes making that human's mistakes, in the same kinds of positions. It also
 extends the think-time work directly: longer thinks predict more blunders, in every slice Anderson et al. looked
-at (§9). And it unlocks comparisons. Think time and resignation have few machine baselines, but every move model
+at (§10). And it unlocks comparisons. Think time and resignation have few machine baselines, but every move model
 implies a blunder probability, so every machine in §4 can be scored on the same table.
 
 **Target.** For each own move, from the mover's view: 1 if the move drops their winning chances (Stockfish at
@@ -370,9 +370,67 @@ dedicated blunder head is a baseline only; it would not change how a Doppel play
   The target measures error against the engine, not against the outcome.
 - Labels at 50k nodes miss deep tactics that a 1M-node search finds. T3 spot checks at 1M nodes measure how often.
 
-**Results.** None yet.
+**Results (val, 1500 band, 5-fold CV over games; 1.39 M moves, blunder rate 6.47% at ≥ 0.3).**
+`lab/results/blunder_baselines_1500_cv.json`, gradient-boosted trees per feature set:
 
-## 8. Adding a capability
+| Features | AUC | Avg. precision | Log-loss gain |
+|---|---|---|---|
+| Prior | 0.50 | 0.064 | 0 |
+| T0 (board, clock, ratings) | 0.731 | 0.137 | +0.092 |
+| T1 (+ Maia-3 entropy, top-move prob.) | 0.755 | — | +0.113 |
+| T1 + this move's think fraction | 0.761 | — | +0.118 |
+| T2 (+ Stockfish eval before the move) | 0.847 | 0.306 | +0.229 |
+
+All sets are calibrated (ECE ≤ 0.0014). Players below 1450 are under-predicted (observed 0.074, predicted
+0.067). Fits on the train split (`--fit train`) follow once the train evals finish. Policy-implied machine
+scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
+
+## 8. Game-level, book, population and era baselines
+
+**Why.** These are the surface-feature scores a learned match encoder (Maia embeddings, the Doppel z) has to
+match or beat on the same splits (§2). Every result here is CPU-only.
+
+**Game level** (`doppel_lab/game_science.py`, 36k human games, `lab/results/game_science.json`). From 1100 to
+2100: eval volatility 4.49 → 3.72, ACPL 69.8 → 46.4, blunder rate 8.0% → 4.6%, first blunder at move
+11.6 → 19.9. Lead changes stay flat at about 2.3 per game. Stronger players move faster (median think
+3.6 → 2.4 s) but reach time trouble more (3.2% → 5.7%). Rating from one game: MAE 281 (time control only),
+240 (T0), 223 (T2), with strong shrinkage to the mean.
+
+**Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
+prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
+Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
+grows about 0.5 ply per doubling of the corpus. Position (transposition) keys add about 2 plies.
+
+**Upsets** (gap ≥ 300, 38,930 heldout games). The underdog wins about 21% at every gap from 300 to 700,
+against an Elo expectation of 12% → 1.4%, so large Lichess gaps mostly mean a mis-rated account. From the
+first 30 plies, upsets are predictable: AUC 0.60 (gap and time control) → 0.78 (+ early T0 features).
+
+**Era** (`doppel_lab/vintage.py`, the first 150k games of each March 2013–2026, `lab/results/vintage_lichess.json`).
+Books are rebuilt per year at equal N, tiers are within-year rating percentiles, blitz only.
+
+| | 2013 | 2017 | 2021 | 2026 |
+|---|---|---|---|---|
+| Own-era book exit, T1 (ply) | 9.45 | 9.36 | 9.29 | 9.24 |
+| Weird-move rate | 2.5% | 2.5% | 2.7% | 2.5% |
+| Exit from today's book, T10 (ply) | 10.36 | 10.78 | 10.75 | 10.78 |
+| Flag rate | 28.3% | 29.1% | 23.9% | 24.5% |
+| Mean think per move (s, clocks from 2018) | — | — | 4.69 | 4.51 |
+| Rating, p25 tier / p95 tier median | 1396 / 1990 | 1324 / 2170 | 1154 / 2276 | 1172 / 2374 |
+
+Online blitz is close to stationary on surface features. The tier gradient (bottom quarter → top 5%: book exit
+8.5 → 10.5, weird rate 3.8% → 1.6%) is about ten times any change across years, and holds every year. The
+rating scale widened by about 600 points between the p25 and p95 tiers, which is why tiers are percentiles.
+
+**Populations** (`doppel_lab/populations.py`, rating-matched by coarsened exact matching on year, time control,
+own and opponent rating). Arena tournament vs lobby games, a competitive-vs-casual proxy, differ very little:
++1.2 plies, 0.04 s faster per move, 0.3 pt fewer weird moves. At matched rating, titled players (blitz, 6,670
+sides) score 2.0 pt above their Elo expectation (z = 3.2) and play 0.5 pt fewer weird moves (z = −3.1).
+
+**Data limits found.** The public dumps hold rated games only, so true casual games are not available. Every
+BOT game in them is BOT vs BOT, so BOT-vs-human contrasts need another source. TWIC mixes online events
+(Titled Tuesday) with over-the-board ones, so an over-the-board vs online split needs an event/site classifier.
+
+## 9. Adding a capability
 
 1. Write its section here first: target definition, metrics, and which priors, heuristics and machines it is
    scored against.
@@ -382,7 +440,7 @@ dedicated blunder head is a baseline only; it would not change how a Doppel play
 4. Add machine baselines or proxies.
 5. Only then add a head to the Doppel model.
 
-## 9. Literature
+## 10. Literature
 
 Prior work we build on, with the one-line finding that matters to us. "Read" means someone on the project has
 read the source in full; "abstract" means only its abstract or a summary so far.
