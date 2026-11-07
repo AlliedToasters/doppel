@@ -270,6 +270,14 @@ under-predict human think time by 0.09 to 0.11 in log1p(s): humans take longer t
 Both kinds of score belong in our table: R² and r on log seconds for prediction, and distribution distance for
 sampled think times.
 
+**Time management by rating** (`doppel_lab/clock_curve.py`, 2026-10 corpus, 3+0; clock left after own move N,
+as a share of the base). Weak players spend early: after move 20, a 600 has 49% left and a 1800 has 71%. From
+1800 up the early curve flattens (93% after move 10, from the book). Deep into long games, strong players run
+lower: after move 50, 10–11% left at 2200–2600 against 17–18% at 1400–1600, and 47–48% of 2400+ sides are
+under 10% of the base. Weak players are short of time from the start; strong players save time early and spend
+it in long, complex games. The pattern is U-shaped in rating, so a think head conditioned on rating alone must
+not be monotone.
+
 **Long thinks cluster** (`doppel_lab/think_ac.py`, 6.0 M own moves, 1500 train table). Maia-3 entropy and
 top-move probability, clock, ply and the side's own pace in the game explain R² 0.30 of log think. The rest
 is autocorrelated: residual correlation with the side's previous move is +0.153, then +0.143 at lag 2, +0.114
