@@ -561,7 +561,11 @@ players after regressing out rating: mean think 0.93, fast-move share 0.93, thin
 time-trouble share 0.80, weird-move rate 0.79, flag losses 0.78, resignations 0.62. Opening choice is the most
 stable of all (1.e4 0.97, 1.d4 0.97, ...c5 0.97, ...e5 0.97 against 1.e4). Re-identification (match a player's
 half A to their half B among 1,000 players): style alone top-1 64%, rating alone 45%, style and rating 81%
-(top-10 97%); chance 0.1%. A z that claims to capture the player should at least re-identify this well.
+(top-10 97%); chance 0.1%. A z that claims to capture the player should at least re-identify this well. How fast the signal accumulates
+(`doppel_lab/games_needed.py`, 8,000 of those players with 40+ games): rating predicted from the same style
+features averaged over k games, never from rating itself, goes from R² 0.17 (MAE 268) at one game to 0.40 (226)
+at 5, 0.49 (209) at 10, 0.58 (190) at 20 and 0.65 (172) at 40, against MAE 298 for a constant. That is about
++0.08 R² per doubling. It is the data-needs curve a per-player z should beat: the same accuracy from fewer games.
 
 **Encoder benchmark** (`doppel_lab/bench.py`, `bench_embed.py`, `bench_doppel.py`). This is the harness for the
 question above: can a learned match encoder beat surface features? Every model sees only the game's move and
