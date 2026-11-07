@@ -49,6 +49,7 @@ def run(device: str, workers: int, batch: int, limit: int = 0, out_name: str = "
     scal = np.zeros((G, 2, len(SCAL)), np.float32)
     rows = list(games.iter_rows())
     t0, done = time.time(), 0
+    pos_lp, pos_rank, pos_ent, pos_n = [], [], [], np.zeros(G, np.int64)  # per position, for the Doppel encoder
     with mp.get_context("fork").Pool(workers) as pool:
         for b0 in range(0, G, BLOCK):
             blk = rows[b0:b0 + BLOCK]
@@ -86,6 +87,10 @@ def run(device: str, workers: int, batch: int, limit: int = 0, out_name: str = "
                 top1[s:e_] = (lp.argmax(1) == played[s:e_]).float()
                 rank[s:e_] = (lp > pl_[:, None]).sum(1).float()
             feat, lp_p, ent, top1, rank = (t.cpu().numpy() for t in (feat, lp_p, ent, top1, rank))
+            pos_lp.append(lp_p.astype(np.float16))
+            pos_rank.append(np.minimum(rank, 16).astype(np.uint8))   # v0_data's rank: top-16 index, 16 = outside
+            pos_ent.append(ent.astype(np.float16))
+            pos_n[b0:b0 + len(blk)] = n_per
             for j in range(len(blk)):
                 o, n = offsets[j], n_per[j]
                 for side in (0, 1):
@@ -98,7 +103,9 @@ def run(device: str, workers: int, batch: int, limit: int = 0, out_name: str = "
             done += P
             print(f"{b0 + len(blk):,}/{G:,} games, {done:,} positions, {done / (time.time() - t0):,.0f}/s", flush=True)
     tmp = out.with_suffix(".tmp.npz")
-    np.savez(tmp, game_ids=games["game_id"].to_numpy(), emb=emb, scal=scal, scal_names=np.array(SCAL))
+    np.savez(tmp, game_ids=games["game_id"].to_numpy(), emb=emb, scal=scal, scal_names=np.array(SCAL),
+             pos_off=np.r_[0, np.cumsum(pos_n)], pos_lp=np.concatenate(pos_lp), pos_rank=np.concatenate(pos_rank),
+             pos_ent=np.concatenate(pos_ent))
     tmp.rename(out)
     print(f"done -> {out}", flush=True)
 
