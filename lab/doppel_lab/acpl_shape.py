@@ -34,9 +34,23 @@ def main():
         x = x[np.isfinite(x)]
         q = np.quantile(x, QS)
         res[name] = {"n": len(x), "mean": float(x.mean()), "quantiles": dict(zip(map(str, QS), q.tolist())),
-                     "iqr": float(q[4] - q[2]), "clean_lt20": float((x < 20).mean()), "bad_gt120": float((x > 120).mean())}
+                     "iqr": float(q[4] - q[2]), "clean_lt20": float((x < 20).mean()), "bad_gt120": float((x > 120).mean()), "_x": x}
         print(f"{name:7s} n {len(x):5d}  mean {x.mean():5.1f}  q05..q95 " + " ".join(f"{v:5.1f}" for v in q)
               + f"  IQR {res[name]['iqr']:5.1f}  <20 {res[name]['clean_lt20']:.3f}  >120 {res[name]['bad_gt120']:.3f}", flush=True)
+    # bootstrap the gate statistic: KS(doppel, human) - KS(maia3, human)
+    from scipy.stats import ks_2samp
+    rng = np.random.default_rng(0)
+    xs = {k: v["_x"] for k, v in res.items()}
+    diffs = []
+    for _ in range(500):
+        h = rng.choice(xs["human"], len(xs["human"]))
+        diffs.append(ks_2samp(rng.choice(xs["doppel"], len(xs["doppel"])), h).statistic
+                     - ks_2samp(rng.choice(xs["maia3"], len(xs["maia3"])), h).statistic)
+    lo, hi = np.percentile(diffs, [2.5, 97.5])
+    for v in res.values():
+        v.pop("_x")
+    res["ks_gap_doppel_minus_maia3_ci"] = [float(lo), float(hi)]
+    print(f"KS(doppel) - KS(maia3) bootstrap 95% CI [{lo:+.3f}, {hi:+.3f}]", flush=True)
     from doppel_lab.bench import RESULTS
     (RESULTS / f"acpl_shape_{a.run}.json").write_text(json.dumps(res, indent=1) + "\n")
 

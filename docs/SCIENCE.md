@@ -821,13 +821,13 @@ information, and none of it is new.
 5. Variance, fail. The KS distance of per-game ACPL to humans is 0.091 for the Doppel and 0.071 for Maia-3.
    Mean ACPL is 68.0 for the Doppel, 67.3 for Maia-3 and 61.8 for humans.
 
-The variance check is close to noise (`doppel_lab/acpl_shape.py`, all three sources at 20k nodes). The
-Doppel's and Maia-3's per-game ACPL distributions are nearly identical. Medians are 63.9 and 61.5, the IQR is
-41.1 for both, and 6.6% vs 7.4% of games are above 120. Both are worse and wider than humans: median 57.9, IQR
-37.0, 4.6% above 120. A KS gap of 0.091 vs 0.071 with about 2,000 games each is within sampling noise, whose
-95% band for one KS statistic is about ±0.03. Self-play also never resigns, so lost positions get played out,
-which inflates ACPL compared with humans, who resign. The check needs resign-adjudicated self-play, or ACPL
-cut off at the human resign point, plus a bootstrap CI.
+The variance check is within noise (`doppel_lab/acpl_shape.py`, all three sources at 20k nodes, games
+adjudicated at ±600 cp held for 6 plies, which is close to where humans resign). The Doppel's and Maia-3's
+per-game ACPL distributions are nearly identical. Medians are 63.9 and 61.5, the IQR is 41.1 for both, and 6.6%
+vs 7.4% of games are above 120. Both are worse and wider than humans: median 57.9, IQR 37.0, 4.6% above 120.
+The gate statistic, KS(Doppel) − KS(Maia-3), has a bootstrap 95% CI of [−0.010, +0.045], which includes 0.
+The check should compare CIs, not point values. The real gap, synthetic play worse than human, is shared with
+Maia-3.
 
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 
