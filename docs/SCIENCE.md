@@ -408,6 +408,12 @@ fix it, which is why think time adds to the T1 blunder baseline. Sides whose thi
 (Spearman of think vs entropy across their moves, quintiles −0.08 → 0.51) blunder a little less (8.1% → 7.4%),
 with the gain flat from the middle quintile on.
 
+Instant moves are the safest (`doppel_lab/premove.py`). Moves played in 0 s (4.9% of moves; premoves and
+instant replies) blunder 3.5% of the time, against 4.4% at 1 s, 6.1% at 2–3 s, 9.2% at 4–10 s and 12.8% at 11 s+.
+That holds inside every Maia-3 entropy quintile, including the hardest (5.4% at 0 s, 12.8% at 11 s+). Players
+premove only when the reply is obvious (Maia-3 top-move probability averages 0.72), so a Doppel should not add
+a premove blunder risk.
+
 Blunders cluster (`doppel_lab/blunder_chain.py`; rates compared inside cells of Maia-3 entropy decile x the
 mover's win chances x clock fraction). Right after the opponent blunders, the mover blunders 29.9% of the time
 against 5.6% otherwise (+22.8 pt matched, z = 337). A position that is winning because of a fresh blunder
