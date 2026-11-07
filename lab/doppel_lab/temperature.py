@@ -1,6 +1,6 @@
 """Sampling temperature vs human blunder rate: does Maia-3 at 1500 over-blunder when sampled, and what fixes it? (CPU)
 
-    python -m doppel_lab.temperature [where]    # needs punish.py --random (writes the per-position table)
+    python -m doppel_lab.temperature [where|truncation]    # needs punish.py --random (writes the per-position table)
 
 6,000 random val positions (1500 band) with Maia-3 probabilities over legal moves and per-move blunder flags
 (Stockfish 50k nodes, the label rule). For temperature T, p_T ∝ p^(1/T); implied blunder rate = mean over
@@ -76,6 +76,43 @@ def where():
     (RESULTS / "temperature_where.json").write_text(json.dumps(out, indent=1, default=str) + "\n")
 
 
+
+def truncation():
+    """Top-p and min-p: implied blunder rate, entropy, and how often the human's move is cut from the support."""
+    d = pl.read_parquet(V0 / "policy_implied_positions_1500_val.parquet")
+    data = []
+    for p, b, m, u in zip(d["p"].to_list(), d["is_blunder"].to_list(), d["moves"].to_list(), d["played"].to_list()):
+        p, b = np.asarray(p, float), np.asarray(b, bool)
+        if p.sum() > 0 and u in m:
+            data.append((p / p.sum(), b, m.index(u)))
+    human = float(np.mean([b[i] for _, b, i in data]))
+    rules = [("none", None)] + [(f"top_p {x}", ("top", x)) for x in (0.99, 0.97, 0.95, 0.9)] + \
+            [(f"min_p {x}", ("min", x)) for x in (0.005, 0.01, 0.02, 0.05)]
+    res = {"human_fresh_blunder": human, "rules": {}}
+    print(f"{len(data):,} positions; human (fresh flags) {human:.4f}")
+    for name, r in rules:
+        bl, ent, cut, top = [], [], [], []
+        for p, b, i in data:
+            keep = np.ones(len(p), bool)
+            if r and r[0] == "top":
+                o = np.argsort(-p)
+                cs = np.cumsum(p[o])
+                k = int(np.searchsorted(cs, r[1]) + 1)
+                keep = np.zeros(len(p), bool)
+                keep[o[:k]] = True
+            elif r and r[0] == "min":
+                keep = p >= r[1] * p.max()
+            q = np.where(keep, p, 0)
+            q /= q.sum()
+            bl.append(q[b].sum()); ent.append(-(q[q > 0] * np.log(q[q > 0])).sum()); cut.append(not keep[i]); top.append(q.max())
+        res["rules"][name] = {"implied_blunder": float(np.mean(bl)), "entropy": float(np.mean(ent)),
+                              "human_move_cut": float(np.mean(cut)), "p_top": float(np.mean(top))}
+        v = res["rules"][name]
+        print(f"{name:12s} implied blunder {v['implied_blunder']:.4f} ({v['implied_blunder'] / human:.2f}x)  entropy "
+              f"{v['entropy']:.3f}  p_top {v['p_top']:.3f}  human move cut {v['human_move_cut']:.4f}", flush=True)
+    (RESULTS / "truncation.json").write_text(json.dumps(res, indent=1) + "\n")
+
+
 if __name__ == "__main__":
     import sys
-    where() if len(sys.argv) > 1 and sys.argv[1] == "where" else main()
+    {"where": where, "truncation": truncation}.get(sys.argv[1] if len(sys.argv) > 1 else "", main)()

@@ -839,7 +839,12 @@ temperature. The excess sits in the policy's tail (`temperature.py where`). Wher
 forced (p_top > 0.9), humans blunder 0.7% and sampled Maia 1.7%. Where a quarter to a half of legal moves
 blunder, the rates are 3.0% vs 4.9%. In the hardest positions (> 90% of moves blunder), sampled Maia is close
 to humans (23.4% vs 21.3%). The long tail of low-probability moves adds up to blunders humans don't make.
-Truncating the tail (top-p or min-p sampling) targets this more precisely than temperature does.
+Truncating the tail does no better (`temperature.py truncation`). Reaching the human rate takes min-p 0.05 or
+top-p about 0.93. That removes the human's actual move from the support in 4.8% or about 4.5% of positions, and
+cuts entropy to 1.08, below temperature's 1.18 at the same blunder rate. Humans do play tail moves; they just
+don't play the tail's blunders. Of the global fixes, T ≈ 0.87 costs least. The precise fix is the residual:
+learn to move mass off blundering tail moves specifically, for example with a blunder-aware auxiliary target
+from per-move labels like these.
 
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 
