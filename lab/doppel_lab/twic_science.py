@@ -32,9 +32,15 @@ BANDS = [(0, 2200, "<2200"), (2200, 2400, "2200-2399"), (2400, 2600, "2400-2599"
 c = pl.col
 
 
+def twic_files() -> list[str]:
+    """Finished issues only (lake_fetch writes <issue>.partial/ first)."""
+    return [str(f) for d in sorted(LAKE.iterdir()) if d.name.isdigit() for f in sorted(d.glob("part-*.parquet"))]
+
+
 def load() -> pl.DataFrame:
-    df = pl.read_parquet(LAKE / "*" / "*.parquet", columns=["game_id", "event", "site", "date", "white_elo",
-                                                               "black_elo", "result", "moves", "plies", "fen"])
+    df = pl.read_parquet(twic_files(), columns=["game_id", "event", "site", "date", "white_elo",
+                                                               "black_elo", "result", "moves", "plies", "fen",
+                                                               "white_title", "black_title"])
     df = df.filter(c("fen").is_null() & c("result").is_in(["1-0", "0-1", "1/2-1/2"]) & (c("plies") >= 2)
                    & ~c("moves").list.contains("0000"))  # null moves ("--") in a few PGNs
     df = df.unique("game_id", keep="first")
@@ -149,6 +155,43 @@ def cem(d: pl.DataFrame, treat: pl.Expr, name: str, keys=("year", "eb")) -> dict
     return r
 
 
+TITLES = ["GM", "IM", "FM", "WGM", "WIM", "CM"]
+
+
+def titles(pooled: pl.DataFrame) -> dict:
+    """Per side, classical OTB open events: each title vs untitled players of the same FIDE rating (25-point
+    bins), opponent rating (50-point bins) and year. Score minus Elo expectation, draws, book exit, weird moves."""
+    g = pooled.filter((c("medium") == "otb") & (c("speed") == "classical") & (c("age") == "open"))
+    sides = []
+    for col, opp, sgn in (("white", "black", 1), ("black", "white", -1)):
+        sides.append(g.select(
+            "year", "plies", "t1", "weird", "elig", "result",
+            title=c(f"{col}_title").fill_null(""), opp_title=c(f"{opp}_title").fill_null(""),
+            me=c(f"{col}_elo"), op=c(f"{opp}_elo"),
+            score=c("score_w") if sgn == 1 else 1 - c("score_w")))
+    s = pl.concat(sides).filter(c("me").is_not_null() & c("op").is_not_null())
+    s = s.with_columns(exp=1 / (1 + 10 ** ((c("op") - c("me")) / 400)), mb=c("me") // 25, ob=c("op") // 50)
+    s = s.with_columns(score_minus_exp=c("score") - c("exp"), draw_f=(c("result") == "1/2-1/2").cast(pl.Float64))
+    out = {}
+    for t in TITLES:
+        d = s.filter(c("title").is_in([t, ""])).with_columns(tr=c("title") == t)
+        r = {}
+        for f in ["score_minus_exp", "draw_f", "t1"]:
+            gg = d.group_by("year", "mb", "ob", "tr").agg(m=c(f).mean(), v=c(f).var(), n=pl.len())
+            j = gg.filter(c("tr")).join(gg.filter(~c("tr")), on=["year", "mb", "ob"], suffix="_c").filter(c("n_c") >= 2)
+            if j.height == 0:
+                continue
+            w = j["n"].to_numpy().astype(float)
+            att = float((w * (j["m"] - j["m_c"]).to_numpy()).sum() / w.sum())
+            se = float(np.sqrt((w ** 2 * (j["v"].fill_null(0) / j["n"] + j["v_c"].fill_null(0) / j["n_c"]).to_numpy()).sum()) / w.sum())
+            r[f] = {"att": att, "se": se, "treated_n": int(w.sum()),
+                    "elo_median": float(d.filter(c("tr"))["me"].median())}
+        out[t] = r
+        print(f"{t:4s} " + "  ".join(f"{f} {v['att']:+.3f} (z {v['att'] / v['se']:+.1f}, n {v['treated_n']}, elo~{v['elo_median']:.0f})"
+                                      for f, v in r.items()), flush=True)
+    return out
+
+
 def main():
     df = load()
     print(f"{df.height:,} TWIC games 2012-2026", flush=True)
@@ -163,6 +206,7 @@ def main():
         cem(pooled.filter((c("medium") == "otb") & (c("age") == "open")), c("speed") == "fast",
             "fast_vs_classical_otb"),
     ]
+    res["titles"] = titles(pooled)
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / "twic_science.json").write_text(json.dumps(res, indent=1) + "\n")
 

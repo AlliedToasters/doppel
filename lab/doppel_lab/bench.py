@@ -54,12 +54,12 @@ def suite_dir(suite: str) -> Path:
 
 def sample_twic() -> pl.DataFrame:
     """TWIC 2012-2026 with both FIDE ratings, >= 20 plies; no clocks. One random sample, labels per task."""
-    from doppel_lab.twic_science import load
+    from doppel_lab.twic_science import load, twic_files
     rng = np.random.default_rng(SEED)
     df = load().filter(c("elo").is_not_null() & (c("plies") >= 20))
     df = df[np.sort(rng.choice(df.height, min(TWIC_N, df.height), replace=False))]
     df = df.with_columns(white=pl.lit(None, pl.String), black=pl.lit(None, pl.String))
-    t = pl.read_parquet(LAKE.parent / "twic" / "*" / "*.parquet", columns=["game_id", "white", "black"]).unique("game_id")
+    t = pl.read_parquet(twic_files(), columns=["game_id", "white", "black"]).unique("game_id")
     df = df.drop("white", "black").join(t, on="game_id", how="left")
     df = df.with_columns(clocks=pl.lit(None, pl.List(pl.Float32)), base=pl.lit(None, pl.Int32),
                          inc=pl.lit(None, pl.Int32), elo_mean=c("elo"), in_main=pl.lit(True),

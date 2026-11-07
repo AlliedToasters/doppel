@@ -483,6 +483,27 @@ own and opponent rating). Arena tournament vs lobby games, a competitive-vs-casu
 +1.2 plies, 0.04 s faster per move, 0.3 pt fewer weird moves. At matched rating, titled players (blitz, 6,670
 sides) score 2.0 pt above their Elo expectation (z = 3.2) and play 0.5 pt fewer weird moves (z = −3.1).
 
+**Age at the board** (`doppel_lab/age.py`, `lab/results/age.json`): TWIC classical over-the-board games
+2012–2026 joined to birth years from the FIDE rating list (3.4 M sides). Aggregates only; no per-player output.
+Each age bin against players aged 25–34 at the same FIDE rating, opponent rating and year:
+
+| Age | Score − Elo expectation | Book exit (plies) | Game length (plies) | Draw rate |
+|---|---|---|---|---|
+| 6–11 | +4.3 pt | +1.7 | +6.2 | +3.4 pt |
+| 12–14 | +4.7 pt | +1.5 | +4.4 | +2.6 pt |
+| 15–17 | +3.3 pt | +1.1 | +2.2 | +1.4 pt |
+| 18–24 | +2.0 pt | +0.5 | +1.3 | 0.0 |
+| 35–49 | −2.0 pt | −0.4 | −2.7 | +1.8 pt |
+| 50–64 | −3.5 pt | −0.9 | −4.6 | +3.0 pt |
+| 65+ | −4.7 pt | −1.3 | −5.4 | +4.0 pt |
+
+All |z| > 10 except the 18–24 draw rate. The score column is the known rating lag: a junior's rating trails
+their improvement, an older player's trails their decline. The other columns are style at equal strength:
+younger players go deeper into book and play longer games. Draw rates are U-shaped in age.
+
+**OTB titles** at matched FIDE rating: see `titles` in `lab/results/twic_science.json` (filled by the full TWIC
+re-run).
+
 **Data limits found.** The public dumps hold rated games only, so true casual games are not available. Every
 BOT game in them is BOT vs BOT, so BOT-vs-human contrasts need another source. TWIC mixes online events
 (Titled Tuesday) with over-the-board ones, so an over-the-board vs online split needs an event/site classifier.
