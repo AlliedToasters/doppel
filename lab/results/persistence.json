@@ -1,0 +1,114 @@
+{
+ "players": 20000,
+ "min_games": 40,
+ "features": {
+  "think_mean": {
+   "split_half_rho": 0.9383358273253395,
+   "split_half_rho_rating_resid": 0.9310479774086198,
+   "rho_with_rating": -0.23923354366154434,
+   "players": 20000
+  },
+  "think_cv": {
+   "split_half_rho": 0.9233742673064356,
+   "split_half_rho_rating_resid": 0.8830945657902363,
+   "rho_with_rating": 0.5597894233404009,
+   "players": 20000
+  },
+  "fast_share": {
+   "split_half_rho": 0.953248851125622,
+   "split_half_rho_rating_resid": 0.9321732484674331,
+   "rho_with_rating": 0.5118557704084735,
+   "players": 20000
+  },
+  "trouble_share": {
+   "split_half_rho": 0.8166890089515608,
+   "split_half_rho_rating_resid": 0.8024439404391097,
+   "rho_with_rating": 0.2114870715521985,
+   "players": 20000
+  },
+  "flag_loss": {
+   "split_half_rho": 0.7798823951266974,
+   "split_half_rho_rating_resid": 0.778528058858446,
+   "rho_with_rating": -0.06874014616307302,
+   "players": 20000
+  },
+  "resign_loss": {
+   "split_half_rho": 0.6263600705646546,
+   "split_half_rho_rating_resid": 0.6210870729453993,
+   "rho_with_rating": -0.009647171511220064,
+   "players": 20000
+  },
+  "plies": {
+   "split_half_rho": 0.8126297813557467,
+   "split_half_rho_rating_resid": 0.7253398788103497,
+   "rho_with_rating": 0.5467500116992745,
+   "players": 20000
+  },
+  "book_t1": {
+   "split_half_rho": 0.9172294805099329,
+   "split_half_rho_rating_resid": 0.877557206374972,
+   "rho_with_rating": 0.5380799621456633,
+   "players": 20000
+  },
+  "weird_rate": {
+   "split_half_rho": 0.770180054118891,
+   "split_half_rho_rating_resid": 0.7913716213718193,
+   "rho_with_rating": -0.26862529806148067,
+   "players": 20000
+  },
+  "w_e4": {
+   "split_half_rho": 0.9363060699152672,
+   "split_half_rho_rating_resid": 0.9706222678553353,
+   "rho_with_rating": -0.09129810858681671,
+   "players": 20000
+  },
+  "w_d4": {
+   "split_half_rho": 0.9291832579104056,
+   "split_half_rho_rating_resid": 0.9672577571213887,
+   "rho_with_rating": 0.07488779478848853,
+   "players": 20000
+  },
+  "b_c5": {
+   "split_half_rho": 0.9113744783270162,
+   "split_half_rho_rating_resid": 0.9660818473238544,
+   "rho_with_rating": 0.2628222271832353,
+   "players": 19997
+  },
+  "b_e5": {
+   "split_half_rho": 0.9312140729314818,
+   "split_half_rho_rating_resid": 0.9712763929913074,
+   "rho_with_rating": -0.2554291486855275,
+   "players": 19997
+  },
+  "b_e6": {
+   "split_half_rho": 0.7880464172207633,
+   "split_half_rho_rating_resid": 0.8925467936465888,
+   "rho_with_rating": 0.019090789856128387,
+   "players": 19997
+  },
+  "b_c6": {
+   "split_half_rho": 0.8310635834213886,
+   "split_half_rho_rating_resid": 0.916444921918939,
+   "rho_with_rating": 0.11563538011714003,
+   "players": 19997
+  },
+  "b_d5": {
+   "split_half_rho": 0.8021941758953128,
+   "split_half_rho_rating_resid": 0.8709566841075508,
+   "rho_with_rating": -0.0913070083979397,
+   "players": 19997
+  }
+ },
+ "reid": {
+  "pool": 1000,
+  "trials": 20000,
+  "top1": 0.64055,
+  "top10": 0.88355,
+  "top1_rating_only": 0.4472,
+  "top10_rating_only": 0.9779,
+  "top1_style_and_rating": 0.8065,
+  "top10_style_and_rating": 0.9653,
+  "chance_top1": 0.001,
+  "time_control": "180+0"
+ }
+}

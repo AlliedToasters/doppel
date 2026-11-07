@@ -549,6 +549,15 @@ Tilt is real but small in results, and clear in tempo: players speed up and lose
 loss, more so after losing on time. For a Doppel, the previous game's result is a cheap conditioning signal
 for the think-time head.
 
+**Style persistence** (`doppel_lab/persistence.py`, `lab/results/persistence.json`): the bar for a style
+latent. 20,000 held-out players with at least 40 games at 3+0 in 2026-10 (one time control, so time-control
+choice can't pass for style); each player's games split into odd and even halves. Split-half Spearman across
+players after regressing out rating: mean think 0.93, fast-move share 0.93, think CV 0.88, book exit 0.88,
+time-trouble share 0.80, weird-move rate 0.79, flag losses 0.78, resignations 0.62. Opening choice is the most
+stable of all (1.e4 0.97, 1.d4 0.97, ...c5 0.97, ...e5 0.97 against 1.e4). Re-identification (match a player's
+half A to their half B among 1,000 players): style alone top-1 64%, rating alone 45%, style and rating 81%
+(top-10 97%); chance 0.1%. A z that claims to capture the player should at least re-identify this well.
+
 **Encoder benchmark** (`doppel_lab/bench.py`, `bench_embed.py`, `bench_doppel.py`). This is the harness for the
 question above: can a learned match encoder beat surface features? Every model sees only the game's move and
 clock stream, never headers, and all are scored on the same games and folds (grouped by White's account). The
