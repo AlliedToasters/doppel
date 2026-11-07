@@ -448,6 +448,12 @@ at 2400, 513 at 2000, 688 at 1600 and 759 at 1200, against Elo's 400. Two artifa
 For a Doppel, this means the rating inputs (Maia-3's Elo conditioning, our `elo_self`/`elo_opp`) are much noisier
 below 2000 than their face value. Ratings in 1500–1599 in particular carry little information.
 
+Time scrambles (`doppel_lab/scramble.py`, same corpus without 1500–1599 ratings): when both sides fall under
+10 s (1.4 M games, 76% of them ending on time, 9% drawn), the fitted Elo scale is 1,152, against 607 in calm
+games where neither side drops under 30 s. A favourite by about 175 points scores 0.601 in a scramble and 0.675
+in a calm game. Rating matters about half as much once both clocks run down. Selection inflates this somewhat:
+a favourite who reaches a scramble has already failed to win cleanly.
+
 **Era** (`doppel_lab/vintage.py`, the first 150k games of each March 2013–2026, `lab/results/vintage_lichess.json`).
 Books are rebuilt per year at equal N, tiers are within-year rating percentiles, blitz only.
 
