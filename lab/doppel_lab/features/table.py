@@ -115,7 +115,9 @@ def build(split: str, tier: str = "T2", band: int = 1500, workers: int = 8, limi
 
 
 def load(split: str, tier: str = "T2", band: int = 1500, columns: list[str] | None = None) -> pl.DataFrame:
-    q = pl.scan_parquet(out_dir(split, tier, band) / "part-*.parquet")
+    # base is Int64 in some parts and Float64 in others (game_rows writes NaN for a 0-second base)
+    q = pl.scan_parquet(out_dir(split, tier, band) / "part-*.parquet",
+                        cast_options=pl.ScanCastOptions(integer_cast="allow-float"))
     return (q.select(columns) if columns else q).collect()
 
 
