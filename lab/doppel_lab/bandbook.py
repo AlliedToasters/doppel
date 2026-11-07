@@ -83,5 +83,46 @@ def main():
     (RESULTS / "bandbook.json").write_text(json.dumps(res, indent=1) + "\n")
 
 
+
+def bench_features():
+    """Per game and side: mean log10 q of plies 1-20 under each group's book (move-only features) -> bench."""
+    from doppel_lab.bench import BENCH
+    rng = np.random.default_rng(SEED)
+    books = {}
+    for name, df in load("train", N_BOOK, rng).items():
+        k, _ = keys_of(df)
+        books[name] = np.unique(k, return_counts=True)
+    g = pl.read_parquet(BENCH / "games.parquet", columns=["game_id", "moves"])
+    ids, off0 = move_ids(g["moves"])
+    keys, cnt = prefix_hashes(ids, off0, cap=20)
+    off = np.zeros(len(cnt) + 1, np.int64)
+    np.cumsum(cnt, out=off[1:])
+    start = off[:-1]
+    pos = np.arange(len(keys)) - np.repeat(start, cnt)
+    white = pos % 2 == 0
+    cols = {"game_id": g["game_id"]}
+    for bn, (bk, bc) in books.items():
+        i = np.searchsorted(bk, keys).clip(max=len(bk) - 1)
+        m = np.where(bk[i] == keys, bc[i], 0).astype(float)
+        par = np.empty(len(keys))
+        par[1:] = m[:-1]
+        par[start] = N_BOOK
+        logq = np.where(par > 0, np.log10(np.maximum(m, 0.5) / np.maximum(par, 1)), np.nan)
+        for side, msk in (("w", white), ("b", ~white)):
+            v = np.where(msk & np.isfinite(logq), logq, 0.0)
+            n = np.add.reduceat((msk & np.isfinite(logq)).astype(float), start)
+            cols[f"{side}_bb_{bn}"] = np.add.reduceat(v, start) / np.maximum(n, 1)
+    f = pl.DataFrame(cols)
+    names = list(books)
+    for side in ("w", "b"):
+        f = f.with_columns(pl.concat_list([pl.col(f"{side}_bb_{n}") for n in names]).list.arg_max()
+                           .cast(pl.Float64).alias(f"{side}_bb_argmax"))
+    surf = pl.read_parquet(BENCH / "surface.parquet")
+    surf = surf.drop([c for c in surf.columns if "_bb_" in c]).join(f, on="game_id")
+    surf.write_parquet(BENCH / "surface.parquet")
+    print(f"added {f.width - 1} band-book columns -> {BENCH / 'surface.parquet'}", flush=True)
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    main() if len(sys.argv) < 2 else {"bench": bench_features}[sys.argv[1]]()

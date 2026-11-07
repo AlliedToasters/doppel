@@ -1,0 +1,105 @@
+{
+ "features": [
+  "plies",
+  "w_n_moves",
+  "w_think_frac_mean",
+  "w_think_frac_std",
+  "w_think_s_median",
+  "w_premove_share",
+  "w_long_think_share",
+  "w_tempo_jitter",
+  "w_clock_end",
+  "w_time_trouble_share",
+  "w_capture_share",
+  "w_check_share",
+  "w_castled",
+  "w_castle_ply",
+  "w_trade_intensity",
+  "w_n_legal_mean",
+  "w_in_check_share",
+  "b_n_moves",
+  "b_think_frac_mean",
+  "b_think_frac_std",
+  "b_think_s_median",
+  "b_premove_share",
+  "b_long_think_share",
+  "b_tempo_jitter",
+  "b_clock_end",
+  "b_time_trouble_share",
+  "b_capture_share",
+  "b_check_share",
+  "b_castled",
+  "b_castle_ply",
+  "b_trade_intensity",
+  "b_n_legal_mean",
+  "b_in_check_share",
+  "d_n_moves",
+  "d_think_frac_mean",
+  "d_think_frac_std",
+  "d_think_s_median",
+  "d_premove_share",
+  "d_long_think_share",
+  "d_tempo_jitter",
+  "d_clock_end",
+  "d_time_trouble_share",
+  "d_capture_share",
+  "d_check_share",
+  "d_castled",
+  "d_castle_ply",
+  "d_trade_intensity",
+  "d_n_legal_mean",
+  "d_in_check_share",
+  "book_t1",
+  "book_t10",
+  "book_t100",
+  "w_weird",
+  "b_weird",
+  "w_book_logq",
+  "b_book_logq"
+ ],
+ "tasks": {
+  "rating_pct": {
+   "n": 72000,
+   "mae": 18.544593248040695,
+   "r2": 0.395452448472423,
+   "mae_const": 25.054466436786797
+  },
+  "elo_mean": {
+   "n": 72000,
+   "mae": 216.0242348470247,
+   "r2": 0.4060687148218578,
+   "mae_const": 284.5355486111111
+  },
+  "year": {
+   "n": 72000,
+   "mae": 2.215247231135604,
+   "r2": 0.016507429756918768,
+   "mae_const": 2.2222222222222223
+  },
+  "era_2023plus": {
+   "n": 56000,
+   "pos_rate": 0.5714285714285714,
+   "auc": 0.5809334661458333
+  },
+  "top5": {
+   "n": 72000,
+   "pos_rate": 0.050541666666666665,
+   "auc": 0.8315379791598986
+  },
+  "arena": {
+   "n": 72000,
+   "pos_rate": 0.11170833333333334,
+   "auc": 0.7005473326853745
+  },
+  "titled": {
+   "n": 26760,
+   "pos_rate": 0.24159192825112108,
+   "auc": 0.6664935739985256
+  },
+  "rapid": {
+   "n": 72000,
+   "pos_rate": 0.2275,
+   "auc": 0.999126374943527
+  }
+ }
+}
