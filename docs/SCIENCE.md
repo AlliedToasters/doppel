@@ -276,7 +276,10 @@ is autocorrelated: residual correlation with the side's previous move is +0.153,
 at 3, +0.068 at 5 and 0 by 10. Players have short "slow" and "fast" spells lasting about five moves, which no
 position feature explains. A think-time head needs recurrent state, or the recent think history (the
 `think_*_ewma`/`_roll` T0 channels), to reproduce them. Sampling each move's time independently would
-flatten them.
+flatten them. Without difficulty controls (`think_ac_synth.py`, 3+0, the side's mean removed),
+human 1500 sides show +0.157 at lag 1 and +0.083 at lag 5. ChessMimic's self-play shows +0.208 and +0.095,
+spells included and slightly too sticky. v0d self-play does not yet record clocks, so its spells can't be
+checked. Recording sampled think times in `selfplay.py` is a prerequisite for a timing check in the gate.
 
 **Open.** `heuristic_think_ms` and Allie 2.1 have not been scored on held-out human games yet. They are the first
 baselines the v0 think-time head has to beat on the same table.
