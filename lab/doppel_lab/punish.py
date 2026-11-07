@@ -91,24 +91,24 @@ def sample(n: int, rng) -> pl.DataFrame:
                       pl.concat(ctl).with_columns(group=pl.lit("matched_control"))])
 
 
-def maia_probs(rows: pl.DataFrame, games: dict) -> list[dict]:
+def maia_probs(rows: pl.DataFrame, games: dict, elo: int = 1500, model=None) -> list[dict]:
     import torch
 
     from doppel_lab.engines import Maia3
     from doppel_lab.teacher import encode_game
     from doppel_model import MOVE_INDEX, mirror_uci
-    model = Maia3("79m", "cpu").model.eval()
+    model = model if model is not None else Maia3("79m", "cpu").model.eval()
     out = []
     for r in rows.iter_rows(named=True):
         moves = games[r["game_id"]]
         k = r["ply"]
-        planes = encode_game((moves[:k + 1], 1500, 1500))[0]          # (k+1, 64, 12) positions 0..k
+        planes = encode_game((moves[:k + 1], elo, elo))[0]          # (k+1, 64, 12) positions 0..k
         h = list(range(max(0, k - HIST + 1), k + 1))
         h = [h[0]] * (HIST - len(h)) + h
         x = torch.from_numpy(planes[h]).float().permute(1, 0, 2).reshape(64, HIST * 12)
         x = torch.cat([x, torch.zeros(64, 1)], 1)[None]
         with torch.no_grad():
-            logits = model(x, torch.tensor([1500]), torch.tensor([1500]))[0][0].float()
+            logits = model(x, torch.tensor([elo]), torch.tensor([elo]))[0][0].float()
         b = chess.Board()
         for u in moves[:k]:
             b.push_uci(u)

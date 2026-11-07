@@ -846,6 +846,15 @@ don't play the tail's blunders. Of the global fixes, T ≈ 0.87 costs least. The
 learn to move mass off blundering tail moves specifically, for example with a blunder-aware auxiliary target
 from per-move labels like these.
 
+The simplest fix is the rating input (`temperature.py elo`). The same 6,000 positions come from players
+averaging 1550. Run at self and opponent rating 1700, Maia-3 blunders at the human rate (6.67%, 1.01x).
+Human-move log-likelihood is also best there among the inputs tried: −1.3038 at 1700, against −1.3077 at
+1500, −1.3335 at 1900 and −1.4090 at 2100. So Maia-3 reads 2026-10 Lichess ratings about 150 points low.
+That fits the vintage study (§8): the rating scale has widened since Maia's 2016–2019 training data. Neither
+temperature nor truncation is needed. Feeding Maia-3, and v0's teacher, the rating plus about 150 improves
+both likelihood and blunder realism. Next: a finer grid (1600–1800) and the same check in other bands, since
+the offset probably depends on rating.
+
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 
 Diagnosis (`data/v0/runs/v0d/log.jsonl`): the training KL climbs from 2.0 to 2.96 nats and stays under the

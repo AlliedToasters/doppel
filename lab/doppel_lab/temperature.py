@@ -1,6 +1,6 @@
 """Sampling temperature vs human blunder rate: does Maia-3 at 1500 over-blunder when sampled, and what fixes it? (CPU)
 
-    python -m doppel_lab.temperature [where|truncation]    # needs punish.py --random (writes the per-position table)
+    python -m doppel_lab.temperature [where|truncation|elo]    # needs punish.py --random (writes the per-position table)
 
 6,000 random val positions (1500 band) with Maia-3 probabilities over legal moves and per-move blunder flags
 (Stockfish 50k nodes, the label rule). For temperature T, p_T ∝ p^(1/T); implied blunder rate = mean over
@@ -113,6 +113,29 @@ def truncation():
     (RESULTS / "truncation.json").write_text(json.dumps(res, indent=1) + "\n")
 
 
+
+def elo_offset(elos=(1300, 1500, 1700, 1900, 2100)):
+    """Maia-3's rating input as the knob: implied blunder rate on the same positions at several self/opp ratings."""
+    from doppel_lab.engines import Maia3
+    from doppel_lab.punish import maia_probs
+    d = pl.read_parquet(V0 / "policy_implied_positions_1500_val.parquet")
+    games = dict(pl.read_parquet(V0 / "blunder_games_1500_val.parquet", columns=["game_id", "moves"]).iter_rows())
+    model = Maia3("79m", "cpu").model.eval()
+    flags = [dict(zip(m, b)) for m, b in zip(d["moves"].to_list(), d["is_blunder"].to_list())]
+    human = float(np.mean([f[u] for f, u in zip(flags, d["played"].to_list()) if u in f]))
+    res = {"human_fresh_blunder": human, "elos": {}}
+    for e in elos:
+        pol = maia_probs(d, games, e, model)
+        bl = [sum(p for u, p in pm.items() if f.get(u, False)) for pm, f in zip(pol, flags)]
+        top = [max(pm.values()) for pm in pol]
+        ll = [np.log(max(pm.get(u, 1e-12), 1e-12)) for pm, u in zip(pol, d["played"].to_list())]
+        res["elos"][str(e)] = {"implied_blunder": float(np.mean(bl)), "p_top": float(np.mean(top)),
+                               "human_move_ll": float(np.mean(ll))}
+        print(f"Maia-3 at {e}: implied blunder {np.mean(bl):.4f} ({np.mean(bl) / human:.2f}x human)  p_top {np.mean(top):.3f}  "
+              f"human-move log-lik {np.mean(ll):.4f}", flush=True)
+    (RESULTS / "temperature_elo.json").write_text(json.dumps(res, indent=1) + "\n")
+
+
 if __name__ == "__main__":
     import sys
-    {"where": where, "truncation": truncation}.get(sys.argv[1] if len(sys.argv) > 1 else "", main)()
+    {"where": where, "truncation": truncation, "elo": elo_offset}.get(sys.argv[1] if len(sys.argv) > 1 else "", main)()
