@@ -438,9 +438,11 @@ attacked piece changes nothing (0.99x). None of these lifts comes close to the p
 The most common early blunders at 1500 (`doppel_lab/traps.py`, plies 4–24, `lab/results/traps.json`) are
 nearly all f7/f2 tactics in open games. 4.Ng5? in the Scotch (1.e4 e5 2.Nf3 Nc6 3.d4 exd4) appears 105 times.
 3...Bc5? in the Petrov-Italian (1.e4 e5 2.Nf3 Nf6 3.Bc4) is played in 32% of visits, and is a blunder because
-of Nxe5. Then come the early Bxf7+ shots. In the King's Gambit, after 3.fxe5 the recapture loses almost every
-time (89–100% of visits). These are candidate lesson content for the client, but the labels come from 50k-node
-evals, so each line needs a check at depth before it ships.
+of Nxe5. Then come the early Bxf7+ shots. Several entries are missed punishments. After 1.e4 e5 2.f4 d6
+(or Nc6) 3.fxe5?, 3...Qh4+ wins (−279 cp at depth 24), and the natural recapture, played in 89–100% of visits,
+throws that away. Depth 24 confirms 3...Bc5? (+155 for White) and 4.Ng5? (−140). These are candidate lesson
+content for the client ("punish this"), but the labels come from 50k-node evals, so each line needs a check at
+depth before it ships.
 
 The machine check (`doppel_lab/punish.py`, 1,500 val positions right after an opponent's blunder plus 1,500
 matched controls; Stockfish at the label budget on every legal move; Maia-3 79M at 1500 vs 1500): after a
