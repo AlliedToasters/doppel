@@ -417,7 +417,15 @@ pre-move predictor yet: AUC 0.932, AP 0.541. Blunder potential β (the share of 
 0.824 (AP 0.217), and Maia-3's entropy and top-move probability alone score about 0.60. The T2 table baseline
 reaches 0.850. Mean implied rate 7.6% vs 6.75% observed: Maia-3 at 1500 slightly over-blunders. The cost is
 Stockfish on every legal move (about 0.1 s of CPU per position at 50k nodes, 24 workers), so it suits labels
-and evaluation, not live play. Policy-implied machine
+and evaluation, not live play.
+
+When 1500 players resign (`doppel_lab/resign_when.py`, 100k train games with stored evals; half end in
+resignation): the median resigner stands at win chances −0.87, and 70% resign at −0.8 or worse. Played on,
+1500 players save those positions surprisingly often. From (−0.95, −0.8] the side standing there later draws
+or wins 15% of the time; from (−0.8, −0.6] 26%. So a resignation at −0.87 gives up about a 15% chance of a
+draw or better, mostly through the opponent's later blunders and the clock. About 3% resign at −0.2 or better,
+which are mostly sides short of time or abandoning games. The resign head should copy this distribution; it
+should not resign at engine-hopeless positions only. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines

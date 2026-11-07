@@ -1,0 +1,48 @@
+{
+ "resignations": 49944,
+ "bins": [
+  {
+   "wc_lo": -1.01,
+   "wc_hi": -0.95,
+   "resign_share": 0.3263655293929201,
+   "salvage_rate_if_played_on": 0.1212740092389983,
+   "positions": 20565
+  },
+  {
+   "wc_lo": -0.95,
+   "wc_hi": -0.8,
+   "resign_share": 0.37516017940092905,
+   "salvage_rate_if_played_on": 0.15224227689543088,
+   "positions": 37841
+  },
+  {
+   "wc_lo": -0.8,
+   "wc_hi": -0.6,
+   "resign_share": 0.22739468204388916,
+   "salvage_rate_if_played_on": 0.2566352419431634,
+   "positions": 73509
+  },
+  {
+   "wc_lo": -0.6,
+   "wc_hi": -0.4,
+   "resign_share": 0.028111484863046612,
+   "salvage_rate_if_played_on": 0.36895837337946646,
+   "positions": 46821
+  },
+  {
+   "wc_lo": -0.4,
+   "wc_hi": -0.2,
+   "resign_share": 0.013575204228736185,
+   "salvage_rate_if_played_on": 0.4261229403355654,
+   "positions": 66455
+  },
+  {
+   "wc_lo": -0.2,
+   "wc_hi": 0.0,
+   "resign_share": 0.014275989107800736,
+   "salvage_rate_if_played_on": 0.49666486167175344,
+   "positions": 162512
+  }
+ ],
+ "median_resign_wc": -0.8658717478280942
+}
