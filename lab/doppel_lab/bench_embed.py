@@ -110,6 +110,70 @@ def run(device: str, workers: int, batch: int, limit: int = 0, out_name: str = "
     print(f"done -> {out}", flush=True)
 
 
+ELOS = (800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400)
+
+
+def sweep(device: str, workers: int, batch: int, limit: int = 0, suite: str = "lichess"):
+    """Maia as a rating estimator: per side, mean log-prob of the played moves with Maia-3 conditioned on each
+    rating in ELOS (both players at that rating). -> <suite dir>/maia3_sweep.npz, ll (G, 2, len(ELOS))."""
+    import torch
+
+    from doppel_lab.bench import suite_dir
+    from doppel_lab.engines import Maia3
+    games = pl.read_parquet(suite_dir(suite) / "games.parquet").select("game_id", "moves")
+    if limit:
+        games = games.head(limit)
+    model = Maia3("79m", device).model.eval()
+    G = games.height
+    ll = np.zeros((G, 2, len(ELOS)), np.float32)
+    rows = list(games.iter_rows())
+    t0, done = time.time(), 0
+    with mp.get_context("fork").Pool(workers) as pool:
+        for b0 in range(0, G, BLOCK):
+            blk = rows[b0:b0 + BLOCK]
+            enc = pool.map(encode_game, [(m, 1500, 1500) for _, m in blk], chunksize=32)
+            n_per = np.array([len(e[3]) for e in enc])
+            offsets = np.r_[0, np.cumsum(n_per)]
+            planes = torch.from_numpy(np.concatenate([e[0] for e in enc])).to(device)
+            hidx = np.concatenate([np.clip(np.arange(n)[:, None] + np.arange(-HIST + 1, 1)[None, :], 0, None) + off
+                                   for n, off in zip(n_per, offsets[:-1])])
+            legal = np.concatenate([e[1] for e in enc]).astype(np.int64)
+            lcount = np.concatenate([e[2] for e in enc]).astype(np.int64)
+            lrow = np.repeat(np.arange(len(lcount)), lcount)
+            lstart = np.r_[0, np.cumsum(lcount)]
+            played = torch.from_numpy(np.concatenate([e[3] for e in enc]).astype(np.int64)).to(device)
+            P = len(hidx)
+            lp_all = torch.empty(P, len(ELOS), device=device)
+            hidx_t = torch.from_numpy(hidx).to(device)
+            for s in range(0, P, batch):
+                e_ = min(P, s + batch)
+                x = planes[hidx_t[s:e_]].float().permute(0, 2, 1, 3).reshape(e_ - s, 64, HIST * 12)
+                x = torch.cat([x, torch.zeros(e_ - s, 64, 1, device=device)], 2)
+                mask = torch.zeros(e_ - s, 4352, dtype=torch.bool, device=device)
+                a, b_ = lstart[s], lstart[e_]
+                mask[torch.from_numpy(lrow[a:b_] - s).to(device), torch.from_numpy(legal[a:b_]).to(device)] = True
+                for j, elo in enumerate(ELOS):
+                    ev = torch.full((e_ - s,), elo, device=device)
+                    with torch.no_grad(), torch.autocast("cuda", enabled=device.startswith("cuda")):
+                        logits = model(x, ev, ev)[0].float()
+                    lp = torch.log_softmax(logits[:, :mask.shape[1]].masked_fill(~mask, float("-inf")), 1)
+                    lp_all[s:e_, j] = lp.gather(1, played[s:e_, None])[:, 0].clamp(min=-30)
+            lp_all = lp_all.cpu().numpy()
+            for j in range(len(blk)):
+                o, n = offsets[j], n_per[j]
+                for side in (0, 1):
+                    ix = np.arange(o + side, o + n, 2)
+                    if len(ix):
+                        ll[b0 + j, side] = lp_all[ix].mean(0)
+            done += P
+            print(f"{b0 + len(blk):,}/{G:,} games, {done:,} positions, {done / (time.time() - t0):,.0f}/s", flush=True)
+    out = suite_dir(suite) / ("maia3_sweep.npz" if not limit else "smoke_sweep.npz")
+    tmp = out.with_suffix(".tmp.npz")
+    np.savez(tmp, game_ids=games["game_id"].to_numpy(), ll=ll, elos=np.array(ELOS))
+    tmp.rename(out)
+    print(f"done -> {out}", flush=True)
+
+
 def probe(suite: str = "lichess"):
     from sklearn.decomposition import PCA
     from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
@@ -124,6 +188,14 @@ def probe(suite: str = "lichess"):
     E = z["emb"].astype(np.float32).reshape(len(gid), -1)
     S = z["scal"].reshape(len(gid), -1)
     S = np.concatenate([S, S[:, :len(SCAL)] - S[:, len(SCAL):]], 1)        # + White minus Black
+    SW = None
+    if (D / "maia3_sweep.npz").exists():
+        w = np.load(D / "maia3_sweep.npz")
+        assert (w["game_ids"] == z["game_ids"]).all()
+        ll = w["ll"].reshape(len(gid), -1)                                   # (G, 2 * len(ELOS))
+        el = np.array(ELOS, float)
+        arg = np.stack([el[w["ll"][:, k].argmax(1)] for k in (0, 1)], 1)      # per-side max-likelihood rating
+        SW = np.concatenate([ll, arg, arg.mean(1, keepdims=True)], 1)
     tasks = pl.read_parquet(D / "tasks.parquet").join(gid, on="game_id")
     surf = pl.read_parquet(D / "surface.parquet")
     scols = [k for k in surf.columns if k != "game_id" and surf[k].null_count() < surf.height]
@@ -137,6 +209,9 @@ def probe(suite: str = "lichess"):
         Xs = x.select(scols).to_numpy().astype(float)
         sets = {"maia_linear": ("lin", E[ii]), "maia_policy": ("hgb", S[ii]),
                 "surface+maia_policy": ("hgb", np.concatenate([Xs, S[ii]], 1))}
+        if SW is not None:
+            sets["maia_sweep"] = ("hgb", SW[ii])
+            sets["surface+maia_policy+sweep"] = ("hgb", np.concatenate([Xs, S[ii], SW[ii]], 1))
         r = {"surface": surface[name]}
         for sname, (how, X) in sets.items():
             pred = np.empty(len(y))
@@ -175,10 +250,18 @@ if __name__ == "__main__":
     r.add_argument("--limit", type=int, default=0)
     r.add_argument("--out", default="maia3.npz")
     r.add_argument("--suite", default="lichess")
+    sw = sub.add_parser("sweep")
+    sw.add_argument("--workers", type=int, default=12)
+    sw.add_argument("--batch", type=int, default=2048)
+    sw.add_argument("--gpu-ok", action="store_true")
+    sw.add_argument("--limit", type=int, default=0)
+    sw.add_argument("--suite", default="lichess")
     pr = sub.add_parser("probe")
     pr.add_argument("--suite", default="lichess")
     a = ap.parse_args()
-    if a.cmd == "run":
+    if a.cmd == "sweep":
+        sweep("cuda" if a.gpu_ok else "cpu", a.workers, a.batch, a.limit, a.suite)
+    elif a.cmd == "run":
         run("cuda" if a.gpu_ok else "cpu", a.workers, a.batch, a.limit, a.out, a.suite)
     else:
         probe(a.suite)
