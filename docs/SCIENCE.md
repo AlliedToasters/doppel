@@ -291,8 +291,9 @@ the board, z and the ratings (`v0_model.py`), so it can't do this yet.
 top-move probability, clock, ply and the side's own pace in the game explain R² 0.30 of log think. The rest
 is autocorrelated: residual correlation with the side's previous move is +0.153, then +0.143 at lag 2, +0.114
 at 3, +0.068 at 5 and 0 by 10. Players have short "slow" and "fast" spells lasting about five moves, which no
-position feature explains. A think-time head needs recurrent state, or the recent think history (the
-`think_*_ewma`/`_roll` T0 channels), to reproduce them. Sampling each move's time independently would
+position feature explains. A think-time head needs the recent think history to reproduce them. v0's head has it: `tempo_feats`
+in `v0_data.py` carries the median and a 0.7-decay EWMA of the side's recent think fractions. A check that
+sampled v0 times show the +0.15 lag-1 correlation is still open. Sampling each move's time independently would
 flatten them.
 
 Players play the book from memory (`doppel_lab/book_think.py`, 87.7k train games with a book exit at plies 8–30,
@@ -487,7 +488,7 @@ The clock is the main reason to play on (`doppel_lab/flag_hope.py`, 104k lost po
 and other blitz): with equal clocks, the losing side saves 19.6% of the time. A lead of over 30% of the base
 raises that to 38.3%, and 25.4% of positions are won on time outright. Trailing by over 30%, the save rate is
 7.5%. Saves on the board (the opponent blunders back, or abandons) stay at 7–13% whatever the clocks. The resign
-head should see the clock difference, not only the eval. Policy-implied machine
+head should see the clock difference, not only the eval. v0's does: `clock_feats` gives it both clocks. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines
