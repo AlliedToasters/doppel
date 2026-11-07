@@ -429,6 +429,20 @@ uncertainty proxy: favourites with a swing of 80+ lose 38% (Elo expects 8.5%), b
 under 10, 93% of sides) still lose 17.9% against 7.2%. So rating uncertainty explains part of the excess, and
 the rest says the Elo curve's tails are too thin for Lichess blitz at gaps of 300 or more.
 
+The Elo curve itself (`doppel_lab/elo_curve.py`, all 34.9 M games of the 2026-10 corpus, `lab/results/elo_curve.json`)
+fits strong blitz and fails club blitz. Fitting E = 1 / (1 + 10^(−gap/s)) per mean-rating level gives s = 443
+at 2400, 513 at 2000, 688 at 1600 and 759 at 1200, against Elo's 400. Two artifacts sit on top of that:
+
+1. **The 1500 start.** New Lichess accounts start at 1500. A favourite rated 1500–1599 (gap 150–450) scores
+   0.483, below a coin flip, against an Elo expectation of 0.796, and that bin holds 2.5× the games of its
+   neighbours. Dropping games with either side at 1500–1599 removes the non-monotone dip at the 1200 level.
+2. **Wide pairings are selected.** Past a gap of about 300 the curve stops rising (gap 312: 0.811, gap 512:
+   0.776, gap 712: 0.812, all levels without 1500s), so a pairing that wide is itself evidence that a rating is
+   wrong.
+
+For a Doppel, this means the rating inputs (Maia-3's Elo conditioning, our `elo_self`/`elo_opp`) are much noisier
+below 2000 than their face value. Ratings in 1500–1599 in particular carry little information.
+
 **Era** (`doppel_lab/vintage.py`, the first 150k games of each March 2013–2026, `lab/results/vintage_lichess.json`).
 Books are rebuilt per year at equal N, tiers are within-year rating percentiles, blitz only.
 
