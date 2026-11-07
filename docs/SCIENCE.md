@@ -284,8 +284,8 @@ the played move is Maia's top-1 62% of the time at 1 s, 59% at 2–3 s, 51% at 4
 easiest quintile it runs 95% → 71%. The same holds among non-blunders (63% → 45% in the middle quintile), so a
 slow move is often a different, considered move, not just a worse one. Move and think time are therefore not
 independent. A Doppel that samples think time and move separately will play long thinks too intuitively.
-Condition the policy on the sampled think time, or sample the two jointly; v0's residual policy already sees
-the think features of earlier moves, but not this move's.
+Condition the policy on the sampled think time, or sample the two jointly. v0's residual policy sees only
+the board, z and the ratings (`v0_model.py`), so it can't do this yet.
 
 **Long thinks cluster** (`doppel_lab/think_ac.py`, 6.0 M own moves, 1500 train table). Maia-3 entropy and
 top-move probability, clock, ply and the side's own pace in the game explain R² 0.30 of log think. The rest
