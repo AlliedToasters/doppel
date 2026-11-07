@@ -382,7 +382,12 @@ dedicated blunder head is a baseline only; it would not change how a Doppel play
 | T2 (+ Stockfish eval before the move) | 0.847 | 0.306 | +0.229 |
 
 All sets are calibrated (ECE ≤ 0.0014). Players below 1450 are under-predicted (observed 0.074, predicted
-0.067). Fits on the train split (`--fit train`) follow once the train evals finish. Policy-implied machine
+0.067).
+
+Final fit on train (100k games, 6.98 M moves, blunder rate 6.47%), scored on val
+(`lab/results/blunder_baselines_1500_train.json`): T0 AUC 0.734 (AP 0.139, log-loss gain +0.095), T1 0.760
+(+0.117), T1 + think 0.766 (+0.123), T2 0.850 (AP 0.312, +0.235); ECE ≤ 0.0010 for all. At ≥ 0.2: T0 0.723,
+T2 0.828. The CV numbers held, so these are the blunder bars. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
 ## 8. Game-level, book, population and era baselines
