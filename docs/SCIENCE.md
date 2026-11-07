@@ -720,9 +720,16 @@ and fast OTB play are visible in the moves themselves.
 5. Variance, fail. The KS distance of per-game ACPL to humans is 0.091 for the Doppel and 0.071 for Maia-3.
    Mean ACPL is 68.0 for the Doppel, 67.3 for Maia-3 and 61.8 for humans.
 
-v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model. Next: raise the
-z's information (free bits or the KL weight), and make the persistence check per player over many games, as
-in the style-persistence study, not per half-game.
+v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
+
+Diagnosis (`data/v0/runs/v0d/log.jsonl`): the training KL climbs from 2.0 to 2.96 nats and stays under the
+3.0 free-bits floor for all 32.8k steps. Below the floor the KL is free, so the penalty is not what limits z.
+The decoder finds little more to read from one half-game. The z-swap gain is 0.0015 nats per move, about
+0.05 nats per half-game. That matches the baselines above: one game of surface style predicts rating at R²
+0.17, ten games at 0.49, and re-identification needs a player's full history. Lowering the KL weight or raising
+free bits would only add noise to z. The stronger fix is evidence: encode z from several games by the same
+player (a set encoder over k games, k = 5–20) and make the persistence check per player across many games, as
+in the style-persistence study.
 
 **What this means for a Doppel.**
 
