@@ -470,7 +470,8 @@ human 6.5%, Maia-3 implied 7.9%, top-1 3.8%. So sampling from Maia-3 reproduces 
 punishments, and argmax play does not. This is the first policy-implied machine score for §7 item 5.
 
 On 6,000 random val positions (ply ≥ 2, blunder rate 6.75%), the policy-implied P(blunder) is the strongest
-pre-move predictor yet: AUC 0.932, AP 0.541. Blunder potential β (the share of legal moves that blunder) scores
+pre-move predictor yet: AUC 0.932, AP 0.541 (0.928 / 0.527 on a rerun, since Stockfish's per-move results vary a little between
+runs). Blunder potential β (the share of legal moves that blunder) scores
 0.824 (AP 0.217), and Maia-3's entropy and top-move probability alone score about 0.60. The T2 table baseline
 reaches 0.850. Mean implied rate 7.6% vs 6.75% observed: Maia-3 at 1500 slightly over-blunders. The cost is
 Stockfish on every legal move (about 0.1 s of CPU per position at 50k nodes, 24 workers), so it suits labels
@@ -828,8 +829,13 @@ vs 7.4% of games are above 120. Both are worse and wider than humans: median 57.
 The gate statistic, KS(Doppel) − KS(Maia-3), has a bootstrap 95% CI of [−0.010, +0.045], which includes 0.
 The check should compare CIs, not point values. The real gap, synthetic play worse than human, is shared with
 Maia-3. It matches the policy-implied blunder rate in §7: sampled from at 1500, Maia-3 blunders 7.6% of the
-time against 6.75% for humans. A sampling temperature a little below 1 (or a band offset) is the cheap fix to
-test.
+time against 6.75% for humans. Temperature fixes the rate (`doppel_lab/temperature.py`, the same 6,000 positions; the
+stored labels agree with the fresh per-move flags on 99.1% of played moves, so the gap is not label noise).
+The implied blunder rate is 7.60% at T = 1, 6.98% at T = 0.9 and 6.69% at T = 0.85, against 6.60–6.75% for
+humans. T ≈ 0.87 matches. The cost: mean top-move probability rises from 0.557 to about 0.60 and entropy falls
+from 1.34 to 1.18. Synthetic play becomes slightly too predictable, and likelihood is best at T = 1 by
+construction. Matching both needs the residual to move mass off blunders specifically, not a global
+temperature.
 
 v0d is a good Maia-3-level policy with a better think-time head, not yet a personal model.
 

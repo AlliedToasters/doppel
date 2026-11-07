@@ -144,6 +144,13 @@ def main():
     t0 = time.time()
     pol = maia_probs(rows, games)
     print(f"maia-3 on cpu: {time.time() - t0:.0f}s", flush=True)
+    if a.random:   # per position: legal moves' Maia probs and blunder flags, for temperature studies (data/, not git)
+        pl.DataFrame({"game_id": rows["game_id"], "ply": rows["ply"], "human_blunder": rows["blunder"],
+                      "moves": [[u for u, _ in moves] for moves in bl],
+                      "played": [games[g_][k_] for g_, k_ in zip(rows["game_id"].to_list(), rows["ply"].to_list())],
+                      "p": [[pm.get(u, 0.0) for u, _ in moves] for moves, pm in zip(bl, pol)],
+                      "is_blunder": [[bool(b_) for _, b_ in moves] for moves in bl]}).write_parquet(
+            V0 / "policy_implied_positions_1500_val.parquet")
     maia_p = [sum(pm.get(u, 0.0) for u, is_b in moves if is_b) for moves, pm in zip(bl, pol)]
     beta = [np.mean([is_b for _, is_b in moves]) if moves else np.nan for moves in bl]
     maia_top_b = [dict(moves).get(max(pm, key=pm.get), False) for moves, pm in zip(bl, pol)]
