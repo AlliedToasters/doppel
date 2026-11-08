@@ -1,0 +1,160 @@
+---
+/**
+ * Line chart rendered to SVG at build time, with a hover crosshair and a data table.
+ *
+ *   <LineChart title="Re-ID vs games" x={{ label: 'Games', values: [1, 2, 5], log: true }}
+ *     y={{ label: 'Top-1', min: 0, max: 1, format: 'pct' }}
+ *     series={[{ name: 'Maia', values: [0.1, 0.2, 0.3] }]} />
+ *
+ * Colors follow the series' `slot` (1-4), not its position, so one entity keeps one color across charts.
+ */
+interface Series { name: string; values: number[]; slot?: number }
+interface Props {
+  title: string;
+  note?: string;
+  x: { label: string; values: number[]; log?: boolean };
+  y: { label: string; min?: number; max?: number; format?: 'pct' | 'num'; ticks?: number[] };
+  series: Series[];
+}
+const { title, note, x, y, series } = Astro.props;
+
+const W = 600, H = 320, M = { l: 52, r: 150, t: 16, b: 48 };
+const iw = W - M.l - M.r, ih = H - M.t - M.b;
+const all = series.flatMap((s) => s.values);
+const y0 = y.min ?? Math.min(0, ...all), y1 = y.max ?? Math.max(...all);
+const tx = (v: number) => (x.log ? Math.log(v) : v);
+const [xa, xb] = [tx(x.values[0]), tx(x.values[x.values.length - 1])];
+const px = (v: number) => M.l + ((tx(v) - xa) / (xb - xa)) * iw;
+const py = (v: number) => M.t + (1 - (v - y0) / (y1 - y0)) * ih;
+const fmt = (v: number) => (y.format === 'pct' ? `${(v * 100).toFixed(v < 0.1 ? 1 : 0)}%` : v.toFixed(2));
+const tickFmt = (v: number) => (y.format === 'pct' ? `${Math.round(v * 100)}%` : v.toFixed(2));
+const yticks = y.ticks ?? Array.from({ length: 5 }, (_, i) => y0 + ((y1 - y0) * i) / 4);
+
+// Direct labels at the line ends, nudged apart so they never overlap.
+const ends = series
+  .map((s, i) => ({ i, y: py(s.values[s.values.length - 1]) }))
+  .sort((a, b) => a.y - b.y);
+for (let k = 1; k < ends.length; k++) ends[k].y = Math.max(ends[k].y, ends[k - 1].y + 16);
+const labelY = Object.fromEntries(ends.map((e) => [e.i, e.y]));
+
+const slot = (s: Series, i: number) => s.slot ?? i + 1;
+const data = JSON.stringify({
+  xs: x.values.map(px), xv: x.values, xl: x.label,
+  s: series.map((s, i) => ({ n: s.name, c: slot(s, i), v: s.values, y: s.values.map(py), t: s.values.map(fmt) })),
+});
+---
+
+<figure class="lc">
+  <figcaption>
+    <span class="t">{title}</span>
+    {note && <span class="n">{note}</span>}
+  </figcaption>
+  <ul class="legend">
+    {series.map((s, i) => <li><i class={`c${slot(s, i)}`}></i>{s.name}</li>)}
+  </ul>
+  <div class="plot" data-chart={data}>
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+      {yticks.map((t) => (
+        <g>
+          <line class="grid" x1={M.l} x2={M.l + iw} y1={py(t)} y2={py(t)} />
+          <text class="tick" x={M.l - 8} y={py(t)} text-anchor="end" dominant-baseline="middle">{tickFmt(t)}</text>
+        </g>
+      ))}
+      {x.values.map((v) => (
+        <text class="tick" x={px(v)} y={M.t + ih + 20} text-anchor="middle">{v}</text>
+      ))}
+      <text class="axis" x={M.l + iw / 2} y={H - 6} text-anchor="middle">{x.label}</text>
+      <text class="axis" transform={`translate(14 ${M.t + ih / 2}) rotate(-90)`} text-anchor="middle">{y.label}</text>
+      <line class="xhair" x1="0" x2="0" y1={M.t} y2={M.t + ih} />
+      {series.map((s, i) => (
+        <g class={`s c${slot(s, i)}`}>
+          <polyline points={s.values.map((v, j) => `${px(x.values[j])},${py(v)}`).join(' ')} />
+          {s.values.map((v, j) => <circle cx={px(x.values[j])} cy={py(v)} r="4" />)}
+          <text class="end" x={M.l + iw + 10} y={labelY[i]} dominant-baseline="middle">{s.name}</text>
+        </g>
+      ))}
+      <rect class="hit" x={M.l - 20} y={M.t} width={iw + 40} height={ih} />
+    </svg>
+    <div class="tip" hidden></div>
+  </div>
+  <details>
+    <summary>Show the data</summary>
+    <table>
+      <thead><tr><th>{x.label}</th>{series.map((s) => <th>{s.name}</th>)}</tr></thead>
+      <tbody>
+        {x.values.map((v, j) => <tr><td>{v}</td>{series.map((s) => <td>{fmt(s.values[j])}</td>)}</tr>)}
+      </tbody>
+    </table>
+  </details>
+</figure>
+
+<script>
+  type D = { xs: number[]; xv: number[]; xl: string; s: { n: string; c: number; v: number[]; y: number[]; t: string[] }[] };
+  for (const el of document.querySelectorAll<HTMLElement>('.lc .plot')) {
+    const d: D = JSON.parse(el.dataset.chart!);
+    const svg = el.querySelector('svg')!, tip = el.querySelector<HTMLElement>('.tip')!;
+    const hair = svg.querySelector<SVGLineElement>('.xhair')!;
+    const hit = svg.querySelector('.hit')!;
+    const show = (ev: PointerEvent) => {
+      const p = svg.createSVGPoint();
+      p.x = ev.clientX; p.y = ev.clientY;
+      const sx = p.matrixTransform(svg.getScreenCTM()!.inverse()).x;
+      let j = 0;
+      d.xs.forEach((x, k) => { if (Math.abs(x - sx) < Math.abs(d.xs[j] - sx)) j = k; });
+      hair.setAttribute('x1', `${d.xs[j]}`); hair.setAttribute('x2', `${d.xs[j]}`);
+      svg.classList.add('on');
+      svg.querySelectorAll('.s').forEach((g) =>
+        g.querySelectorAll('circle').forEach((c, k) => c.classList.toggle('hot', k === j)));
+      const rows = d.s.map((s) => ({ s, v: s.v[j] })).sort((a, b) => b.v - a.v);
+      tip.innerHTML = `<b>${d.xl}: ${d.xv[j]}</b>` + rows.map(({ s }) =>
+        `<div><i class="c${s.c}"></i><span>${s.n}</span><em>${s.t[j]}</em></div>`).join('');
+      tip.hidden = false;
+      const r = el.getBoundingClientRect(), scale = r.width / 600;
+      // Beside the crosshair, on whichever side has room, so the tip never hides the points it reads out.
+      const x = d.xs[j] * scale, gap = 14;
+      const right = x + gap + tip.offsetWidth <= r.width;
+      tip.style.left = `${right ? x + gap : Math.max(x - gap - tip.offsetWidth, 0)}px`;
+    };
+    hit.addEventListener('pointermove', show as EventListener);
+    hit.addEventListener('pointerdown', show as EventListener);
+    hit.addEventListener('pointerleave', () => {
+      tip.hidden = true; svg.classList.remove('on');
+      svg.querySelectorAll('circle.hot').forEach((c) => c.classList.remove('hot'));
+    });
+  }
+</script>
+
+<style>
+  .lc { margin: 32px 0; padding: 20px; background: var(--panel); border: 2px solid var(--line); border-radius: 20px; }
+  figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+  .t { font-weight: 900; font-size: 1.05rem; }
+  .n { color: var(--muted); font-size: 0.9rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0; margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
+  .legend li { display: flex; align-items: center; gap: 6px; }
+  .legend i, .tip i { width: 12px; height: 4px; border-radius: 2px; background: var(--c); display: inline-block; }
+  .plot { position: relative; }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .grid { stroke: var(--line); stroke-width: 1; }
+  .tick { fill: var(--muted); font-size: 12px; }
+  .axis { fill: var(--muted); font-size: 13px; font-weight: 700; }
+  .s polyline { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .s circle { fill: var(--c); stroke: var(--panel); stroke-width: 2; }
+  .s circle.hot { r: 6; }
+  .end { fill: var(--ink); font-size: 13px; font-weight: 700; }
+  .xhair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; }
+  svg.on .xhair { opacity: 1; }
+  .hit { fill: transparent; cursor: crosshair; touch-action: pan-y; }
+  .c1 { --c: #3987e5; } .c2 { --c: #d95926; } .c3 { --c: #199e70; } .c4 { --c: #c98500; }
+  .tip { position: absolute; top: 24px; pointer-events: none; background: var(--bg); border: 2px solid var(--line); border-radius: 12px; padding: 8px 12px; font-size: 0.85rem; min-width: 200px; box-shadow: 0 8px 24px #0008; }
+  .tip :global(b) { display: block; margin-bottom: 4px; }
+  .tip :global(div) { display: flex; align-items: center; gap: 8px; }
+  .tip :global(span) { flex: 1; color: var(--muted); }
+  .tip :global(em) { font-style: normal; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .tip :global(i) { width: 12px; height: 4px; border-radius: 2px; background: var(--c); display: inline-block; }
+  .tip :global(.c1) { --c: #3987e5; } .tip :global(.c2) { --c: #d95926; } .tip :global(.c3) { --c: #199e70; } .tip :global(.c4) { --c: #c98500; }
+  details { margin-top: 12px; font-size: 0.85rem; color: var(--muted); }
+  summary { cursor: pointer; font-weight: 700; }
+  table { border-collapse: collapse; margin-top: 8px; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+</style>

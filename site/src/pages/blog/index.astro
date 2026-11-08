@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import { posts, fmtDate } from '../../posts';
+const list = await posts();
+---
+
+<Base title="Lab notes · Doppel" description="Research notes from Doppel: what makes a chess bot play like a person, with the data.">
+  <main class="wrap blog">
+    <h1>Lab notes</h1>
+    <p class="lede">What we're learning about how people play chess, with the data. Failed results included.</p>
+    {list.length === 0 && <p class="muted">The first post is on its way.</p>}
+    <ul class="posts">
+      {list.map((p) => (
+        <li>
+          <a href={`/blog/${p.id}/`}>
+            <time datetime={p.data.date.toISOString()}>{fmtDate(p.data.date)}</time>
+            <h2>{p.data.title}{p.data.draft && <small>draft</small>}</h2>
+            <p>{p.data.description}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </main>
+</Base>
+
+<style>
+  .blog { max-width: 760px; padding-bottom: 72px; }
+  h1 { font-size: 2.4rem; font-weight: 900; margin: 24px 0 8px; }
+  .lede, .muted { color: var(--muted); }
+  .lede { font-size: 1.1rem; margin: 0 0 32px; }
+  .posts { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+  .posts a { display: block; text-decoration: none; background: var(--panel); border: 2px solid var(--line); border-radius: 20px; padding: 20px 24px; transition: transform 80ms ease; }
+  .posts a:hover { transform: translateY(-2px); border-color: var(--green); }
+  time { color: var(--gold); font-weight: 800; font-size: 0.85rem; }
+  h2 { font-size: 1.3rem; font-weight: 900; margin: 4px 0 6px; }
+  h2 small { margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: 0.7rem; text-transform: uppercase; vertical-align: middle; }
+  .posts p { margin: 0; color: var(--muted); }
+  @media (prefers-reduced-motion: reduce) { .posts a { transition: none; } }
+</style>

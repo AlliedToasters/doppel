@@ -19,3 +19,6 @@ client/backend_url.local
 # deploy secrets
 deploy/.env
 deploy/secrets/
+
+# Claude Code agent worktrees
+.claude/worktrees/

@@ -1,0 +1,80 @@
+---
+title: Strength is not identity
+description: How well can you tell who someone is from their chess games? We tried four ways on 2,000 Lichess players. The best way to read a player's rating barely tells players apart.
+date: 2026-11-07
+draft: true
+---
+import LineChart from '../../components/LineChart.astro';
+import d from '../../results/players_pool_v0d.json';
+
+export const ks = [1, 2, 5, 10, 20, 40];
+export const pick = (m, key) => ks.map((k) => m[key][String(k)]);
+export const views = (m) => [
+  { name: 'All three combined', slot: 1, values: pick(m, 'surface+maia+sweep') },
+  { name: 'Rating sweep', slot: 2, values: pick(m, 'maia_sweep') },
+  { name: 'Maia embedding', slot: 3, values: pick(m, 'maia_emb') },
+  { name: 'Clock and opening stats', slot: 4, values: pick(m, 'surface') },
+];
+
+A Doppel is meant to play like a particular kind of player, and later like *you*. For that, the model needs a
+compact description of a player that it can condition on. Before we train one, we wanted to know what a good
+description looks like. So we tested what you can learn about a player from a handful of their games, using
+models that already exist.
+
+## The setup
+
+We took 2,000 Lichess players who were not in any training data, with 80 blitz (3+0) games each from October
+2026. For each player we built a summary from their first *k* games and asked two questions:
+
+1. **How strong are they?** Predict their rating from the summary (R², 1 is perfect).
+2. **Who are they?** Take the summary of their first *k* games and find them among 500 players, each
+   summarised by their last 40 games. Chance is 0.2%.
+
+We compared three ways to summarise a game, and all three combined:
+
+- **Clock and opening stats.** Think times, the kinds of moves played, when the player leaves opening theory, and how
+  unusual their moves are. No neural network.
+- **Maia embedding.** Maia-3 is a neural network trained to predict human moves. Its internal vector for
+  each position, averaged over the game, describes how the moves "look".
+- **Rating sweep.** We ask Maia-3 how likely each move is for a player rated 800, 1000, … 2400. The rating at
+  which the moves look most likely is an estimate of strength.
+
+## Rating: the sweep wins from a single game
+
+<LineChart
+  title="Predicting rating from k games"
+  note="R² of predicted vs actual Lichess rating, 2,000 players, 5-fold by player."
+  x={{ label: 'Games per player (k)', values: ks, log: true }}
+  y={{ label: 'Rating R²', min: 0, max: 1, format: 'num', ticks: [0, 0.25, 0.5, 0.75, 1] }}
+  series={views(d.rating_r2)}
+/>
+
+From one game, the rating sweep already explains 57% of the variance in rating. The embedding needs about five
+games to reach that. With 40 games, the combination explains 94%.
+
+## Identity: the sweep is almost blind
+
+<LineChart
+  title="Finding a player among 500"
+  note="Top-1 accuracy: the summary of their first k games matched against everyone's last 40. Chance is 0.2%."
+  x={{ label: 'Games per player (k)', values: ks, log: true }}
+  y={{ label: 'Found (top-1)', min: 0, max: 1, format: 'pct', ticks: [0, 0.25, 0.5, 0.75, 1] }}
+  series={views(d.reid_top1)}
+/>
+
+Here the picture flips. Even with 40 games, the rating sweep finds the right player only 11% of the time,
+because hundreds of players share a strength. The Maia embedding finds them 77% of the time, and the
+combination 92%.
+
+## What this means for Doppel
+
+Strength and style are different things, and they need different inputs. The sweep is the best way to read
+strength; the embedding carries who the player is. A Doppel's player description should get both: the
+sweep for strength, and a model that reads a *set* of games for style.
+
+It also sets a bar. Our current model's player description (v0d) found the right player 2.8% of the time at
+k = 40. Simply averaging an off-the-shelf embedding does 77%. The next model has to beat that before we can
+say it models a player at all.
+
+*Data and code: `doppel_lab/players_suite.py` and `lab/results/players_pool_v0d.json` in the
+[repository](https://github.com/AlliedToasters/doppel).*
