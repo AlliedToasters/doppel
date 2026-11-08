@@ -151,3 +151,21 @@ def test_eval_grid_is_paired_across_k_and_losses_route_gradients():
     loss, _ = losses(m, b, beta=0.25, free_bits=0.5, w_think=0.0, w_resign=0.0)
     loss.backward()
     assert all(q.grad is None or q.grad.abs().max() == 0 for q in m.think.parameters())
+
+
+def test_contrastive_views_are_disjoint_and_train_only_the_encoder():
+    from doppel_lab.v0e_model import contrastive
+    from doppel_lab.v0e_data import CTX_FEATS, EMB_DIM
+    torch.manual_seed(0)
+    m = DoppelV0e(FakeTrunk())
+    B, L = 6, 5
+    mask = torch.zeros(B, L, dtype=torch.bool)
+    for i, k in enumerate([5, 4, 3, 2, 1, 0]):
+        mask[i, :k] = True
+    b = {"ctx_emb": torch.randn(B, L, EMB_DIM), "ctx_feat": torch.randn(B, L, CTX_FEATS), "ctx_mask": mask,
+         "cond": torch.randn(B, 4), "pid": torch.tensor([0, 1, 2, 0, 3, 4]), "nctx": mask.sum(1)}
+    loss, acc, n = contrastive(m, b)
+    assert n == 4 and torch.isfinite(loss) and 0 <= acc <= 1
+    loss.backward()
+    grads = {k for k, p in m.named_parameters() if p.grad is not None and p.grad.abs().sum() > 0}
+    assert grads and all(k.startswith("encoder.") for k in grads)

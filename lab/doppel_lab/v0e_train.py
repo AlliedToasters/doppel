@@ -30,7 +30,7 @@ from doppel_lab.v0_data import V0
 from doppel_lab.v0_model import FakeTrunk, Trunk, legal_mask, losses
 from doppel_lab.v0_train import to_dev
 from doppel_lab.v0e_data import EMB_DIM, KS_EVAL, V0E, EvalSamples, Split, TrainSamples, collate
-from doppel_lab.v0e_model import DoppelV0e, init_from_v0d
+from doppel_lab.v0e_model import DoppelV0e, contrastive, init_from_v0d
 
 ROOT = Path(__file__).resolve().parents[2]
 RESULTS = ROOT / "lab/results"
@@ -274,6 +274,10 @@ def train(args):
                 gp["lr"] = lr_at(step) * gp["scale"]
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda"):
                 loss, parts = losses(model, b, beta=beta, free_bits=args.free_bits, alpha=args.alpha)
+                if args.w_con > 0:                   # v0f: identity loss on the set encoder (v0e_model.contrastive)
+                    L_con, con_acc, n_con = contrastive(model, b, tau=args.tau)
+                    loss = loss + args.w_con * L_con
+                    parts.update(con=L_con.item(), con_acc=con_acc.item(), con_n=n_con, loss=loss.item())
             kl_acc.append(parts.pop("_kl").float().cpu())
             k_acc.append(b["nctx"].cpu())
             opt.zero_grad(set_to_none=True)
@@ -381,6 +385,8 @@ if __name__ == "__main__":
     t.add_argument("--ckpt-every", type=int, default=1000)
     t.add_argument("--val-every", type=int, default=2000)
     t.add_argument("--val-batches", type=int, default=0)
+    t.add_argument("--w-con", type=float, default=0.0, help="v0f: weight of the contrastive identity loss (0 = v0e)")
+    t.add_argument("--tau", type=float, default=0.1, help="v0f: InfoNCE temperature")
     a = ap.parse_args()
     if a.cmd == "train":
         a.val_batches = a.val_batches or None

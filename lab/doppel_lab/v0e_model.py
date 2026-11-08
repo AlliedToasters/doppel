@@ -31,6 +31,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from doppel_lab.v0_data import CLK_FEATS, TEMPO_FEATS
 from doppel_lab.v0_model import Prior, Residual, ResignHead, ThinkHead, gaussian
@@ -116,3 +117,34 @@ def init_from_v0d(model: DoppelV0e, path: Path) -> dict:
                 rep["skipped"].append(k)
     model.load_state_dict(dst)
     return rep
+
+
+def contrastive(model: DoppelV0e, b: dict, tau: float = 0.1, gen: torch.Generator | None = None):
+    """v0f identity loss: split each sample's context set (k >= 2) into two disjoint random halves, encode each
+    with the set encoder, and ask the posterior mean of one half to pick out the same player's other half among
+    the batch (symmetric InfoNCE on cosine similarity). Both views get a cond drawn from a random other sample,
+    so neither the target's ratings nor its time control can match the views; other samples of the same player
+    are dropped from the negatives. Returns (loss, in-batch top-1 accuracy, number of samples used)."""
+    m = b["ctx_mask"]
+    use = b["nctx"] >= 2
+    if use.sum() < 2:
+        z = torch.zeros((), device=m.device)
+        return z, z, 0
+    emb, feat, m, pid = b["ctx_emb"][use], b["ctx_feat"][use], m[use], b["pid"][use]
+    n = len(pid)
+    r = torch.rand(m.shape, device=m.device, generator=gen).masked_fill(~m, 2.0)
+    rank = r.argsort(1).argsort(1)                     # random order of the valid slots, padding last
+    k = m.sum(1, keepdim=True)
+    a = m & (rank < k // 2)
+    bb = m & (rank >= k // 2)
+    cond = b["cond"][torch.randint(0, len(b["cond"]), (2, n), device=m.device, generator=gen)]
+    mu_a, _ = model.encoder(emb, feat, a, cond[0])
+    mu_b, _ = model.encoder(emb, feat, bb, cond[1])
+    fa, fb = F.normalize(mu_a.float(), dim=-1), F.normalize(mu_b.float(), dim=-1)
+    sim = fa @ fb.T / tau
+    same = (pid[:, None] == pid[None, :]) & ~torch.eye(n, dtype=torch.bool, device=m.device)
+    sim = sim.masked_fill(same, -1e9)
+    y = torch.arange(n, device=m.device)
+    loss = 0.5 * (F.cross_entropy(sim, y) + F.cross_entropy(sim.T, y))
+    acc = (sim.argmax(1) == y).float().mean()
+    return loss, acc.detach(), n
