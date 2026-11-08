@@ -11,7 +11,7 @@ with `lichess_bot` optional. Domain: doppelbot.org.
 
 ## Ship
 
-    deploy/provision.sh   # once: Hetzner VM (ccx23, fsn1) + firewall + Cloudflare DNS and TLS Full (strict)
+    deploy/provision.sh   # once: Hetzner VM (cx33: 4 shared vCPU, 8 GB, EUR 9.99/mo; fsn1) + firewall + Cloudflare DNS and TLS Full (strict)
     deploy/ship.sh        # every release: builds site/, copies HEAD + Maia-3 packages, docker compose up
 
 Tokens live outside git in `~/.config/doppel/`: `hcloud.token` (Hetzner, Read & Write) and `cloudflare.token`

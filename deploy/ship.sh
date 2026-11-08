@@ -5,6 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source ~/.config/doppel/deploy.env
 H=doppel@$DOPPEL_HOST
+export RSYNC_RSH="ssh -i $HOME/.ssh/doppel_deploy -o IdentitiesOnly=yes"
+ssh() { command ssh -i ~/.ssh/doppel_deploy -o IdentitiesOnly=yes "$@"; }
 [ -z "$(git status --porcelain -- backend packages deploy site pyproject.toml uv.lock)" ] || { echo "commit first: shipping HEAD" >&2; exit 1; }
 (cd site && npm ci --silent && npm run build >/dev/null)
 ssh "$H" 'mkdir -p ~/doppel/models ~/doppel/site'

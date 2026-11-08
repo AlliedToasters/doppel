@@ -7,8 +7,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 CFG=~/.config/doppel
 DOMAIN=${DOMAIN:-doppelbot.org}
-NAME=${NAME:-doppel-1} TYPE=${TYPE:-ccx23} LOCATION=${LOCATION:-fsn1} IMAGE=${IMAGE:-ubuntu-24.04}
-KEY=${KEY:-$HOME/.ssh/id_rsa.pub}
+NAME=${NAME:-doppel-1} TYPE=${TYPE:-cx33} LOCATION=${LOCATION:-fsn1} IMAGE=${IMAGE:-ubuntu-24.04}
+KEY=${KEY:-$HOME/.ssh/doppel_deploy.pub}   # dedicated deploy key, no passphrase (ssh-keygen -t ed25519 -f ~/.ssh/doppel_deploy)
 HC="Authorization: Bearer $(cat $CFG/hcloud.token)"
 CF="Authorization: Bearer $(cat $CFG/cloudflare.token)"
 hc() { curl -sf -H "$HC" -H 'content-type: application/json' "https://api.hetzner.cloud/v1$1" "${@:2}"; }
@@ -16,7 +16,7 @@ cf() { curl -sf -H "$CF" -H 'content-type: application/json' "https://api.cloudf
 
 # SSH key
 PUB=$(cat "$KEY")
-KID=$(hc "/ssh_keys" | jq -r --arg k "$PUB" '.ssh_keys[] | select(.public_key == ($k | split(" ")[0:2] | join(" "))) | .id' | head -1)
+KID=$(hc "/ssh_keys?name=doppel-deploy" | jq -r '.ssh_keys[0].id // empty')
 [ -n "$KID" ] || KID=$(hc /ssh_keys -X POST -d "$(jq -n --arg k "$PUB" '{name: "doppel-deploy", public_key: $k}')" | jq -r .ssh_key.id)
 echo "ssh key $KID"
 
