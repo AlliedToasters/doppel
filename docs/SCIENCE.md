@@ -534,6 +534,170 @@ The Bloom filter never undercounts. On 1M games, against an exact count, 0.035% 
 too high. At 1% FPR, though, 6.3% of table entries are true singletons stored at count 2, against 0.5% at 0.1%
 FPR, which costs 2.0 GB instead of 1.3 GB for the month. Use 0.1% for tables that will ship.
 
+**Position books: behaviour, routes, personal books, over the board** (`doppel_lab/posbook_*.py`,
+`lab/results/posbook_explore.json`; chart-ready series under its `charts` key). Counts are of the *decision
+position*, the one the mover faces. Train games are scored against the train book minus their own visits.
+
+*Popularity predicts behaviour, and the position key (R0) predicts it better than the move-order key (R1)*
+(`posbook_behave.py`). At plies 8–20 in the 1500 band (100k train games, 5.2 M moves), think time falls from
+4.4 s in a position no other train game reached to 1.8 s in one reached by 65k–262k games. The blunder rate falls
+from 6.7% to 0.5%. Maia-3 top-1 stays flat at 48–54%. Controlling for ply × rating × clock × time control
+cells, the position count's share of within-cell variance (partial R²) is:
+
+| Target (1500 band, train) | R0 alone | R1 alone | Both | R0 effect, count 0 vs ≥ 262k (both in) |
+|---|---|---|---|---|
+| Think, logit share of clock | 0.104% | 0.052% | 0.131% | +0.23 logit (about +26% time) |
+| Blunder (wc loss ≥ 0.3) | 0.037% | 0.006% | 0.048% | +5.3 pt |
+| Maia-3 top-1 | 0.003% | 0.016% | 0.074% | +0.24 (R1: −0.27) |
+| Maia-3 log-prob, played move | 0.006% | 0.061% | 0.131% | +0.59 nats (R1: −0.87) |
+
+Per-move behaviour is noisy, so all the R² are small. The comparison is what counts. For think time and
+blunders, R0 explains 2× and 6× what R1 does. Adding R1 to R0 raises the R² by a quarter; adding R0 to R1 more
+than doubles it. The heldout eval games give the same ordering in every band (`behaviour_bands`). For think
+time, R0's partial R² is 1.4× R1's at 800 and 1.5–2.3× from 1200 to 2400. It grows with rating, from 0.06% at 800 to 0.59% at 2400. Strong players' think time tracks
+popularity more: at plies 8–20 the think share of the clock falls 4.4-fold from rare to common positions at
+2400, against 2.3-fold at 800.
+
+Maia-3 is the exception, and the reason is mechanical. The teacher reads an 8-position history window
+(`teacher.py`), so its accuracy depends on the route. At *transposed* plies (common position R0 ≥ 16, rare route
+R1 ≤ 1; 116k train plies, same cells), Maia-3 top-1 is 49.8%, against 53.3% in book by both keys and 52.8% out of
+book. People behave the other way there: they think 6% less than in book (logit −0.06), and blunder 3.7%
+against 5.2%. Humans track the position; Maia-3 tracks the path.
+
+The exit event study confirms this (train 1500, exits at plies 6–40). Ply −1 is the move into the first unseen
+position. When the two keys exit together (26k games), think time jumps from 3.5 s to 5.1 s at that move. When
+the position exit comes at least 4 plies after the move-order exit (35k transposed games), the move-order exit
+brings a small bump, 2.5 s → 3.3 s, and then think time drops back to 3.0 s. At the later position exit it
+jumps 3.7 s → 5.3 s and stays near 4.8 s. **A Doppel should key its book features, and the think-time head's
+book input, by position (R0).** For the weird-move rate the two keys give the same answer (table above).
+
+Self-agreement (`noise_floor.py`'s method, R0 key, heldout 3+0, plies 6–29, 3.3 M repeated (player, position)
+pairs) rises with popularity. When the same player reaches the same position again, they repeat their move 70.5%
+of the time in positions with < 2 train games and 87.1% in positions with ≥ 262k. Two different players at the
+same positions agree 31–42%, and that rate falls slightly with popularity, because popular positions are branch
+points. The personal component of the noise floor is largest where theory is densest.
+
+*Transpositions* (`posbook_transpose.py`, heldout 2026-10, 12.7 M games, plies < 40). In 1.5 M games, 12.7% of
+visits to the 2,617 positions with ≥ 500 visits arrive by a non-modal move order. That share is 4% at ply 3,
+29% at ply 6, and 49% at ply 12. The most-transposed positions are main-line hubs:
+- Four Knights (ply 6, 35 routes, 53% non-modal; 3.Nc3 Nf6 47%, 2…Nf6 3.Nc3 Nc6 23%, 2.Nc3 14%).
+- QGD Normal Defense (ply 6, 53%; 1.d4 Nf6 2.c4 e6 3.Nc3 d5 17%).
+- Zukertort 1.d4 d5 2.Nf3 (16% via 1.Nf3 d5 2.d4).
+- The Slav (28% via 1.d4 c6).
+
+The positions with ≥ 1k visits and the highest non-modal share (88–94%) are all London System and Semi-Slav or
+Queen's Gambit structures. Each has 41–276 routes, none above 12%. These are system openings, where move order
+barely matters.
+
+The R1 residual (common position, rare prefix) is 3.6% of common-position plies; 16.5% of games have one. By
+opening family (≥ 20k games), it is highest in the systems and the flank openings:
+- Van Geet 9.1%, Saragossa 8.7%, Semi-Slav 8.5%, London 7.8%, King's Indian 7.5%, English 6.6%, Zukertort 6.6%.
+- Lowest in forcing gambits: Scotch 1.3%, Englund 1.1%, Danish 0.8%, Elephant 0.6%, Grob 0.3%.
+
+By ECO letter: A 5.2%, D 4.9%, E 7.0%, against B 2.9% and C 2.6%. The route a player takes is a style. Over the
+156k players with ≥ 40 heldout games, a player's residual rate has split-half r = 0.55 (Spearman-Brown 0.71).
+After regressing out rating, r = 0.50 (0.67). The median rate rises from 1.9% at 800 to 4.3% at 2000–2200.
+
+*Personal books* (`posbook_personal.py`). Players are reid_k.py's: 8,000 heldout players with ≥ 80 3+0
+games. Targets are each player's last 40 games, and the history is their first k. Band books are the
+2026-10 train games of the player's 200-point band (`data/v0/posbook/band/`, R0, count ≥ 2).
+
+Coverage is shallow:
+- After 40 games, 10.7% of a later game's own decisions are in the personal book: 38.5% at plies 1–10 and 1.1% at
+  11–20.
+- The band book covers 33.9%: 93.6% at plies 1–10 and 31.6% at 11–20.
+- Personal-book exit is ply 5.3, against 14.2 for the band book. Almost nothing personal lies outside the band
+  book (0.3% of games).
+
+Prediction is where personal books pay off. At personal-book positions (150k sampled decisions, k = 40), the
+player's own earlier modal move is the move played 82.2% of the time. The band book's most common move from that
+position is right 46.8% of the time. Own right and band wrong happens 40.2% of the time; the reverse, 4.8%. With
+3+ earlier visits, own-mode top-1 is 88.6%. In rare positions (< 100 band games) it is still 77.3%, against 43.9%
+for the band book.
+
+As a fingerprint, the personal book beats every surface feature. Each player is a bag of the positions they
+created with their own moves (plies < 30), weighted by rarity in their band book (log N / (count + 1)). Cosine
+between a k-game probe and the 40-game gallery, in pools of 1,000 (chance 0.1%), gives:
+
+| Probe games k | 1 | 2 | 5 | 10 | 20 | 40 |
+|---|---|---|---|---|---|---|
+| Surface features (reid_k.py) top-1 | 0.9% | 2.9% | 9.4% | 17.6% | 23.6% | 33.0% |
+| Personal book, rarity-weighted | 11.2% | 18.5% | 33.6% | 50.4% | 66.2% | 80.2% |
+| Book + surface (sum of z-scores) | 12.1% | 20.2% | 37.7% | 56.6% | 72.2% | 84.6% |
+
+Restricting the tokens to divergent moves (< 1% of band games from a position with ≥ 100) is much weaker: 7.2% at
+k = 10. Half of 10-game probes contain no such move. Identity lives in the repertoire as a whole, not in the odd
+moves. For the multi-game z encoder (the v0e successor), opening repertoire carries far more identity than
+surface style (17.6% → 50.4% at k = 10 from openings alone). A position-keyed personal book is a cheap R2
+baseline to beat.
+
+*Online vs over the board* (`posbook_otb.py`; Lumbra's Gigabase OTB, research only under CC BY-NC: aggregates
+here, every table under `data/raw/lumbras/`). The 13.25 M OTB games were converted by `poskey pgn` in about 2 min.
+Lumbra's merges sources, and the same game recurs: before dedup, 11% of OTB games of ≥ 60 plies shared their
+ply-60 position with another game, against 0.01% on Lichess. Dropping exact repeats (≥ 40 plies, equal first 80
+plies; 605k games) leaves 12.65 M. After that, 1.5% still share the ply-60 position, 6–8% before 1990, from
+near-duplicates and deep theory. Pre-1990 depths are upper bounds.
+
+The probe is 253k OTB games (a 2% hash sample, not in the book) plus the Lichess eval games. At equal book size
+(12.4 M games, R0), the mean book exit in plies is:
+
+| Games | in the Lichess book | in the OTB book |
+|---|---|---|
+| Lichess 2026-10 blitz | 14.4 (median 14) | 12.9 (12) |
+| OTB | 17.7 (17) | 21.9 (21) |
+
+OTB games stay in book longer even in the online book. They also gain more per doubling of
+their own book: 1.02 plies, against 0.71 for Lichess games in theirs. By ply 16 (full books), 74% of OTB positions
+occur in the Lichess book, while only 33% of Lichess positions occur in the OTB book (48% in their own).
+
+By rating band (200 points; FIDE Elo for OTB, Lichess blitz rating for Lichess, which are different scales), each
+medium in its own band book at equal N:
+
+| Band | 1400 | 1600 | 1800 | 2000 | 2200 | 2400 |
+|---|---|---|---|---|---|---|
+| Lichess games, Lichess band book | 10.9 | 12.1 | 13.3 | 14.7 | 14.7 | 13.4 |
+| OTB games, OTB band book | 14.6 | 16.3 | 18.3 | 20.3 | 19.9 | 18.4 |
+| OTB games, Lichess band book | 12.4 | 13.9 | 15.5 | 17.2 | 17.1 | 15.9 |
+| Lichess games, OTB band book | 9.7 | 10.6 | 11.6 | 12.9 | 13.2 | 12.0 |
+
+Equal N is the smaller book of the two (0.5 M games at 1400, 0.13 M at 2400). Over the board, players at every
+level stay 3.7–5.5 plies deeper in book. Positions that are common in one medium are often rare in the other.
+- Online only (in 0.2–0.5% of Lichess games and 0.002–0.01% of OTB games): the Englund and Hartlaub-Charlick
+  gambits (1.d4 e5 2.dxe5 d6), 1.e4 d5 2.Nf3 (Tennison), 1.e4 e5 2.Qf3 and 2.Qh5 Nc6 3.Bc4, the McConnell
+  2…Qf6, 3…Qe6+ in the Scandinavian, and 1.e4 c6 2.Bc4.
+- OTB only (0.2–0.6% of OTB games, almost never online): main-line theory 12–21 plies deep, such as the Closed
+  Ruy Lopez to 9.h3 Na5 10.Bc2 c5 11.d4, the Richter-Rauzer to 8.O-O-O, the Semi-Slav Meran and 6.Qc2, and the
+  Queen's Indian 4…Ba6.
+
+By decade (OTB own-decade book at 200k games), OTB depth is 20.9 / 19.6 plies in the 1970s / 1980s (upper
+bounds, mostly elite games) and 15.9–16.2 from the 1990s to the 2020s. Lichess 2026 games stay in each decade's
+OTB book a little longer the more recent it is: 8.1 plies (1970s) → 8.9 (1990s) → 9.3 (2020s). Online openings
+are closest to current OTB practice.
+
+*Depth vs corpus size* (`posbook_months.py`; probe: the 2026-10 heldout eval games). The base book is the
+2026-10 train games. It grows by the 2026-10 heldout games (minus every eval game), then by the head of
+September 2026. That head is the month's first 30 M games, streamed from the Lichess database through `poskey pgn
+--lichess-blitz` with nothing raw on disk. Of those, 12.5 M pass corpus.py's filter and 8.0 M remain after
+dropping games with a held-out player. The full download
+ran at 1–4 MB/s, so the rest of the month was skipped. R1 counts come from `poskey count --key prefix`, which
+reproduces book.py's exit exactly (12.013 plies at 22.7 M).
+
+| Book (games) | 22.7 M | 35.2 M | 43.2 M |
+|---|---|---|---|
+| R0 mean book exit (800 / 1500 / 2400) | 15.00 (11.4 / 14.7 / 17.7) | 15.49 | 15.70 (11.8 / 15.4 / 18.7) |
+| R1 mean book exit | 12.01 | 12.40 | 12.55 |
+
+Depth does not saturate. Over the largest book's nested subsamples, 169k to 43 M games, R0 gains 0.70–0.72 plies
+per doubling in every range and R1 0.50–0.51. Across the three full books the gain is 0.76 and 0.58. That is
+slightly higher, because the heldout increment holds the probe players' own other games. At this rate, one more
+ply of R0 book costs about 2.6× the games.
+
+*Client lookups.* dartchess 0.14 (the client's chess library) has `Position.zobristHash()`, ported from shakmaty
+with Polyglot tables. It matches python-chess and poskey only with `mode: EnPassantMode.pseudoLegal`; the default
+is `legal`, which differs when the en passant capture is pinned. The hash is a signed Dart `int` holding the
+unsigned bit pattern, so a shipped table must be sorted and searched by unsigned order (or stored in signed
+order). dartchess does not support the web, so lookups work on native builds only.
+
 Band-specific books (`doppel_lab/bandbook.py`, `lab/results/bandbook.json`): six rating groups, each with its own
 book of 350k train games, scoring 10k held-out games of every group. Every group stays in book longest, and
 plays the fewest weird moves, against its own group's book. The diagonal wins every row. Mean T1 exit, own
