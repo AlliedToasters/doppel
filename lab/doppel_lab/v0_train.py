@@ -69,7 +69,7 @@ def evaluate(model: DoppelV0, ld, device: str, max_batches: int | None = None) -
             t_logits, value, pooled = model.trunk(tok, b["elo_self"], b["elo_opp"])
             mask = legal_mask(b["legal"])
             t_logp = t_logits.float().masked_fill(~mask, -1e9).log_softmax(-1)
-            mu_q, lv_q = model.encoder(b["enc"], b["enc_mask"], b["cond"])
+            mu_q, lv_q = model.posterior(b)
             mu_p, lv_p = model.prior(b["cond"])
             z_p = mu_p + torch.randn_like(mu_p) * (0.5 * lv_p).exp()
             emb = model.residual.board(tok)
@@ -200,6 +200,7 @@ def train(args):
                 gp["lr"] = lr_at(step) * gp["scale"]
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda"):
                 loss, parts = losses(model, b, beta=beta, free_bits=args.free_bits, alpha=args.alpha)
+                parts.pop("_kl")
             opt.zero_grad(set_to_none=True)
             loss.backward()
             gn_res = torch.nn.utils.clip_grad_norm_(res_p, 1.0)

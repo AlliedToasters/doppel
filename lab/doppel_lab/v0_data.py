@@ -125,19 +125,10 @@ def build_sample(ix: Index, g: int, color: int, ctx_first: bool, K: int, rng: np
     mid = n // 2
     ctx = range(0, mid) if ctx_first else range(mid, n)
     tgt_lo, tgt_hi = (mid, n) if ctx_first else (0, mid)
-    uci = [u.decode() for u in ix.uci[a:a + n]]
     clock = ix.clock[a:a + n]
-    base, inc = float(ix.base[g]), float(ix.inc[g])
-    elos = (int(ix.white_elo[g]), int(ix.black_elo[g]))
-    resigned_on_move = ix.end[g] == END["resign"] and ix.resigner[g] == color + 1 and ix.on_move[g]
-    final = n if (ctx_first and resigned_on_move and n % 2 == color) else None
-
-    # Think fractions of every labelled move, for the encoder and the running tempo.
-    frac = np.full(n, np.nan)
-    for k in range(n):
-        t, before = think_seconds(clock, k, base, inc)
-        if np.isfinite(t):
-            frac[k] = (t + 0.5) / (before + inc + 1.0)
+    base = float(ix.base[g])
+    final = n if (ctx_first and resigned_on_move(ix, g, color) and n % 2 == color) else None
+    frac = think_fracs(ix, g)  # think fractions of every labelled move, for the encoder and the running tempo
 
     enc = []
     for k in ctx:
@@ -149,10 +140,43 @@ def build_sample(ix: Index, g: int, color: int, ctx_first: bool, K: int, rng: np
                     k / 100])
     if not enc or not any(e[0] for e in enc):
         return None
-
     cand = [k for k in range(tgt_lo, tgt_hi) if k % 2 == color]
+    out = targets_sample(ix, g, color, cand, final, K, rng, frac)
+    if out is not None:
+        out["enc"] = np.array(enc, np.float32)
+    return out
+
+
+def resigned_on_move(ix: Index, g: int, color: int) -> bool:
+    return bool(ix.end[g] == END["resign"] and ix.resigner[g] == color + 1 and ix.on_move[g])
+
+
+def think_fracs(ix: Index, g: int) -> np.ndarray:
+    """(t + 0.5) / (before + inc + 1) for every labelled ply of game g, NaN elsewhere."""
+    a, n = int(ix.off[g]), ix.plies(g)
+    clock = ix.clock[a:a + n]
+    base, inc = float(ix.base[g]), float(ix.inc[g])
+    frac = np.full(n, np.nan)
+    for k in range(n):
+        t, before = think_seconds(clock, k, base, inc)
+        if np.isfinite(t):
+            frac[k] = (t + 0.5) / (before + inc + 1.0)
+    return frac
+
+
+def targets_sample(ix: Index, g: int, color: int, cand: list[int], final: int | None, K: int,
+                   rng: np.random.Generator, frac: np.ndarray | None = None):
+    """Target positions of one colour in game g: up to K of `cand` (own decision plies), plus `final` (the
+    resign position, ply n) if given. Everything build_sample returns except "enc"; None if nothing to predict."""
     if not cand and final is None:
         return None
+    a, n = int(ix.off[g]), ix.plies(g)
+    uci = [u.decode() for u in ix.uci[a:a + n]]
+    clock = ix.clock[a:a + n]
+    base, inc = float(ix.base[g]), float(ix.inc[g])
+    elos = (int(ix.white_elo[g]), int(ix.black_elo[g]))
+    if frac is None:
+        frac = think_fracs(ix, g)
     pick = sorted(rng.choice(cand, size=min(K, len(cand)), replace=False).tolist()) if cand else []
     w_pick = len(cand) / max(len(pick), 1)
     targets = pick + ([final] if final is not None else [])
@@ -197,7 +221,7 @@ def build_sample(ix: Index, g: int, color: int, ctx_first: bool, K: int, rng: np
         prev_opp = [frac[j] for j in range(1 - color, k, 2) if np.isfinite(frac[j])]
         tempo[i] = tempo_feats(prev_own, prev_opp)
     es, eo = elos[color], elos[1 - color]
-    return {"enc": np.array(enc, np.float32), "tok": tok, "legal": legal, "played": played, "think": think,
+    return {"tok": tok, "legal": legal, "played": played, "think": think,
             "clk": clk, "tempo": tempo, "resign": resign, "weight": np.array(weights, np.float32),
             "elo_self": np.full(T, es, np.int64), "elo_opp": np.full(T, eo, np.int64),
             "ncand": np.array([max(len(cand), 1)], np.float32), "ply": np.array(targets, np.int64),

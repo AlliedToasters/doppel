@@ -80,9 +80,9 @@ def gaussian(params):
 
 
 class Prior(nn.Module):
-    def __init__(self, cond_dim: int = 4, hid: int = 64):
+    def __init__(self, cond_dim: int = 4, hid: int = 64, z: int = Z):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(cond_dim, hid), nn.GELU(), nn.Linear(hid, 2 * Z))
+        self.net = nn.Sequential(nn.Linear(cond_dim, hid), nn.GELU(), nn.Linear(hid, 2 * z))
         nn.init.zeros_(self.net[-1].weight)
         nn.init.zeros_(self.net[-1].bias)  # starts at N(0, I)
 
@@ -111,11 +111,11 @@ class Encoder(nn.Module):
 class Residual(nn.Module):
     """Per-move logit correction from the current board (no history), z and both ratings."""
 
-    def __init__(self, d: int = 256, layers: int = 4, heads: int = 8, dh: int = 64):
+    def __init__(self, d: int = 256, layers: int = 4, heads: int = 8, dh: int = 64, z: int = Z):
         super().__init__()
         self.sq = nn.Parameter(torch.randn(64, d) * 0.02)
         self.piece = nn.Linear(12, d)
-        self.ctx = nn.Linear(Z + 2, d)
+        self.ctx = nn.Linear(z + 2, d)
         layer = nn.TransformerEncoderLayer(d, heads, 2 * d, dropout=0.0, batch_first=True, norm_first=True)
         # Final LayerNorm: with pre-norm layers the residual stream is otherwise unnormalized and grows (v0a's
         # policy residual diverged this way: raw bilinear scores ~2e7 by step 3000).
@@ -154,9 +154,9 @@ class Residual(nn.Module):
 
 
 class ThinkHead(nn.Module):
-    def __init__(self, trunk_dim: int, hid: int = 256):
+    def __init__(self, trunk_dim: int, hid: int = 256, z: int = Z):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(trunk_dim + CLK_FEATS + TEMPO_FEATS + Z, hid), nn.GELU(),
+        self.net = nn.Sequential(nn.Linear(trunk_dim + CLK_FEATS + TEMPO_FEATS + z, hid), nn.GELU(),
                                  nn.Linear(hid, hid), nn.GELU(), nn.Linear(hid, 2))
         self.outlier = nn.Parameter(torch.tensor(-3.0))  # logit of the outlier weight
         self.out_loc = nn.Parameter(torch.tensor(-2.0))
@@ -186,9 +186,9 @@ class ThinkHead(nn.Module):
 
 
 class ResignHead(nn.Module):
-    def __init__(self, trunk_dim: int, hid: int = 256):
+    def __init__(self, trunk_dim: int, hid: int = 256, z: int = Z):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(trunk_dim + 3 + CLK_FEATS + Z, hid), nn.GELU(),
+        self.net = nn.Sequential(nn.Linear(trunk_dim + 3 + CLK_FEATS + z, hid), nn.GELU(),
                                  nn.Linear(hid, hid), nn.GELU(), nn.Linear(hid, 1))
         nn.init.constant_(self.net[-1].bias, -5.0)  # base rate ~0.6%
 
@@ -207,6 +207,10 @@ class DoppelV0(nn.Module):
     def heads_parameters(self):
         return [p for n, p in self.named_parameters() if not n.startswith("trunk.") and p.requires_grad]
 
+    def posterior(self, b: dict):
+        """q(z | evidence) per sample: here one half of the game (v0e overrides this with a set of games)."""
+        return self.encoder(b["enc"], b["enc_mask"], b["cond"])
+
 
 def legal_mask(legal: torch.Tensor) -> torch.Tensor:
     m = torch.zeros(len(legal), NMOVES + 1, dtype=torch.bool, device=legal.device)
@@ -222,12 +226,12 @@ def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha:
     mask = legal_mask(b["legal"])
     t_logp = t_logits.masked_fill(~mask, -1e9).log_softmax(-1)
 
-    mu_q, lv_q = model.encoder(b["enc"], b["enc_mask"], b["cond"])
+    mu_q, lv_q = model.posterior(b)
     mu_p, lv_p = model.prior(b["cond"])
     z_s = mu_q + (torch.randn_like(mu_q) * (0.5 * lv_q).exp() if sample_post else 0)
     kl_d = 0.5 * (lv_p - lv_q + ((lv_q.exp() + (mu_q - mu_p) ** 2) / lv_p.exp()) - 1)  # (B, Z)
     kl = kl_d.sum(-1)
-    kl_fb = kl_d.clamp(min=free_bits / Z).sum(-1)
+    kl_fb = kl_d.clamp(min=free_bits / kl_d.shape[-1]).sum(-1)
     sid = b["sid"]
     z = z_s[sid]
 
@@ -272,4 +276,5 @@ def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha:
              "resign_bce": L_res.item(), "top1": top1.item(), "top1_teacher": top1_t.item(),
              "res_abs": (s_logits - t_logp).abs()[mask].mean().item(),
              "res_sat": ((s_logits - t_logp).abs() > SAT * CAP)[mask].float().mean().item()}
+    parts["_kl"] = kl.detach()  # per sample, for callers that break the KL down (v0e: by context size)
     return total, parts
