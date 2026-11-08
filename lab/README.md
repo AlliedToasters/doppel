@@ -17,6 +17,15 @@ Per-move feature tables for baselines, from the same code the analyzer uses (doc
 
 `doppel_lab.features.registry.select(tier="T1", regime="R1")` lists the features a baseline at that tier may use.
 
+## Position book (Rust)
+
+`lab/poskey` counts Polyglot Zobrist position keys (equal to `chess.polyglot.zobrist_hash`) through a Bloom
+filter in front of an exact map. One month of train games takes about a minute on 26 threads:
+
+    cargo build --release --manifest-path lab/poskey/Cargo.toml
+    uv run python -m doppel_lab.posbook probe && uv run python -m doppel_lab.posbook run full
+    lab/poskey/target/release/poskey count --out DIR [--fpr 0.001] [--band-min 1500 --band-max 1500] FILES...
+
 ## Render any finished game
 
     uv run python -m doppel_lab.analyzer <lichess game ID or URL | file.pgn> [--out game.html] [--tables DIR]
