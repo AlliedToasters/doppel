@@ -1,0 +1,22 @@
+[package]
+name = "poskey"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+description = "Polyglot Zobrist position keys and a Bloom-fronted position counter for the Doppel book"
+publish = false
+
+[dependencies]
+shakmaty = "0.27"
+parquet = { version = "57", default-features = false, features = ["arrow", "zstd", "snap", "lz4"] }
+arrow-array = "57"
+arrow-cast = "57"
+arrow-schema = "57"
+hashbrown = "0.16"
+rayon = "1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
