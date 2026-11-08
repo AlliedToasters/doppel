@@ -137,7 +137,7 @@ BUCKET_X = [0, 1, 2.45, 7.75, 31, 124, 496, 1985, 7940, 31760, 127000, 1e6]   # 
 def save_section(name: str, obj) -> None:
     """Read-modify-write one top-level key of lab/results/posbook_explore.json (under a lock: jobs run in parallel)."""
     import fcntl
-    with open(RESULTS.with_suffix(".lock"), "w") as lk:
+    with open(V0 / "posbook/explore.lock", "w") as lk:
         fcntl.flock(lk, fcntl.LOCK_EX)
         res = json.loads(RESULTS.read_text()) if RESULTS.exists() else {}
         res[name] = obj
