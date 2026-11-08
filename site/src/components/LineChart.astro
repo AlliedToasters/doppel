@@ -12,8 +12,8 @@ interface Series { name: string; values: number[]; slot?: number }
 interface Props {
   title: string;
   note?: string;
-  x: { label: string; values: number[]; log?: boolean };
-  y: { label: string; min?: number; max?: number; format?: 'pct' | 'num'; ticks?: number[] };
+  x: { label: string; values: number[]; log?: boolean; labels?: string[] };
+  y: { label: string; min?: number; max?: number; format?: 'pct' | 'num' | 'num1'; ticks?: number[] };
   series: Series[];
 }
 const { title, note, x, y, series } = Astro.props;
@@ -22,12 +22,16 @@ const W = 600, H = 320, M = { l: 52, r: 150, t: 16, b: 48 };
 const iw = W - M.l - M.r, ih = H - M.t - M.b;
 const all = series.flatMap((s) => s.values);
 const y0 = y.min ?? Math.min(0, ...all), y1 = y.max ?? Math.max(...all);
-const tx = (v: number) => (x.log ? Math.log(v) : v);
-const [xa, xb] = [tx(x.values[0]), tx(x.values[x.values.length - 1])];
-const px = (v: number) => M.l + ((tx(v) - xa) / (xb - xa)) * iw;
+// With `labels`, x is ordinal: points sit evenly spaced and the axis shows the labels (e.g. count buckets).
+const xs = x.labels ? x.values.map((_, j) => j) : x.values;
+const tx = (v: number) => (x.log && !x.labels ? Math.log(v) : v);
+const [xa, xb] = [tx(xs[0]), tx(xs[xs.length - 1])];
+const pxv = (v: number) => M.l + ((tx(v) - xa) / (xb - xa)) * iw;
+const px = (v: number) => pxv(xs[x.values.indexOf(v)]);
+const xlab = (j: number) => (x.labels ? x.labels[j] : String(x.values[j]));
 const py = (v: number) => M.t + (1 - (v - y0) / (y1 - y0)) * ih;
-const fmt = (v: number) => (y.format === 'pct' ? `${(v * 100).toFixed(v < 0.1 ? 1 : 0)}%` : v.toFixed(2));
-const tickFmt = (v: number) => (y.format === 'pct' ? `${Math.round(v * 100)}%` : v.toFixed(2));
+const fmt = (v: number) => (y.format === 'pct' ? `${(v * 100).toFixed(v < 0.1 ? 1 : 0)}%` : y.format === 'num1' ? v.toFixed(1) : v.toFixed(2));
+const tickFmt = (v: number) => (y.format === 'pct' ? `${Math.round(v * 100)}%` : y.format === 'num1' ? v.toFixed(0) : v.toFixed(2));
 const yticks = y.ticks ?? Array.from({ length: 5 }, (_, i) => y0 + ((y1 - y0) * i) / 4);
 
 // Direct labels at the line ends, nudged apart so they never overlap.
@@ -39,7 +43,7 @@ const labelY = Object.fromEntries(ends.map((e) => [e.i, e.y]));
 
 const slot = (s: Series, i: number) => s.slot ?? i + 1;
 const data = JSON.stringify({
-  xs: x.values.map(px), xv: x.values, xl: x.label,
+  xs: x.values.map(px), xv: x.values.map((_, j) => xlab(j)), xl: x.label,
   s: series.map((s, i) => ({ n: s.name, c: slot(s, i), v: s.values, y: s.values.map(py), t: s.values.map(fmt) })),
 });
 ---
@@ -62,8 +66,8 @@ const data = JSON.stringify({
           <text class="tick" x={M.l - 8} y={py(t)} text-anchor="end" dominant-baseline="middle">{tickFmt(t)}</text>
         </g>
       ))}
-      {x.values.map((v) => (
-        <text class="tick" x={px(v)} y={M.t + ih + 20} text-anchor="middle">{v}</text>
+      {x.values.map((v, j) => (
+        <text class="tick" x={px(v)} y={M.t + ih + 20} text-anchor="middle">{xlab(j)}</text>
       ))}
       <text class="axis" x={M.l + iw / 2} y={H - 6} text-anchor="middle">{x.label}</text>
       <text class="axis" transform={`translate(14 ${M.t + ih / 2}) rotate(-90)`} text-anchor="middle">{y.label}</text>
@@ -84,7 +88,7 @@ const data = JSON.stringify({
     <table>
       <thead><tr><th>{x.label}</th>{series.map((s) => <th>{s.name}</th>)}</tr></thead>
       <tbody>
-        {x.values.map((v, j) => <tr><td>{v}</td>{series.map((s) => <td>{fmt(s.values[j])}</td>)}</tr>)}
+        {x.values.map((v, j) => <tr><td>{xlab(j)}</td>{series.map((s) => <td>{fmt(s.values[j])}</td>)}</tr>)}
       </tbody>
     </table>
   </details>

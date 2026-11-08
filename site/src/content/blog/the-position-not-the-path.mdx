@@ -1,0 +1,96 @@
+---
+title: The position, not the path
+description: We counted every position in a month of Lichess games. People slow down and blunder more as positions get rarer, and they react to the board in front of them, not to the move order that got them there. Their opening choices also give them away.
+date: 2026-11-08
+draft: true
+---
+import LineChart from '../../components/LineChart.astro';
+import r from '../../results/posbook_explore.json';
+
+export const c = r.charts;
+export const lows = ['0', '1', '2', '4', '16', '64', '256', '1k', '4k', '16k', '65k'];
+export const pop = (ch) => ({ label: 'Earlier games that reached this position (at least)', values: ch.x.values, labels: lows });
+
+Chess players talk about "being in book": still in the opening lines everyone knows. To a bot that imitates
+people, "book" is a question about counting. How many people have stood in this exact position before? We
+counted every position in 22.7 million Lichess games from October 2026, about a billion different positions.
+Then we asked what that count tells us about how people play.
+
+## Same position, different route
+
+There are two ways to say "this position has been seen before":
+
+- **By move order.** The game is still following a sequence of moves that other games followed.
+- **By position.** The pieces are on squares where they have stood before, whatever the order of moves.
+
+The two differ when games **transpose**. 1.e4 e5 2.Nf3 Nc6 and 1.Nf3 Nc6 2.e4 e5 reach the same board. By move
+order they are two different lines; by position they are one. Counting by position keeps a typical 1500-rated
+game "in book" three plies longer: 15 instead of 12. At 2400 the gap is five plies.
+
+## Rarer positions: slower and shakier
+
+<LineChart
+  title="Think time vs how common the position is"
+  note="1500-rated Lichess blitz, moves 4–10 (plies 8–20). Count from a month of earlier games."
+  x={pop(c.think_vs_popularity)}
+  y={{ label: 'Mean think time (s)', min: 0, max: 5, format: 'num1', ticks: [0, 1, 2, 3, 4, 5] }}
+  series={[
+    { name: 'Counted by position', slot: 1, values: c.think_vs_popularity.series['R0 position key'] },
+    { name: 'Counted by move order', slot: 2, values: c.think_vs_popularity.series['R1 move-order key'] },
+  ]}
+/>
+
+In the most common positions, a 1500 player moves in under 2 seconds. In a position nobody played that month,
+they take 4.4. Blunders follow the same curve:
+
+<LineChart
+  title="Blunders vs how common the position is"
+  note="Share of moves that drop the win chance by 0.3 or more (Stockfish). Same games as above."
+  x={pop(c.blunders_vs_popularity)}
+  y={{ label: 'Blunders (% of moves)', min: 0, max: 7, format: 'num1', ticks: [0, 1, 2, 3, 4, 5, 6, 7] }}
+  series={[
+    { name: 'Counted by position', slot: 1, values: c.blunders_vs_popularity.series['R0 position key'] },
+    { name: 'Counted by move order', slot: 2, values: c.blunders_vs_popularity.series['R1 move-order key'] },
+  ]}
+/>
+
+From 6.7% of moves in unseen positions down to 0.5% in the most familiar ones, a thirteen-fold difference.
+After controlling for move number, rating and clock, the position count explains about **twice as much** of
+the variation in think time as the move-order count, and **six times as much** of the variation in blunders.
+
+The clearest evidence is in games that transpose. When such a game leaves the known *move order*, think
+time bumps briefly and settles back. When it later reaches an unknown *position*, think time jumps by about 40% and stays high.
+People react to the board, not to the route.
+
+## Your openings give you away
+
+Counting positions works for a single player too. We built a personal book for each of 8,000 players from their
+earlier games, then tried to pick each player out of a pool of 1,000 from a handful of new games.
+
+<LineChart
+  title="Finding a player among 1,000"
+  note="Top-1: a player's next k games matched against everyone's last 40. Chance is 0.1%."
+  x={{ label: 'Games per player (k)', values: c.reid_by_k.x.values, log: true }}
+  y={{ label: 'Found (top-1)', min: 0, max: 1, format: 'pct', ticks: [0, 0.25, 0.5, 0.75, 1] }}
+  series={[
+    { name: 'Personal book + clock stats', slot: 1, values: c.reid_by_k.series['surface+rarity'].map((v) => v / 100) },
+    { name: 'Personal book', slot: 3, values: c.reid_by_k.series['rarity'].map((v) => v / 100) },
+    { name: 'Clock and opening stats', slot: 4, values: c.reid_by_k.series['surface'].map((v) => v / 100) },
+  ]}
+/>
+
+Which positions you choose to reach, weighted towards the rare ones, finds you 80% of the time from 40 games.
+General style statistics manage 33%. And where you've been before, you repeat yourself: your own earlier move
+predicts your next one 82% of the time, while the most popular move among players at your level gets 47%.
+
+## What this means for Doppel
+
+1. **Doppel's sense of "book" should count positions, not move orders.** That's what people respond to.
+2. **A personal Doppel starts in your repertoire.** Where you've been before, play what you played. Elsewhere,
+   play what players like you play. That simple rule is now the baseline our learned models have to beat.
+3. **Expect hesitation and errors where they belong.** A bot that thinks for the same time in a well-known
+   position as in a strange one doesn't feel human. The count of the position is a cheap, strong signal for
+   when to slow down.
+
+*Data and code: `lab/poskey/` (a Rust position counter) and `lab/doppel_lab/posbook_*.py`, results in
+`lab/results/posbook_explore.json`, in the [repository](https://github.com/AlliedToasters/doppel).*

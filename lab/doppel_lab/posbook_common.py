@@ -142,7 +142,19 @@ def save_section(name: str, obj) -> None:
         res = json.loads(RESULTS.read_text()) if RESULTS.exists() else {}
         res[name] = obj
         res["date"] = "2026-11-07"
-        RESULTS.write_text(json.dumps(res, indent=1, default=_np) + "\n")
+        # Round-trip through _np, then NaN/inf -> null: strict JSON, so the site build can import it.
+        res = _finite(json.loads(json.dumps(res, default=_np)))
+        RESULTS.write_text(json.dumps(res, indent=1, allow_nan=False) + "\n")
+
+
+def _finite(x):
+    if isinstance(x, float) and not np.isfinite(x):
+        return None
+    if isinstance(x, dict):
+        return {k: _finite(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_finite(v) for v in x]
+    return x
 
 
 def _np(x):
