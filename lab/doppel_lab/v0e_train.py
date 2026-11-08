@@ -218,6 +218,9 @@ def train(args):
     run = V0 / "runs" / args.run
     run.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(args.seed)
+    if not args.fake_vecs and not (V0E / "norm_1500.npz").exists():
+        from doppel_lab.v0e_data import norm
+        norm()                               # context-feature standardisation from the train vectors
     model = build(args.fake_trunk, device)
     named = [(n, p) for n, p in model.named_parameters() if not n.startswith("trunk.") and p.requires_grad]
     res_p = [p for n, p in named if n.startswith("residual.")]
