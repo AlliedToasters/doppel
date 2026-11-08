@@ -1,35 +1,205 @@
 ---
 title: Hello, Doppel
-description: Why we're building chess opponents that play like people, what we hope they'll become, and why we're doing the research in the open.
+description: Introducing Doppel
 date: 2026-11-08
 status: draft
 ---
 
 Most chess bots are engines with the strength turned down. They play near-perfect moves, then throw in a random
-blunder to seem beatable. Anyone who has played one knows the feeling: it doesn't play like a person. It never
+blunder for you to exploit. Anyone who has played one knows the feeling: it doesn't play like a person. It never
 panics with ten seconds left. It never misses the knight fork that a real 1200 would miss, and it never finds the one
 a real 1200 would find. It moves instantly in positions where a person would stop and think.
 
-Doppel is an attempt to build the other kind of opponent: one that plays like a real person at your level.
+Doppel is an attempt to build another kind of synthetic opponent: one that plays like a real person at your level.
 
-## What we're aiming for
+## Why Doppel
 
-A *doppelgänger* is a double, someone who looks just like you. A Doppel should be a double of a human player:
+Doppel started from three frustrations and one goal: to be good company across a chessboard.
 
-1. **Human moves.** The moves a player at your level actually plays, learned from millions of real games, not an
-   engine's best move with noise added.
-2. **Human mistakes.** Errors where people make them: in strange positions, under time pressure, after a long
-   game. Not at random.
-3. **Human time.** Quick in familiar positions, slow when it's lost the thread, scrappy when its clock runs low.
-4. **Moods that last a game.** People have off days. A Doppel should be able to be sharp, cautious or on tilt, and
-   stay that way until the game ends.
-5. **Eventually, you.** If you choose to share your own games, a Doppel that plays like *you*: your openings, your
-   habits, your favourite ways of going wrong.
+1. **Synthetic opponents don't feel human.** Even the best human-imitation models play every game like an average
+   player at their rating. Real people have sharp days and sloppy days.
+2. **Human opponents come with social friction.** Stepping away for a minute in a timed game feels rude. A bot
+   doesn't mind if you pause.
+3. **Practice against bots doesn't transfer.** Hours against human-like bots didn't prepare me for real people on
+   Lichess. In robotics this is called the sim-to-real gap: what works in simulation fails in the world.
+
+There's a personal part too. Years ago in Argentina, two friends of mine spent whole afternoons smoking and playing
+chess. I joined in, but I was too weak for the games to be fun for either side. Part of me has been preparing for
+that table ever since. The more urgent motivation: my nephew is learning chess, and I want to stay competitive.
+
+### The missing rung
+
+As a kid in chess club I never got traction: no early wins, so no interest, so no progress. As an adult, lessons
+in the style of Duolingo got me past that, but nothing prepared me for live human play. Doppel is meant to be the
+rung between lessons and playing people:
+
+- **Opponents tuned so you win sometimes**, about 40 to 50% of the time.
+- **Losses that feel beatable**, because a Doppel having a bad game blunders like a person, not like random noise.
+- **Honest progress.** A Doppel's weights are frozen, so its average strength never changes. If you start beating
+  it more often, you improved.
+
+The ladder goes: Doppels to practise, Lichess to test it against real people, and the people in your life as the
+point. We'd like to measure Doppel partly by how many players it sends on to human play, and partly by something it
+can't see: a good game with my nephew over the holidays.
+
+## The shoulders we stand on
+
+In 1948 Alan Turing and David Champernowne wrote a chess program before any computer could run it; Turing played
+it by working through the algorithm by hand, taking about half an hour a move. In 1950 Claude Shannon wrote down how
+a computer should search a chess game, and engines followed that plan for decades. In 1997 Deep Blue beat Garry
+Kasparov. Today Stockfish, free and open source, plays far beyond any human, and AlphaZero and the open-source
+Leela Chess Zero showed that a network could teach itself the game from nothing but the rules. These machines
+changed how people study chess, and every serious player now learns with one at their side.
+
+None of them plays like a person, and none was meant to. The work closest to ours is **Maia**, from Ashton
+Anderson, Jon Kleinberg, Siddhartha Sen, Reid McIlroy-Young and colleagues. Their 2020 paper put "aligning
+superhuman AI with human behavior" in its title at a time when that was an unusual thing to want, and it set the
+goal as faithfulness to what people actually do, rather than to what is correct. Three of its points shaped Doppel:
+
+- **Weakening an engine doesn't make it human.** A depth-limited Stockfish doesn't make a 1200's mistakes; it makes
+  its own. Maia solved this for skill by training on millions of human games at each rating.
+- **Clock and context drive errors.** Their blunder predictor got noticeably better just from knowing the players'
+  ratings and the time left on the clock.
+- **The future work they named:** telling apart players with the same rating. That is exactly what Doppel is about.
+
+They went on to model individual players, to fold every rating into one model, and to think hard about the ethics of
+it: their 2022 paper *Mimetic Models: Ethical Implications of AI that Acts Like You* anticipated many of the questions
+a project like ours raises. Their work is why we could start where we did: the Doppel you can play today chooses its
+moves with Maia-3. We also owe a lot to **Allie**, from Yiming Zhang, Daphne Ippolito and colleagues at Carnegie
+Mellon, which learned human think times and when people resign.
+
+### Experiment zero
+
+Before training anything, we measured whether existing bots reproduce how people vary from game to game. They
+don't lack variety: their games are as spread out in quality as people's are. What they lack is *persistence*.
+In human games, how well someone played the first half predicts how well they play the second. In Maia-3's games
+it doesn't. People carry a state through a game: focus, fatigue, frustration. Bots don't. That gap is the first
+thing Doppel is built to fill, and we'll write the experiment up properly in a later post.
+
+## Beyond Maia: a population of players
+
+Maia answers "what would a 1500 play here?" But there is no such thing as *a* 1500. One 1500 plays the King's
+Gambit every game and loves a messy position. Another trades queens at the first chance and grinds out endgames.
+One plays fast and loose; another burns half their clock on move twelve. They have the same rating and play
+nothing alike.
+
+We want to build that population: many distinct players at every level, each with their own openings, habits,
+clock and temperament, and moods that come and go from game to game. A Doppel should be:
+
+1. **Human in its moves.** The moves a player like this actually plays, learned from millions of real games.
+2. **Human in its mistakes.** Errors where people make them: in strange positions, under time pressure, late in a
+   long game. Not at random.
+3. **Human in its time.** Quick in familiar positions, slow when it's lost the thread, scrappy when its clock runs low.
+4. **Someone in particular.** A persistent player with a style you can get to know, and an off day now and then.
+5. **You, if you want it.** If you choose to share your own games, a Doppel that plays like *you*: your openings,
+   your habits, your favourite ways of going wrong.
 
 Why bother? Because playing a person teaches you things an engine can't. A human-like opponent at your level is
 a fair game you can actually learn from. A double of yourself is a mirror: it shows you the habits you can't
 see from the inside. And building one means answering a question that's interesting on its own: what makes
 someone's chess *theirs*?
+
+## Use Cases
+
+These are possibilities, not promises, but they're the ones that excite us most.
+
+### Coaching by simulation
+
+A human coach judges your weaknesses from a handful of your games: a small, noisy sample. A Doppel of you could
+play thousands of games against a varied field of opponents and come back with the one weakness that costs you the
+most.
+
+- **Rank weaknesses by what they cost, not how often they appear.** Fix one weakness in your Doppel (make it play
+  knight endgames correctly, say), rerun the games, and measure how many points it gains. The fix that gains the
+  most is the one to train.
+- **Check against reality.** Whatever the simulation finds should also show up in your real games that the Doppel
+  never saw. If it doesn't, the flaw may be in the model, not in you.
+- **Close the loop.** Positions where your Doppel goes wrong become your personal puzzle set. Then check whether the
+  weakness actually fades in your real games, and refit your Doppel every few weeks as you improve.
+
+Simulations produce positions and statistics, not lessons. A language model could turn them into advice a person
+can take in. But language models are still weak at chess, so it never calculates: every claim it makes is checked
+against the data before it reaches you.
+
+### Preparing for an opponent
+
+Fair-play rules ban help during a game, not before it. Strong players already prepare openings twenty moves deep
+against a specific opponent. A Doppel extends that from "what will they play?" to "how do they play when they're
+short of time, worse, or rattled?" Top players have teams of helpers for this; free, open Doppels could give the
+same to everyone else.
+
+It gets interesting when both sides do it. If I know you've rehearsed against my Doppel, my best move is to play
+against my own habits, and you know that too. Does being modelled change how people play? That's a question we can
+measure.
+
+### The masters of the past
+
+If a few dozen games are enough to capture how someone plays, the person on the other side of the board doesn't
+have to be alive. Paul Morphy, José Raúl Capablanca, Vera Menchik: hundreds of their games survive. What would it
+feel like to sit across from them? Or to watch Morphy play Mikhail Tal, a century apart?
+
+The hard parts are real. Playing at their strength needs search, not just imitation. A model trained on modern
+games smuggles in modern opening knowledge that Morphy never had. The rules themselves shifted for centuries:
+castling and promotion varied by country, chess clocks only arrived in the mid-1800s, and nobody recorded how long
+each move took until the digital era. And history keeps the famous wins more often than the quiet losses. A match
+between frozen champion Doppels would be a new kind of evidence in chess's oldest argument, who was the greatest,
+with the honest caveat that it compares models, not people.
+
+### Famous people who happened to play
+
+The artist Marcel Duchamp played for France at the Chess Olympiad. The composer Sergei Prokofiev beat Capablanca in
+a simultaneous exhibition. Humphrey Bogart was a strong amateur who once hustled games for small change in New
+York parks, and Leo Tolstoy played all his life. Some of their games survive.
+
+### Play against Napoleon?
+
+A handful of games are attributed to him. Historians doubt the brilliant ones; the games that were actually
+witnessed look like a beginner's. Games attributed to Lenin and Stalin are widely considered fakes. Which raises a
+fun idea: a model that knows how a player plays can also say how likely it is that they played a given game. The
+same machinery that builds a Doppel could help sort real historical games from flattering fakes.
+
+### Whose Doppel?
+
+All of this raises a question we take seriously: who gets to be imitated? Our rule is simple. Doppel will never
+publish an imitation of a living player without their express consent. Players who are no longer alive need a
+rule of their own, and we'll work it out in the open before we build one.
+
+## Beyond chess
+
+Chess is a small world with something most of AI research lacks: ground truth. We know who played every move,
+how strong they were, and, thanks to engines, exactly how good each move was. That makes it a place to test ideas
+cheaply that matter far outside the game.
+
+- **Personas in language models.** Chatbots suffer the same collapse as chess bots: one averaged personality and no
+  state that persists. Researchers have found that traits like these show up as directions inside a model. In
+  chess we can check the same ideas against the truth: is there a "tilt" direction inside a move model, and when
+  does a model work out who it's imitating?
+- **Superhuman AI and humans at every level.** An engine that knows your Doppel could choose moves that are
+  objectively a little worse but most likely to make *you* go wrong. That is a measurable version of an AI
+  optimising against a model of human weakness instead of toward the truth. How much does it gain? Do people
+  notice? Can a monitor catch it? Or flip it around: give a player a superhuman advisor that is sometimes subtly
+  wrong, and see whether they can tell.
+- **Does practice with an AI make you better with people?** The worry about AI companions isn't a bad one; it's a
+  good one that people prefer to each other. Chess makes that measurable: does time with Doppels raise your rating
+  against humans, and do you keep choosing to play humans?
+
+A chess move can't persuade anyone of anything, so chess is a safe place to push human-likeness as far as it goes,
+in the open. Where the stakes are higher, the same methods are just as useful for detection as for imitation.
+
+## An experiment on myself
+
+Can an adult become an unusually fast-improving player with this kind of coaching? I intend to find out, with the
+rules written down before I start:
+
+- **A baseline:** my current Lichess rating and how it has been moving.
+- **A comparison group:** players from the open Lichess database who started where I am, with similar volume and
+  account age. Their rating curves show what would have happened anyway.
+- **A goal set in advance:** for example, finishing above the 90th percentile of that group's six-month gain.
+- **Over-the-board tournaments** at the start and the end, so a fast online rise can't be mistaken for cheating.
+- **A public log here**, success or not.
+
+One person proves only that it can happen, not how often. But it's the pilot for offering the same comparison to
+every player who wants it.
 
 ## Why the research is open
 
@@ -42,13 +212,15 @@ We don't know yet how to build most of this. So we're doing the science in publi
 - **Failed results count.** Our first model of "who a player is" failed its own tests. We'll write about that too.
 - **Public models use freely licensed games only.** Lichess publishes its games openly, and that is what our released
   models learn from.
+- **Free to play, and your data is not for sale.** If we ever charge for anything, it will be optional extras, never
+  the game itself, and never your data.
 
 ## What these lab notes are
 
 This is where we'll write up what we learn as we go, with the data behind each chart. Some posts will be about
 chess players: how predictable people are, what gives a player away, when people slow down and why. Some will
-be about the bot: what worked, what didn't, and what we're trying next.
+be about the bot: what worked, what didn't, and what we're trying next. And some will be the self-experiment log.
 
 You can already play an early Doppel: challenge [doppelbot on Lichess](https://lichess.org/@/doppelbot). It
-matches your Lichess rating and plays human moves with Maia-3, an open model trained to predict what people
-play. Everything else on the list above is still in the lab. We'll tell you here when it isn't.
+matches your Lichess rating and plays human moves with Maia-3. Everything else above is still in the lab. We'll tell
+you here when it isn't.
