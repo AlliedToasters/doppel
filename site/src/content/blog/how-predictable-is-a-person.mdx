@@ -1,0 +1,74 @@
+---
+title: How predictable is a person?
+description: When a Lichess player reaches the same opening position twice, they play the same move about 80% of the time. Two different players agree far less. That gap is the room a personal bot has to fill.
+date: 2026-11-07
+draft: true
+---
+import LineChart from '../../components/LineChart.astro';
+import d from '../../results/noise_floor.json';
+
+export const plies = [4, 6, 8, 10, 12, 14, 16, 20];
+export const at = (key) => plies.map((p) => d.plies[String(p)][key]);
+export const bands = d.by_band_plies_8_16.map((b) => b.band);
+
+Any model that predicts human moves needs a ceiling: how well *could* it do? People are not deterministic. Ask
+the same player the same question twice and you won't always get the same answer. So before judging a bot by
+"did it predict the move?", we measured how often a person predicts *themselves*.
+
+## The setup
+
+We took 5.1 million blitz (3+0) Lichess games from October 2026 and looked for a simple thing: the same player
+reaching the same position more than once. That happens mostly in the opening, where people play the same lines
+again and again. For each position, we asked:
+
+1. **Self-agreement.** When a player is here again, do they play the same move as last time?
+2. **Population agreement.** When two *different* players are here, do they play the same move?
+
+Here, "the same position" means the same sequence of moves so far. Reaching the same position by another
+move order counts separately. (We're now building a version that merges those; more on that in a later post.)
+
+## People are consistent; populations are not
+
+<LineChart
+  title="Agreement on the next move, by move number"
+  note="Same player reaching the same position twice vs two different players. 5.1 M Lichess 3+0 games."
+  x={{ label: 'Ply (half-move) of the position', values: plies }}
+  y={{ label: 'Same move played', min: 0, max: 1, format: 'pct', ticks: [0, 0.25, 0.5, 0.75, 1] }}
+  series={[
+    { name: 'Same player, twice', slot: 1, values: at('self_agreement') },
+    { name: 'Two different players', slot: 2, values: at('population_agreement') },
+  ]}
+/>
+
+A player who reaches the same position again repeats their move 84% of the time early on, and still 77% by
+ply 20. Two different players in the same position agree only 32–58% of the time.
+
+So in these positions, a perfectly *personal* model could predict about 80% of moves, and a perfect model of
+"players in general" only about 45%. That 35-point gap is what knowing the person is worth.
+
+## Stronger players are more consistent
+
+<LineChart
+  title="Self-agreement by rating"
+  note="Plies 8–16 pooled: how often a player repeats their move in a position they've played before."
+  x={{ label: 'Lichess rating band', values: bands }}
+  y={{ label: 'Same move as last time', min: 0.5, max: 1, format: 'pct', ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1] }}
+  series={[{ name: 'Self-agreement', slot: 1, values: d.by_band_plies_8_16.map((b) => b.self_agreement) }]}
+/>
+
+At 800, players repeat themselves 75% of the time; at 2400, 92%. Strong players have a prepared repertoire and
+stick to it. Weaker players are still exploring, or don't remember what they did last time. So a personal
+Doppel of a strong player has an easier job, at least in the opening.
+
+## What this means for Doppel
+
+This is our ceiling for opening moves, and our yardstick. A Doppel that models *you* should get close to your own
+self-agreement, about 80%, in positions you've played before. A Doppel that only knows your rating is capped
+near the population number. The distance between the two is the most direct test of whether a bot knows who
+it's imitating.
+
+Later positions, the ones nobody reaches twice, have no direct ceiling like this. That's where the harder
+measures come in: whether a bot's mistakes, think times and style look like yours across a whole game.
+
+*Data and code: `doppel_lab/noise_floor.py` and `lab/results/noise_floor.json` in the
+[repository](https://github.com/AlliedToasters/doppel).*

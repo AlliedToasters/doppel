@@ -49,9 +49,11 @@ const data = JSON.stringify({
     <span class="t">{title}</span>
     {note && <span class="n">{note}</span>}
   </figcaption>
-  <ul class="legend">
-    {series.map((s, i) => <li><i class={`c${slot(s, i)}`}></i>{s.name}</li>)}
-  </ul>
+  {series.length > 1 && (
+    <ul class="legend">
+      {series.map((s, i) => <li><i class={`c${slot(s, i)}`}></i>{s.name}</li>)}
+    </ul>
+  )}
   <div class="plot" data-chart={data}>
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
       {yticks.map((t) => (
