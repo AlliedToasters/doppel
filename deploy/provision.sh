@@ -54,6 +54,11 @@ upsert() {   # name type content
   if [ -n "$rid" ]; then cf "/zones/$ZID/dns_records/$rid" -X PUT -d "$body" >/dev/null; else cf "/zones/$ZID/dns_records" -X POST -d "$body" >/dev/null; fi
   echo "dns $1 $2 -> $3"
 }
-for n in "$DOMAIN" "www.$DOMAIN"; do upsert "$n" A "$IP4"; upsert "$n" AAAA "$IP6"; done
+clear_other() {   # name: drop A/AAAA/CNAME records on this name that don't point at the VM (e.g. registrar parking)
+  cf "/zones/$ZID/dns_records?name=$1&per_page=100" | jq -r --arg a "$IP4" --arg b "$IP6" \
+    '.result[] | select((.type == "A" or .type == "AAAA" or .type == "CNAME") and .content != $a and .content != $b) | .id + " " + .type + " " + .content' |
+  while read -r rid t c; do cf "/zones/$ZID/dns_records/$rid" -X DELETE >/dev/null; echo "dns removed $1 $t $c"; done
+}
+for n in "$DOMAIN" "www.$DOMAIN"; do clear_other "$n"; upsert "$n" A "$IP4"; upsert "$n" AAAA "$IP6"; done
 cf "/zones/$ZID/settings/ssl" -X PATCH -d '{"value":"strict"}' >/dev/null && echo "tls full (strict)"
 cf "/zones/$ZID" | jq -r '"zone status: " + .result.status + " (needs to be active: nameservers switched)"'
