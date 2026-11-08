@@ -37,16 +37,16 @@ CONSENT_TEXT = (
 router = APIRouter()
 
 
-_TOKEN_IN_URL = re.compile(r"([?&]token=)[^&\s\"]+")
+_TOKEN_IN_URL = re.compile(r"([?&](?:token|code|state|login_code)=)[^&\s\"]+")
 
 
 class RedactTokens(logging.Filter):
-    """Keeps bearer tokens out of server logs: the WebSocket carries one in its URL (?token=), and uvicorn logs
-    request lines verbatim."""
+    """Keeps secrets out of server logs: the WebSocket carries a bearer token in its URL (?token=), the Lichess
+    sign-in callback carries an OAuth code and state, and uvicorn logs request lines verbatim."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
-        if "token=" in msg:
+        if "=" in msg and _TOKEN_IN_URL.search(msg):
             record.msg, record.args = _TOKEN_IN_URL.sub(r"\1REDACTED", msg), None
         return True
 
