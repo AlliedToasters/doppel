@@ -38,7 +38,7 @@ use shakmaty::{CastlingMode, Chess, EnPassantMode, Position};
 const LEVELS: usize = 9;
 const SHARD_BITS: u32 = 10;
 const SHARDS: usize = 1 << SHARD_BITS;
-const CHUNK: usize = 2048; // games per work unit
+const CHUNK: usize = 1024; // games per work unit
 
 // --- hashing ------------------------------------------------------------------------------------------------
 
@@ -280,7 +280,7 @@ fn read_parquet(path: &Path, meta_cols: bool, mut f: impl FnMut(&Batch)) -> io::
         })
         .collect();
     let mask = ProjectionMask::leaves(schema, want);
-    let reader = b.with_projection(mask).with_batch_size(16384).build().map_err(io::Error::other)?;
+    let reader = b.with_projection(mask).with_batch_size(65536).build().map_err(io::Error::other)?;
     let list_t = DataType::LargeList(Arc::new(Field::new("item", DataType::LargeUtf8, true)));
     for rb in reader {
         let rb: RecordBatch = rb.map_err(io::Error::other)?;
