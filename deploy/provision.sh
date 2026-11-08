@@ -60,5 +60,5 @@ clear_other() {   # name: drop A/AAAA/CNAME records on this name that don't poin
   while read -r rid t c; do cf "/zones/$ZID/dns_records/$rid" -X DELETE >/dev/null; echo "dns removed $1 $t $c"; done
 }
 for n in "$DOMAIN" "www.$DOMAIN"; do clear_other "$n"; upsert "$n" A "$IP4"; upsert "$n" AAAA "$IP6"; done
-cf "/zones/$ZID/settings/ssl" -X PATCH -d '{"value":"strict"}' >/dev/null && echo "tls full (strict)"
+cf "/zones/$ZID/settings/ssl" -X PATCH -d '{"value":"strict"}' >/dev/null && echo "tls full (strict)" || echo "set SSL/TLS to Full (strict) in the dashboard (token lacks Zone Settings edit)"
 cf "/zones/$ZID" | jq -r '"zone status: " + .result.status + " (needs to be active: nameservers switched)"'

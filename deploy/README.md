@@ -15,7 +15,7 @@ with `lichess_bot` optional. Domain: doppelbot.org.
     deploy/ship.sh        # every release: builds site/, copies HEAD + Maia-3 packages, docker compose up
 
 Tokens live outside git in `~/.config/doppel/`: `hcloud.token` (Hetzner, Read & Write) and `cloudflare.token`
-(Zone.DNS edit + Zone.Zone Settings edit on doppelbot.org). `provision.sh` writes `deploy.env` (the VM's IP).
+("Edit zone DNS" template on doppelbot.org; set SSL/TLS to Full (strict) by hand unless it also has Zone Settings edit). `provision.sh` writes `deploy.env` (the VM's IP).
 Caddy gets certificates over DNS-01 with the Cloudflare token, so it works behind the proxy.
 
 `/play/` (Flutter web) is not served: dartchess uses 64-bit integer literals, which dart2js rejects, and
