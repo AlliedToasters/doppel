@@ -6,7 +6,8 @@ import os
 import time
 import uuid
 
-from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String, create_engine, inspect, text
+from sqlalchemy import (JSON, BigInteger, Boolean, Float, ForeignKey, Index, Integer, String, UniqueConstraint,
+                        create_engine, delete, inspect, text)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 
@@ -59,6 +60,8 @@ class User(Base):
     # Signed in with Lichess (identity only: no Lichess token is kept). lichess_id is Lichess's stable lowercase id.
     lichess_id: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True, index=True)
     lichess_username: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Lichess kid mode, read once at sign-in (preference:read). None = signed in before we asked: sign in again.
+    lichess_kid: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
 
 class AuthToken(Base):
@@ -92,6 +95,7 @@ class LoginCode(Base):
     code_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     lichess_id: Mapped[str] = mapped_column(String(32))
     lichess_username: Mapped[str] = mapped_column(String(32))
+    lichess_kid: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     created_at: Mapped[float] = mapped_column(Float, default=time.time)
 
 
@@ -103,10 +107,54 @@ class Consent(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
-    kind: Mapped[str] = mapped_column(String(16))  # "training"
+    kind: Mapped[str] = mapped_column(String(16))  # "training" | "history"
     version: Mapped[str] = mapped_column(String(32))  # the consent text the user saw
     granted_at: Mapped[float] = mapped_column(Float, default=time.time)
     withdrawn_at: Mapped[float | None] = mapped_column(Float, nullable=True)
+    adult: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # self-declared 18+ when granted (history)
+
+
+class ImportedGame(Base):
+    """A game imported from the user's public Lichess history (history-v1 consent; history.py). Kept only while
+    that consent is held: withdrawing it or deleting the account deletes these rows. The opponent is not stored."""
+
+    __tablename__ = "imported_games"
+    __table_args__ = (UniqueConstraint("user_id", "lichess_game_id", name="uq_imported_user_game"),
+                      Index("ix_imported_user_played", "user_id", "played_at"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    lichess_game_id: Mapped[str] = mapped_column(String(16))
+    played_at: Mapped[float] = mapped_column(Float)  # epoch s (Lichess createdAt)
+    speed: Mapped[str] = mapped_column(String(16))  # ultraBullet | bullet | blitz | rapid | classical | correspondence
+    perf: Mapped[str] = mapped_column(String(16))
+    rated: Mapped[bool] = mapped_column(Boolean)
+    color: Mapped[str] = mapped_column(String(5))  # the user's colour
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)  # the user's rating when the game began
+    opp_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)  # None vs the Lichess AI
+    result: Mapped[str | None] = mapped_column(String(7), nullable=True)  # "1-0" | "0-1" | "1/2-1/2"
+    status: Mapped[str] = mapped_column(String(24))  # Lichess termination: mate, resign, outoftime, draw, ...
+    base_s: Mapped[int | None] = mapped_column(Integer, nullable=True)  # None for correspondence
+    inc_s: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    moves: Mapped[list] = mapped_column(JSON, default=list)  # SAN, as the export gives them
+    clocks: Mapped[list | None] = mapped_column(JSON, nullable=True)  # mover's clock after each ply, centiseconds
+    opening_eco: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    opening_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+
+class HistoryImport(Base):
+    """One row per user: the state of their Lichess history import."""
+
+    __tablename__ = "history_imports"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
+    state: Mapped[str] = mapped_column(String(8))  # "queued" | "running" | "done" | "error"
+    added: Mapped[int] = mapped_column(Integer, default=0)  # games added by the latest run
+    error: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    started_at: Mapped[float] = mapped_column(Float, default=time.time)
+    updated_at: Mapped[float] = mapped_column(Float, default=time.time)
+    # createdAt (ms) of the newest stored game after the last completed run: the next run's `since`.
+    cursor_ms: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
 
 class Rating(Base):
@@ -153,6 +201,13 @@ class Ply(Base):
     pace: Mapped[str] = mapped_column(String(8))  # game pace when played
 
 
+def delete_history(sess, user_id: str) -> int:
+    """Delete a user's imported Lichess games and import status; returns the number of games deleted."""
+    n = sess.execute(delete(ImportedGame).where(ImportedGame.user_id == user_id)).rowcount
+    sess.execute(delete(HistoryImport).where(HistoryImport.user_id == user_id))
+    return n
+
+
 _ADDED = [  # additive columns for databases created by an earlier skeleton
     ("bot_pace", "VARCHAR(8) NOT NULL DEFAULT 'realtime'"),
     ("player", "VARCHAR(64)"),
@@ -161,7 +216,9 @@ _ADDED = [  # additive columns for databases created by an earlier skeleton
 ]
 
 
-_ADDED_USERS = [("lichess_id", "VARCHAR(32)"), ("lichess_username", "VARCHAR(32)")]
+_ADDED_USERS = [("lichess_id", "VARCHAR(32)"), ("lichess_username", "VARCHAR(32)"), ("lichess_kid", "BOOLEAN")]
+_ADDED_BY_TABLE = {"games": _ADDED, "users": _ADDED_USERS, "login_codes": [("lichess_kid", "BOOLEAN")],
+                   "consents": [("adult", "BOOLEAN")]}  # nullable, no default: safe on Postgres and SQLite
 
 
 def make_sessionmaker(url: str | None = None):
@@ -169,14 +226,12 @@ def make_sessionmaker(url: str | None = None):
     kw = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
     engine = create_engine(url, **kw)
     Base.metadata.create_all(engine)  # skeleton: additive columns only until the schema settles (then Alembic)
-    have = {c["name"] for c in inspect(engine).get_columns("games")}
-    have_u = {c["name"] for c in inspect(engine).get_columns("users")}
+    insp = inspect(engine)
+    have = {t: {c["name"] for c in insp.get_columns(t)} for t in _ADDED_BY_TABLE}
     with engine.begin() as conn:
-        for col, ddl in _ADDED:
-            if col not in have:
-                conn.execute(text(f"ALTER TABLE games ADD COLUMN {col} {ddl}"))
-        for col, ddl in _ADDED_USERS:
-            if col not in have_u:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {ddl}"))
+        for table, cols in _ADDED_BY_TABLE.items():
+            for col, ddl in cols:
+                if col not in have[table]:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}"))
         conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_lichess_id ON users (lichess_id)"))
     return sessionmaker(engine, expire_on_commit=False)

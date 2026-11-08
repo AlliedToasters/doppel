@@ -69,6 +69,7 @@ models/<name>-<sha8>/      (gitignored locally; object storage later)
 - **api:** FastAPI on Postgres.
   - Doppel-hosted games are **server-authoritative**: the server holds the moves, the clocks and the doppel's z, and the client sends intents over a WebSocket. That's what makes ratings trustworthy and pause/resume correct: the doppel resumes in the same tilt because z lives in the game row.
   - The server also owns ratings (Bradley-Terry batch job) and consent records.
+  - Sign in with Lichess runs on the server and keeps no Lichess token: it reads the account id and kid mode once (scope `preference:read`) and revokes the token. With a separate consent (history-v1, 18+, never for kid-mode accounts) the api imports the user's public Lichess games from the public export, one stream at a time, for their personal doppel; withdrawing deletes them.
 - **infer:** a stateless HTTP service.
   - Input is a position plus history, clocks, Elo and z. Output is a move distribution, a sampled move and a think time.
   - It scales horizontally, one process per CPU core group.

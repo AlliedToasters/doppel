@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 ---
 
-<Base title="Account · Doppel" description="Your Doppel account: sign in with Lichess, training consent, delete your data.">
+<Base title="Account · Doppel" description="Your Doppel account: sign in with Lichess, import your Lichess games, training consent, delete your data.">
   <main class="wrap acct">
     <h1>Your account</h1>
     <p id="status" class="muted" role="status">Loading…</p>
@@ -10,8 +10,9 @@ import Base from '../layouts/Base.astro';
     <section id="signedout" class="card" hidden>
       <h2>Sign in with Lichess</h2>
       <p class="muted">
-        Doppel asks Lichess who you are once, then gives up access: we can't read your games, messages or email,
-        and can't play for you.
+        Doppel asks Lichess who you are, and whether your account is in kid mode, once, then gives up access.
+        Lichess will say Doppel wants to read your preferences: kid mode is the only one we look at. We can't read
+        your messages or email, and can't play for you.
       </p>
       <a class="btn primary" href="/api/auth/lichess/start?client=web">Sign in with Lichess</a>
     </section>
@@ -21,6 +22,20 @@ import Base from '../layouts/Base.astro';
         <h2 id="who"></h2>
         <p id="stats" class="muted"></p>
         <button id="signout" class="btn ghost" type="button">Sign out on this browser</button>
+      </div>
+
+      <div class="card">
+        <h2>Your Lichess games</h2>
+        <p id="history-text" class="muted"></p>
+        <label class="switch" id="adult-row">
+          <input id="adult" type="checkbox" />
+          <span>I am 18 or older</span>
+        </label>
+        <div class="row">
+          <button id="import" class="btn primary" type="button">Import my games</button>
+          <button id="history-withdraw" class="btn ghost" type="button" hidden>Turn off and delete imported games</button>
+        </div>
+        <p id="history-status" class="muted line" role="status" hidden></p>
       </div>
 
       <div class="card">
@@ -34,8 +49,8 @@ import Base from '../layouts/Base.astro';
 
       <div class="card">
         <h2>Delete account</h2>
-        <p class="muted">Removes your account, every game you played here, your rating and your consent records.
-          Games already in a training export are deleted from it at the next export.</p>
+        <p class="muted">Removes your account, every game you played here, your imported Lichess games, your rating
+          and your consent records. Games already in a training export are deleted from it at the next export.</p>
         <button id="delete" class="btn danger" type="button">Delete my account</button>
       </div>
     </section>
@@ -61,8 +76,16 @@ import Base from '../layouts/Base.astro';
     if (!r.ok) throw Object.assign(new Error(`${r.status}`), { status: r.status, body: await r.text() });
     return r.json();
   }
+  // The api's own message for a refusal (403 kid mode, 422 not 18+, ...), when it sent a plain one.
+  const detail = (e: any, fallback: string) => {
+    try { const d = JSON.parse(e.body).detail; if (typeof d === 'string') return d; } catch {}
+    return fallback;
+  };
 
   let consentVersion = '';
+  let historyVersion = '';
+  let historyGranted = false;
+  let poll: number | undefined;
 
   function render(me: any | null) {
     $('signedout').hidden = !!me?.lichess;
@@ -72,6 +95,46 @@ import Base from '../layouts/Base.astro';
     const r = me.rating ? ` · rating ${Math.round(me.rating.rating)} ± ${Math.round(me.rating.rd)}` : '';
     $('stats').textContent = `${me.games} game${me.games === 1 ? '' : 's'} played here${r}`;
     ($('consent') as HTMLInputElement).checked = me.consent.training;
+    historyGranted = !!me.history_consent?.granted;
+    const adult = $('adult') as HTMLInputElement;
+    adult.checked = historyGranted;
+    adult.disabled = historyGranted;
+    $('history-withdraw').hidden = !historyGranted;
+  }
+
+  const plural = (n: number) => `${n} game${n === 1 ? '' : 's'}`;
+  function historyLine(h: any): string {
+    if (h.state === 'queued') return 'Waiting for Lichess. One import runs at a time, so this can take a few minutes.';
+    if (h.state === 'running') return `Importing… ${plural(h.added)} so far.`;
+    if (h.state === 'error') return `${h.error} ${h.games ? `(${plural(h.games)} kept from before.)` : ''}`.trim();
+    if (h.state === 'done') {
+      const when = h.updated_at ? new Date(h.updated_at * 1000).toLocaleString() : '';
+      return `${plural(h.games)} imported${h.added ? ` (${h.added} new)` : ''}${when ? ` · last checked ${when}` : ''}.`;
+    }
+    return historyGranted && h.reason ? h.reason : '';
+  }
+
+  function renderHistory(h: any) {
+    const line = historyLine(h);
+    $('history-status').textContent = line;
+    $('history-status').hidden = !line;
+    const busy = h.state === 'queued' || h.state === 'running';
+    const btn = $('import') as HTMLButtonElement;
+    btn.disabled = busy || (historyGranted && !h.can_import);
+    btn.textContent = h.games ? 'Import new games' : 'Import my games';
+    // Kid-mode accounts can't opt in at all: say so up front instead of after a click.
+    if (!historyGranted && h.reason?.includes('kid')) {
+      btn.disabled = true;
+      $('history-status').textContent = h.reason;
+      $('history-status').hidden = false;
+    }
+    clearTimeout(poll);
+    if (busy) poll = window.setTimeout(refreshHistory, 3000);
+  }
+
+  async function refreshHistory() {
+    try { renderHistory(await api('/api/me/history')); }
+    catch { poll = window.setTimeout(refreshHistory, 10000); }   // keep trying quietly while a run is going
   }
 
   async function finishLogin(q: URLSearchParams) {
@@ -93,11 +156,14 @@ import Base from '../layouts/Base.astro';
       const c = await api('/api/consent');
       consentVersion = c.version;
       $('consent-text').textContent = c.training;
+      historyVersion = c.history_version;
+      $('history-text').textContent = c.history;
       let me = null;
       if (store.get()) {
         try { me = await api('/api/me'); } catch (e: any) { if (e.status === 401) store.clear(); else throw e; }
       }
       render(me);
+      if (me?.lichess) await refreshHistory();
       status('');
     } catch (e: any) {
       render(null);
@@ -111,10 +177,32 @@ import Base from '../layouts/Base.astro';
       render(await api('/api/me/consent', { method: 'PUT', body: JSON.stringify({ training: box.checked, version: consentVersion }) }));
     } catch { box.checked = !box.checked; status("Couldn't save that. Try again."); }
   });
-  $('signout').addEventListener('click', () => { store.clear(); render(null); });
+  $('import').addEventListener('click', async () => {
+    const line = (msg: string) => { $('history-status').textContent = msg; $('history-status').hidden = false; };
+    if (!historyGranted && !($('adult') as HTMLInputElement).checked) {
+      line('Tick the box to confirm you are 18 or older.');
+      return;
+    }
+    try {
+      if (!historyGranted) {
+        render(await api('/api/me/history-consent', { method: 'PUT',
+          body: JSON.stringify({ granted: true, version: historyVersion, adult: true }) }));
+      }
+      renderHistory(await api('/api/me/history/import', { method: 'POST' }));
+    } catch (e: any) { line(detail(e, "Couldn't start the import. Try again.")); }
+  });
+  $('history-withdraw').addEventListener('click', async () => {
+    if (!confirm('Turn off importing and delete every Lichess game Doppel imported for you?')) return;
+    try {
+      render(await api('/api/me/history-consent', { method: 'PUT', body: JSON.stringify({ granted: false }) }));
+      await refreshHistory();
+      status('');
+    } catch { status("Couldn't turn that off. Try again."); }
+  });
+  $('signout').addEventListener('click', () => { clearTimeout(poll); store.clear(); render(null); });
   $('delete').addEventListener('click', async () => {
     if (!confirm('Delete your Doppel account and all its games? This cannot be undone.')) return;
-    try { await api('/api/me', { method: 'DELETE' }); store.clear(); render(null); status('Your account is deleted.'); }
+    try { await api('/api/me', { method: 'DELETE' }); clearTimeout(poll); store.clear(); render(null); status('Your account is deleted.'); }
     catch { status("Couldn't delete the account. Try again."); }
   });
   load();
@@ -129,5 +217,9 @@ import Base from '../layouts/Base.astro';
   .card p { margin: 0 0 20px; }
   .switch { display: flex; align-items: center; gap: 12px; font-weight: 800; cursor: pointer; }
   .switch input { width: 22px; height: 22px; accent-color: var(--green); }
+  .switch input:disabled + span { color: var(--muted); }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+  .card p.line { margin: 16px 0 0; }
+  .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
   [hidden] { display: none !important; }
 </style>

@@ -1,7 +1,9 @@
-"""Sign in with Lichess against a fake lichess.org: PKCE start, callback, token revoke, exchange and merging."""
+"""Sign in with Lichess against a fake lichess.org: PKCE start, callback, kid mode, token revoke, exchange and
+merging. FakeLichess also serves the public games export for test_history.py."""
 
 import base64
 import hashlib
+import json
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -17,8 +19,26 @@ class FakeLichess:
     def __init__(self):
         self.users = {"good": ("ann", "Ann")}   # code -> (id, username)
         self.verifiers, self.revoked, self.live = {}, [], set()
+        self.kids = {}            # lichess id -> kid mode (default False); "error" makes /api/account/kid fail
+        self.kid_calls = []       # tokens seen by /api/account/kid (must still be live)
+        self.games = {}           # lichess id -> list of export game dicts
+        self.export_calls = []    # (path, params, headers) per export request
+        self.statuses = []        # export status codes to answer before serving games (e.g. [429])
+
+    def export(self, req: httpx.Request) -> httpx.Response:
+        q = dict(req.url.params)
+        self.export_calls.append((req.url.path, q, dict(req.headers)))
+        if self.statuses:
+            return httpx.Response(self.statuses.pop(0))
+        uid = req.url.path.rsplit("/", 1)[1]
+        gs = sorted((g for g in self.games.get(uid, []) if g["createdAt"] >= int(q.get("since", 0))),
+                    key=lambda g: -g["createdAt"])[:int(q.get("max", 10**9))]
+        body = "".join(json.dumps(g) + "\n" for g in gs)
+        return httpx.Response(200, text=body, headers={"content-type": "application/x-ndjson"})
 
     def handler(self, req: httpx.Request) -> httpx.Response:
+        if req.method == "GET" and req.url.path.startswith("/api/games/user/"):
+            return self.export(req)
         if req.method == "POST" and req.url.path == "/api/token":
             f = parse_qs(req.content.decode())
             code = f["code"][0]
@@ -33,6 +53,10 @@ class FakeLichess:
         if req.url.path == "/api/account" and tok in self.live:
             uid, name = self.users[tok[4:]]
             return httpx.Response(200, json={"id": uid, "username": name})
+        if req.url.path == "/api/account/kid" and tok in self.live:
+            self.kid_calls.append(tok)
+            kid = self.kids.get(self.users[tok[4:]][0], False)
+            return httpx.Response(500) if kid == "error" else httpx.Response(200, json={"kid": kid})
         if req.method == "DELETE" and req.url.path == "/api/token":
             self.live.discard(tok)
             self.revoked.append(tok)
@@ -59,7 +83,7 @@ def sign_in(c, fake, code="good", client="web"):
     r = c.get("/api/auth/lichess/start", params={"client": client})
     assert r.status_code == 302
     q = parse_qs(urlparse(r.headers["location"]).query, keep_blank_values=True)
-    assert q["scope"] == [""] and q["code_challenge_method"] == ["S256"]
+    assert q["scope"] == ["preference:read"] and q["code_challenge_method"] == ["S256"]
     assert q["redirect_uri"] == ["https://doppel.test/api/auth/lichess/callback"]
     fake.verifiers["challenge"] = q["code_challenge"][0]
     return c.get("/api/auth/lichess/callback", params={"state": q["state"][0], "code": code})
@@ -74,6 +98,7 @@ def test_new_lichess_account_and_token_revoked(env):
     r = sign_in(c, fake)
     assert r.headers["location"].startswith("https://doppel.test/account/?login_code=")
     assert fake.revoked == ["lio_good"] and not fake.live
+    assert fake.kid_calls == ["lio_good"]   # kid mode read with the token, before it was revoked
     x = c.post("/api/auth/lichess/exchange", json={"code": login_code(r)}).json()
     assert x["user"]["lichess"] == {"id": "ann", "username": "Ann"} and x["user"]["display_name"] == "Ann"
     assert c.get("/api/me", headers=auth(x["token"])).json()["id"] == x["user"]["id"]

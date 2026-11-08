@@ -3,10 +3,12 @@
 The server holds the moves, the clocks and the doppel's per-game z; the client sends intents (REST or
 WebSocket) and renders the state it gets back. Bot moves come from backend/infer over HTTP.
 Accounts and consent: accounts.py (anonymous bearer-token accounts, versioned training consent).
+Lichess history import: history.py (consent history-v1, 18+, no kid-mode accounts; public export, one stream at a time).
 Ratings: ratings.py (MAP Bradley-Terry, refit when a rated game ends). Export: export.py (consented only).
 
 Run (repo root): see backend/api/README.md (Stage 0: port 8612, infer on 8614)
-Env: DOPPEL_STATIC (optional dir served at /, e.g. demo/static for the APK), DOPPEL_DB_URL (default sqlite:///data/api.db), DOPPEL_INFER_URL (default http://127.0.0.1:8614)
+Env: DOPPEL_STATIC (optional dir served at /, e.g. demo/static for the APK), DOPPEL_DB_URL (default sqlite:///data/api.db), DOPPEL_INFER_URL (default http://127.0.0.1:8614),
+DOPPEL_HISTORY_MAX_GAMES (default 5000)
 """
 
 from __future__ import annotations
@@ -27,7 +29,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from . import accounts, lichess_login, ratings, rules
+from . import accounts, history, lichess_login, ratings, rules
 from .db import Game, Ply, make_sessionmaker
 
 
@@ -60,14 +62,18 @@ async def lifespan(app: FastAPI):
                                                   timeout=10))
     if not hasattr(app.state, "lichess"):
         app.state.lichess = httpx.AsyncClient(base_url=lichess_login.LICHESS, timeout=10,
-                                              headers={"user-agent": "doppel-api (+https://doppelbot.org)"})
+                                              headers={"user-agent": lichess_login.USER_AGENT})
+    app.state.history = history.Importer(app)   # per lifespan: its lock belongs to this event loop
+    app.state.history.recover()
     yield
+    await app.state.history.close()
 
 
 accounts.install_log_redaction()
 app = FastAPI(title="Doppel API", lifespan=lifespan)
 app.include_router(accounts.router)
 app.include_router(lichess_login.router)
+app.include_router(history.router)
 _locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 _sockets: dict[str, set[WebSocket]] = defaultdict(set)
 _bot_busy: set[str] = set()  # games whose bot turn is in flight
