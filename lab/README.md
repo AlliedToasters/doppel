@@ -25,6 +25,12 @@ filter in front of an exact map. One month of train games takes about a minute o
     cargo build --release --manifest-path lab/poskey/Cargo.toml
     uv run python -m doppel_lab.posbook probe && uv run python -m doppel_lab.posbook run full
     lab/poskey/target/release/poskey count --out DIR [--fpr 0.001] [--band-min 1500 --band-max 1500] FILES...
+    lab/poskey/target/release/poskey count --key prefix ...         # book.py's move-order key (R1) instead
+    lab/poskey/target/release/poskey annotate --out DIR FILES...    # per-ply keys of every game, in order
+    zstd -dc db.pgn.zst | lab/poskey/target/release/poskey pgn --out DIR [--lichess-blitz]   # PGN -> parquet
+
+The explorations built on it (`doppel_lab/posbook_{behave,transpose,personal,otb,months,charts}.py`) write
+`lab/results/posbook_explore.json` (docs/SCIENCE.md §8, Book depth).
 
 ## Render any finished game
 

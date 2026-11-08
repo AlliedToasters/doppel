@@ -106,6 +106,18 @@ def main():
             "y": {"label": "mean book exit", "unit": "ply"}, "source": "online_vs_otb.decades",
             "note": "OTB data: Lumbra's Gigabase OTB (CC BY-NC 4.0), aggregates only; pre-1990 values are upper bounds "
                     "(residual near-duplicates)"}
+    dv = r.get("depth_vs_corpus")
+    if dv:
+        # the largest book's 9 nested levels span N/256 .. N; smaller books' full points lie on the same curve
+        big = max(dv["runs"], key=lambda n: dv["runs"][n]["R0"]["games"])
+        lv = {reg: dv["runs"][big][reg]["levels"][::-1] for reg in ("R0", "R1")}
+        charts["depth_vs_corpus_size"] = {
+            "title": "Book exit vs corpus size (Lichess blitz; 2026-10 heldout eval games)",
+            "x": {"values": [round(x["games"]) for x in lv["R0"]], "label": "games in the book", "unit": "games",
+                  "scale": "log"},
+            "series": {"R0 position key": [x["T1_mean"] for x in lv["R0"]],
+                       "R1 move-order key": [x["T1_mean"] for x in lv["R1"]]},
+            "y": {"label": "mean first unseen ply", "unit": "ply"}, "source": f"depth_vs_corpus.runs.{big}"}
     save_section("charts", charts)
     print(list(charts))
 
