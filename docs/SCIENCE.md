@@ -74,6 +74,8 @@ Costs measured 2026-11-06 with Stockfish 16 (about 2 M nodes/s per core) and the
 | **R1** trajectory | Every ply of this game up to k: the causal transforms of §3.4. A whole-game summary exists for game-level reports only and is never a predictor. | built (analyzer transforms) |
 | **R2** career | Every game by this player that started before this game. | design only |
 
+Book keys come in both regimes: the position (Zobrist) key is R0, the move-order prefix key is R1 (§8, Book depth).
+
 R2 is the only fair baseline for a player-personalized Doppel, since such a Doppel has seen the player's history.
 Our split is player-disjoint (`lab/doppel_lab/split.py`: a player is held out iff `sha1(name) % 5 == 0`), so a
 held-out player's history exists only in the held-out games. R2 therefore needs a within-player time split:
@@ -506,7 +508,31 @@ match or beat on the same splits (§2). Every result here is CPU-only.
 **Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
 prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
 Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
-grows about 0.5 ply per doubling of the corpus. Position (transposition) keys add about 2 plies.
+grows about 0.5 ply per doubling of the corpus. These are R1 features: the move-order key reads the path.
+
+Position book (`lab/poskey`, `doppel_lab/posbook.py`, `lab/results/position_book.json`; same 22.7 M train games
+and 170k heldout games). The key is the Polyglot Zobrist hash of the position (R0), equal to
+`chess.polyglot.zobrist_hash`. The month has 1.03 B distinct positions in the first 80 plies, and 97.5% occur
+once. Counting takes 54 s on 26 threads (430k games/s) at 8.1 GB peak RSS, with a 1.3 GB Bloom filter in front
+of a 26.6 M-key exact table. Merging transpositions adds 2 to 5 plies of book depth, more for stronger players:
+
+| Band | Book exit (R1, move-order key) | Book exit (R0, position key) | Weird (R1) | Weird (R0) |
+|---|---|---|---|---|
+| 800 | 9 | 11 | 6.0% | 6.3% |
+| 1500 | 12 | 15 | 2.5% | 2.7% |
+| 2400 | 13 | 18 | 1.4% | 1.4% |
+
+Book exit is the median ply of the first position never seen in train. The 1M-game subsample's +2 plies was
+the small-corpus end: the gap grows with corpus size, because position depth gains 0.71 ply per doubling
+against 0.51 for move order. The weird-move rate barely changes. Weird (R0) is a move chosen by < 1% of the
+≥ 100 train visits to the parent position. So transpositions lengthen the book but don't make played moves
+look more expected. R1 residual: 3.7% of plies at a common position (≥ 100 by position key) have a rare
+move-order prefix (< 2). That is an unusual route to a common position. It rises with rating, from 2.3% at 800
+to 4.4% at 2400, and 17% of games do it at least once.
+
+The Bloom filter never undercounts. On 1M games, against an exact count, 0.035% of repeated positions read one
+too high. At 1% FPR, though, 6.3% of table entries are true singletons stored at count 2, against 0.5% at 0.1%
+FPR, which costs 2.0 GB instead of 1.3 GB for the month. Use 0.1% for tables that will ship.
 
 Band-specific books (`doppel_lab/bandbook.py`, `lab/results/bandbook.json`): six rating groups, each with its own
 book of 350k train games, scoring 10k held-out games of every group. Every group stays in book longest, and
