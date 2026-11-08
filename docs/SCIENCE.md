@@ -541,7 +541,7 @@ position*, the one the mover faces. Train games are scored against the train boo
 *Popularity predicts behaviour, and the position key (R0) predicts it better than the move-order key (R1)*
 (`posbook_behave.py`). At plies 8–20 in the 1500 band (100k train games, 5.2 M moves), think time falls from
 4.4 s in a position no other train game reached to 1.8 s in one reached by 65k–262k games. The blunder rate falls
-from 6.7% to 0.5%. Maia-3 top-1 stays flat at 51–54%. Controlling for ply × rating × clock × time control
+from 6.7% to 0.5%. Maia-3 top-1 stays flat at 48–54%. Controlling for ply × rating × clock × time control
 cells, the position count's share of within-cell variance (partial R²) is:
 
 | Target (1500 band, train) | R0 alone | R1 alone | Both | R0 effect, count 0 vs ≥ 262k (both in) |
@@ -553,9 +553,8 @@ cells, the position count's share of within-cell variance (partial R²) is:
 
 Per-move behaviour is noisy, so all the R² are small. The comparison is what counts. For think time and
 blunders, R0 explains 2× and 6× what R1 does. Adding R1 to R0 raises the R² by a quarter; adding R0 to R1 more
-than doubles it. The heldout eval games give the
-same ordering in every band (`behaviour_bands`). For think time, R0's partial R² is 1.4× R1's at 800 and 1.5–2.3× from
-1200 to 2400. It grows with rating, from 0.06% at 800 to 0.59% at 2400. Strong players' think time tracks
+than doubles it. The heldout eval games give the same ordering in every band (`behaviour_bands`). For think
+time, R0's partial R² is 1.4× R1's at 800 and 1.5–2.3× from 1200 to 2400. It grows with rating, from 0.06% at 800 to 0.59% at 2400. Strong players' think time tracks
 popularity more: at plies 8–20 the think share of the clock falls 4.4-fold from rare to common positions at
 2400, against 2.3-fold at 800.
 
@@ -570,10 +569,9 @@ position. When the two keys exit together (26k games), think time jumps from 3.5
 the position exit comes at least 4 plies after the move-order exit (35k transposed games), the move-order exit
 brings a small bump, 2.5 s → 3.3 s, and then think time drops back to 3.0 s. At the later position exit it
 jumps 3.7 s → 5.3 s and stays near 4.8 s. **A Doppel should key its book features, and the think-time head's
-book input, by position (R0).** For the weird-move rate the two keys give
-the same answer (table above).
+book input, by position (R0).** For the weird-move rate the two keys give the same answer (table above).
 
-Self-agreement (`noise_floor` method, R0 key, heldout 3+0, plies 6–29, 3.3 M repeated (player, position)
+Self-agreement (`noise_floor.py`'s method, R0 key, heldout 3+0, plies 6–29, 3.3 M repeated (player, position)
 pairs) rises with popularity. When the same player reaches the same position again, they repeat their move 70.5%
 of the time in positions with < 2 train games and 87.1% in positions with ≥ 262k. Two different players at the
 same positions agree 31–42%, and that rate falls slightly with popularity, because popular positions are branch
@@ -641,14 +639,14 @@ plies; 605k games) leaves 12.65 M. After that, 1.5% still share the ply-60 posit
 near-duplicates and deep theory. Pre-1990 depths are upper bounds.
 
 The probe is 253k OTB games (a 2% hash sample, not in the book) plus the Lichess eval games. At equal book size
-(12.4 M games, R0):
+(12.4 M games, R0), the mean book exit in plies is:
 
 | Games | in the Lichess book | in the OTB book |
 |---|---|---|
 | Lichess 2026-10 blitz | 14.4 (median 14) | 12.9 (12) |
 | OTB | 17.7 (17) | 21.9 (21) |
 
-Mean book exit, ply. OTB games stay in book longer even in the online book. They also gain more per doubling of
+OTB games stay in book longer even in the online book. They also gain more per doubling of
 their own book: 1.02 plies, against 0.71 for Lichess games in theirs. By ply 16 (full books), 74% of OTB positions
 occur in the Lichess book, while only 33% of Lichess positions occur in the OTB book (48% in their own).
 
