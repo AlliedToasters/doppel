@@ -674,6 +674,24 @@ bounds, mostly elite games) and 15.9–16.2 from the 1990s to the 2020s. Lichess
 OTB book a little longer the more recent it is: 8.1 plies (1970s) → 8.9 (1990s) → 9.3 (2020s). Online openings
 are closest to current OTB practice.
 
+*Depth vs corpus size* (`posbook_months.py`; probe: the 2026-10 heldout eval games). The base book is the
+2026-10 train games. It grows by the 2026-10 heldout games (minus every eval game), then by the head of
+September 2026. That head is the month's first 30 M games, streamed from the Lichess database through `poskey pgn
+--lichess-blitz` with nothing raw on disk. Of those, 12.5 M pass corpus.py's filter and 8.0 M remain after
+dropping games with a held-out player. The full download
+ran at 1–4 MB/s, so the rest of the month was skipped. R1 counts come from `poskey count --key prefix`, which
+reproduces book.py's exit exactly (12.013 plies at 22.7 M).
+
+| Book (games) | 22.7 M | 35.2 M | 43.2 M |
+|---|---|---|---|
+| R0 mean book exit (800 / 1500 / 2400) | 15.00 (11.4 / 14.7 / 17.7) | 15.49 | 15.70 (11.8 / 15.4 / 18.7) |
+| R1 mean book exit | 12.01 | 12.40 | 12.55 |
+
+Depth does not saturate. Over the largest book's nested subsamples, 169k to 43 M games, R0 gains 0.70–0.72 plies
+per doubling in every range and R1 0.50–0.51. Across the three full books the gain is 0.76 and 0.58. That is
+slightly higher, because the heldout increment holds the probe players' own other games. At this rate, one more
+ply of R0 book costs about 2.6× the games.
+
 *Client lookups.* dartchess 0.14 (the client's chess library) has `Position.zobristHash()`, ported from shakmaty
 with Polyglot tables. It matches python-chess and poskey only with `mode: EnPassantMode.pseudoLegal`; the default
 is `legal`, which differs when the en passant capture is pinned. The hash is a signed Dart `int` holding the

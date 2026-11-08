@@ -122,7 +122,12 @@ def analyze():
             m = (x >= lo) & (x < hi)
             if m.sum() >= 2 and np.ptp(x[m]) > 0.5:
                 segs[f"2^{lo}-2^{hi}"] = float(np.polyfit(x[m], y[m], 1)[0])
+        full = sorted((np.log2(per_run[n][reg]["games"]), per_run[n][reg]["levels"][0]["T1_mean"])
+                      for n in per_run if reg in per_run[n])
+        if len(full) >= 2:
+            segs["full_books"] = float(np.polyfit([a for a, _ in full], [b for _, b in full], 1)[0])
         out[f"{reg}_plies_per_doubling"] = segs
+        out[f"{reg}_full_books"] = [{"games": 2 ** a, "T1_mean": b} for a, b in full]
         out[f"{reg}_curve"] = {"log2_games": x.tolist(), "T1_mean": y.tolist()}
     print(json.dumps({k: v for k, v in out.items() if "plies_per" in k}, indent=1))
     save_section("depth_vs_corpus", out)
