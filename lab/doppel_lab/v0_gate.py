@@ -113,10 +113,13 @@ def selfplay(args):
     device = "cuda" if args.gpu_ok else "cpu"
     if args.fake_trunk and args.gpu_ok:
         sys.exit("--fake-trunk is a CPU smoke test")
-    model = build(args.fake_trunk, device)
     ck = V0 / "runs" / args.run / "ckpt.pt"
-    if ck.exists():
-        model.load_state_dict(torch.load(ck, map_location=device, weights_only=False)["model"], strict=False)
+    state = torch.load(ck, map_location=device, weights_only=False) if ck.exists() else None
+    if (state and state.get("args", {}).get("arch") == "v0e") or args.arch == "v0e":
+        from doppel_lab.v0e_train import build    # same prior / residual interface; z from the prior, as v0d
+    model = build(args.fake_trunk, device)
+    if state is not None:
+        model.load_state_dict(state["model"], strict=False)
     elif not args.fake_trunk:
         sys.exit(f"no checkpoint at {ck}")
     eng = Doppel(model, device)
@@ -237,7 +240,10 @@ def eval_checks(ev: dict | None, free_bits: float) -> dict:
     if ev is None:
         pend = {"status": "pending", "missing": ["v0 eval json"]}
         return {"z_used": pend, "accuracy": pend, "think": pend}
+    # v0e reports the KL per target game (k > 0 context games) under the same key, plus its breakdown by k
     zu = {"active_units": ev["active_units"], "kl_nats_per_half": ev["kl_nats_per_half"], "free_bits": free_bits}
+    if "kl_nats_by_k" in ev:
+        zu["kl_nats_by_k"] = ev["kl_nats_by_k"]
     parts = {"active_units": ev["active_units"] >= MIN_ACTIVE,
              "kl": ev["kl_nats_per_half"] >= free_bits + KL_MARGIN}
     if "z_swap_gain_nats" in ev:
@@ -294,6 +300,7 @@ if __name__ == "__main__":
     sp.add_argument("--out", default=None)
     sp.add_argument("--gpu-ok", action="store_true")
     sp.add_argument("--fake-trunk", action="store_true")
+    sp.add_argument("--arch", default="", help="v0e to build a v0e model without a checkpoint (CPU smoke)")
     a = ap.parse_args()
     if a.cmd == "selfplay":
         selfplay(a)
