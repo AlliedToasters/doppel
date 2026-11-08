@@ -15,6 +15,10 @@
 //!
 //!     poskey keys < lines            # "FEN|uci uci ..." per line (empty FEN = start) -> hex keys per line
 //!     poskey count --out DIR [--probe eval.parquet] train/*.parquet
+//!     poskey annotate --out DIR files.parquet ...   # per-ply keys of every game, in file and row order
+//!     zstd -dc db.pgn.zst | poskey pgn --out DIR    # PGN -> moves-only parquet parts (see pgn.rs)
+
+mod pgn;
 
 use std::fs::File;
 use std::io::{self, BufRead, BufWriter, Write};
@@ -406,6 +410,53 @@ enum Cmd {
         probe: Option<PathBuf>,
         files: Vec<PathBuf>,
     },
+    /// Per-ply position keys of every game (after each ply, up to --cap), in file and row order:
+    /// DIR/keys.npy (uint64, flat) and DIR/lens.npy (int64 plies per game)
+    Annotate {
+        #[arg(long)]
+        out: PathBuf,
+        #[arg(long, default_value_t = 80)]
+        cap: usize,
+        #[arg(long, default_value_t = 16)]
+        threads: usize,
+        files: Vec<PathBuf>,
+    },
+    /// PGN on stdin -> DIR/part-XXXX.parquet (moves as UCI up to --cap, Elo, band, year, ECO, ...)
+    Pgn {
+        #[arg(long)]
+        out: PathBuf,
+        #[arg(long, default_value_t = 80)]
+        cap: usize,
+        #[arg(long, default_value_t = 1_000_000)]
+        per_file: usize,
+        #[arg(long, default_value_t = 16)]
+        threads: usize,
+    },
+}
+
+fn annotate_cmd(out: &Path, cap: usize, files: &[PathBuf]) -> io::Result<()> {
+    let t0 = Instant::now();
+    std::fs::create_dir_all(out)?;
+    let (mut keys, mut lens): (Vec<u64>, Vec<i64>) = (Vec::new(), Vec::new());
+    for path in files {
+        read_parquet(path, false, |b| {
+            let per: Vec<Vec<u64>> = (0..b.len())
+                .into_par_iter()
+                .map(|i| {
+                    let mut v = Vec::with_capacity(cap);
+                    replay(b.moves(i), cap, |_, k, _| v.push(k));
+                    v
+                })
+                .collect();
+            for v in per {
+                lens.push(v.len() as i64);
+                keys.extend_from_slice(&v);
+            }
+        })?;
+        eprintln!("{}: {} games, {} keys, {:.0}s", path.display(), lens.len(), keys.len(), t0.elapsed().as_secs_f64());
+    }
+    write_npy(&out.join("keys.npy"), "<u8", &[keys.len()], &keys)?;
+    write_npy(&out.join("lens.npy"), "<i8", &[lens.len()], &lens)
 }
 
 fn keys_cmd(ep: &str) -> io::Result<()> {
@@ -583,6 +634,14 @@ fn main() -> io::Result<()> {
             assert!(cap <= 255, "cap must fit in u8");
             rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
             count_cmd(&out, fpr, expected, exact, cap, (band_min, band_max), probe.as_deref(), &files)
+        }
+        Cmd::Annotate { out, cap, threads, files } => {
+            rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
+            annotate_cmd(&out, cap, &files)
+        }
+        Cmd::Pgn { out, cap, per_file, threads } => {
+            rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
+            pgn::pgn_cmd(&out, cap, per_file)
         }
     }
 }
