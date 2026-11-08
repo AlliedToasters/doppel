@@ -1,0 +1,80 @@
+---
+import '@fontsource-variable/nunito';
+import { GITHUB, LICHESS } from '../links';
+
+interface Props { title: string; description?: string }
+const { title, description = 'Chess opponents that play like people.' } = Astro.props;
+
+
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content="Doppel" />
+    <meta property="og:description" content={description} />
+    <link rel="icon" type="image/png" href="/pieces/wN.png" />
+    <meta name="theme-color" content="#1A2329" />
+  </head>
+  <body>
+    <header class="wrap nav">
+      <a class="brand" href="/"><img src="/pieces/wN.png" alt="" width="36" height="36" />Doppel</a>
+      <nav>
+        <a class="navlink" href="/account/">Account</a>
+        <a class="navlink" href={GITHUB}>GitHub</a>
+      </nav>
+    </header>
+    <slot />
+    <footer class="wrap foot">
+      <span>© 2026 Doppel</span>
+      <a href={GITHUB}>Source</a>
+      <a href={LICHESS}>Lichess</a>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg: #1a2329;
+    --panel: #232f36;
+    --line: #2c3840;
+    --ink: #f3f1ea;
+    --muted: #a8b3ba;
+    --green: #34d399;
+    --red: #f43f5e;
+    --gold: #ffc53d;
+    --sq-l: #e9e4d4;
+    --sq-d: #5aa9a1;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: clip; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Nunito Variable', system-ui, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  .nav { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .nav nav { display: flex; gap: 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.5rem; text-decoration: none; }
+  .navlink { color: var(--muted); text-decoration: none; font-weight: 700; }
+  .navlink:hover { color: var(--ink); }
+  .btn { display: inline-block; padding: 14px 22px; border-radius: 16px; font-weight: 900; text-decoration: none; border: 0; font: inherit; font-weight: 900; cursor: pointer; transition: transform 80ms ease, box-shadow 80ms ease; }
+  .btn.primary { background: var(--green); color: #0f1418; box-shadow: 0 5px 0 #1f9d72; }
+  .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 0 #1f9d72; }
+  .btn.primary:active { transform: translateY(5px); box-shadow: 0 0 0 #1f9d72; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); box-shadow: 0 5px 0 var(--line); }
+  .btn.ghost:active { transform: translateY(5px); box-shadow: none; }
+  .btn.danger { background: transparent; color: var(--red); border: 2px solid #f43f5e55; }
+  .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .foot { display: flex; gap: 20px; border-top: 2px solid var(--line); padding-top: 24px; padding-bottom: 40px; color: var(--muted); font-size: 0.9rem; }
+  .foot span { margin-right: auto; }
+  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>

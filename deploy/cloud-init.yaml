@@ -1,0 +1,26 @@
+#cloud-config
+# Hetzner VM bootstrap (Ubuntu 24.04): docker, a deploy user with the SSH key, firewall, no password logins,
+# automatic security updates. provision.sh substitutes SSH_KEY.
+users:
+  - name: doppel
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys: ["SSH_KEY"]
+package_update: true
+package_upgrade: true
+packages: [docker.io, docker-compose-v2, docker-buildx, ufw, unattended-upgrades, rsync]
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-doppel.conf
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+runcmd:
+  - usermod -aG docker doppel
+  - systemctl enable --now docker
+  - ufw default deny incoming
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 443/udp
+  - ufw --force enable
+  - systemctl restart ssh

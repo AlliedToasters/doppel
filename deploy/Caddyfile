@@ -1,4 +1,9 @@
-# Cloudflare proxies in front (SSL mode Full (strict)); Caddy gets its own Let's Encrypt cert over HTTP-01.
+# Cloudflare proxies in front (SSL mode Full (strict)). Caddy gets Let's Encrypt certs over DNS-01 with the
+# Cloudflare token (CF_API_TOKEN, Zone.DNS edit on this zone). A local test (DOMAIN=localhost) uses Caddy's own CA.
+{
+	acme_dns cloudflare {env.CF_API_TOKEN}
+}
+
 www.{$DOMAIN} {
 	redir https://{$DOMAIN}{uri} permanent
 }
@@ -15,12 +20,6 @@ www.{$DOMAIN} {
 	handle /api/* {
 		reverse_proxy api:8612
 	}
-	handle_path /play/* {
-		root * /srv/play
-		try_files {path} /index.html
-		file_server
-	}
-	redir /play /play/
 	handle {
 		root * /srv/site
 		file_server

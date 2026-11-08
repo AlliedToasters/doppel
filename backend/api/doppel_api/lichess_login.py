@@ -8,7 +8,7 @@ The callback exchanges the code for a Lichess token, reads GET /api/account once
 the token straight away, so the backend never holds a Lichess token. This is separate from the client's own
 board:play login, which stays on the device (the Lichess hard boundary in ARCHITECTURE.md).
 
-The browser then goes to the client with a one-time login code (web: {DOPPEL_PUBLIC_URL}/play/?login_code=...,
+The browser then goes to the client with a one-time login code (web: {DOPPEL_PUBLIC_URL}/account/?login_code=...,
 app: app.doppelchess.doppel://doppel-login?login_code=...); the client posts it to /exchange, sending its current
 anonymous token if it has one:
   - Lichess id new, no token or an anonymous token: the account gets the Lichess id (an anonymous account keeps
@@ -54,7 +54,7 @@ def redirect_uri() -> str:
 
 
 def _target(client: str) -> str:
-    return APP_TARGET if client == "app" else f"{public_url()}/play/"
+    return APP_TARGET if client == "app" else f"{public_url()}/account/"
 
 
 def _back(client: str, **q) -> RedirectResponse:

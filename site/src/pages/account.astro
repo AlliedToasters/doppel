@@ -1,0 +1,133 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Account · Doppel" description="Your Doppel account: sign in with Lichess, training consent, delete your data.">
+  <main class="wrap acct">
+    <h1>Your account</h1>
+    <p id="status" class="muted" role="status">Loading…</p>
+
+    <section id="signedout" class="card" hidden>
+      <h2>Sign in with Lichess</h2>
+      <p class="muted">
+        Doppel asks Lichess who you are once, then gives up access: we can't read your games, messages or email,
+        and can't play for you.
+      </p>
+      <a class="btn primary" href="/api/auth/lichess/start?client=web">Sign in with Lichess</a>
+    </section>
+
+    <section id="signedin" hidden>
+      <div class="card">
+        <h2 id="who"></h2>
+        <p id="stats" class="muted"></p>
+        <button id="signout" class="btn ghost" type="button">Sign out on this browser</button>
+      </div>
+
+      <div class="card">
+        <h2>Help train doppels</h2>
+        <p id="consent-text" class="muted"></p>
+        <label class="switch">
+          <input id="consent" type="checkbox" />
+          <span>Use my games here for training</span>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Delete account</h2>
+        <p class="muted">Removes your account, every game you played here, your rating and your consent records.
+          Games already in a training export are deleted from it at the next export.</p>
+        <button id="delete" class="btn danger" type="button">Delete my account</button>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<script>
+  const KEY = 'doppel_token';
+  const $ = (id: string) => document.getElementById(id)!;
+  const store = {
+    get: () => { try { return localStorage.getItem(KEY); } catch { return null; } },
+    set: (t: string) => { try { localStorage.setItem(KEY, t); } catch {} },
+    clear: () => { try { localStorage.removeItem(KEY); } catch {} },
+  };
+  const auth = (): Record<string, string> => {
+    const t = store.get();
+    return t ? { authorization: `Bearer ${t}` } : {};
+  };
+  const status = (msg: string) => { $('status').textContent = msg; $('status').hidden = !msg; };
+
+  async function api(path: string, init: RequestInit = {}) {
+    const r = await fetch(path, { ...init, headers: { 'content-type': 'application/json', ...auth(), ...(init.headers || {}) } });
+    if (!r.ok) throw Object.assign(new Error(`${r.status}`), { status: r.status, body: await r.text() });
+    return r.json();
+  }
+
+  let consentVersion = '';
+
+  function render(me: any | null) {
+    $('signedout').hidden = !!me?.lichess;
+    $('signedin').hidden = !me?.lichess;
+    if (!me?.lichess) return;
+    $('who').textContent = `Signed in as ${me.lichess.username}`;
+    const r = me.rating ? ` · rating ${Math.round(me.rating.rating)} ± ${Math.round(me.rating.rd)}` : '';
+    $('stats').textContent = `${me.games} game${me.games === 1 ? '' : 's'} played here${r}`;
+    ($('consent') as HTMLInputElement).checked = me.consent.training;
+  }
+
+  async function finishLogin(q: URLSearchParams) {
+    history.replaceState(null, '', location.pathname);   // the login code is single use; drop it from the URL
+    if (q.get('login_error')) throw new Error(`Lichess sign-in didn't complete (${q.get('login_error')}).`);
+    try {
+      const d = await api('/api/auth/lichess/exchange', { method: 'POST', body: JSON.stringify({ code: q.get('login_code') }) });
+      store.set(d.token);
+    } catch (e: any) {
+      if (e.status === 409) throw new Error('This browser is signed in to a different Lichess account. Sign out first.');
+      throw new Error('That sign-in link expired. Try again.');
+    }
+  }
+
+  async function load() {
+    const q = new URLSearchParams(location.search);
+    try {
+      if (q.has('login_code') || q.has('login_error')) await finishLogin(q);
+      const c = await api('/api/consent');
+      consentVersion = c.version;
+      $('consent-text').textContent = c.training;
+      let me = null;
+      if (store.get()) {
+        try { me = await api('/api/me'); } catch (e: any) { if (e.status === 401) store.clear(); else throw e; }
+      }
+      render(me);
+      status('');
+    } catch (e: any) {
+      render(null);
+      status(e.message?.match(/^\d+$/) ? "Couldn't reach Doppel. Try again in a minute." : e.message);
+    }
+  }
+
+  $('consent').addEventListener('change', async (ev) => {
+    const box = ev.target as HTMLInputElement;
+    try {
+      render(await api('/api/me/consent', { method: 'PUT', body: JSON.stringify({ training: box.checked, version: consentVersion }) }));
+    } catch { box.checked = !box.checked; status("Couldn't save that. Try again."); }
+  });
+  $('signout').addEventListener('click', () => { store.clear(); render(null); });
+  $('delete').addEventListener('click', async () => {
+    if (!confirm('Delete your Doppel account and all its games? This cannot be undone.')) return;
+    try { await api('/api/me', { method: 'DELETE' }); store.clear(); render(null); status('Your account is deleted.'); }
+    catch { status("Couldn't delete the account. Try again."); }
+  });
+  load();
+</script>
+
+<style>
+  .acct { max-width: 640px; padding-bottom: 72px; }
+  h1 { font-size: 2.4rem; font-weight: 900; margin: 24px 0 8px; }
+  h2 { font-size: 1.25rem; font-weight: 900; margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .card { background: var(--panel); border: 2px solid var(--line); border-radius: 20px; padding: 24px; margin-top: 20px; }
+  .card p { margin: 0 0 20px; }
+  .switch { display: flex; align-items: center; gap: 12px; font-weight: 800; cursor: pointer; }
+  .switch input { width: 22px; height: 22px; accent-color: var(--green); }
+  [hidden] { display: none !important; }
+</style>

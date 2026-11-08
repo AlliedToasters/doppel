@@ -72,7 +72,7 @@ def login_code(r):
 def test_new_lichess_account_and_token_revoked(env):
     c, fake = env
     r = sign_in(c, fake)
-    assert r.headers["location"].startswith("https://doppel.test/play/?login_code=")
+    assert r.headers["location"].startswith("https://doppel.test/account/?login_code=")
     assert fake.revoked == ["lio_good"] and not fake.live
     x = c.post("/api/auth/lichess/exchange", json={"code": login_code(r)}).json()
     assert x["user"]["lichess"] == {"id": "ann", "username": "Ann"} and x["user"]["display_name"] == "Ann"
@@ -93,7 +93,7 @@ def test_app_client_and_errors_redirect_back(env):
     r = sign_in(c, fake, client="app")
     assert r.headers["location"].startswith("app.doppelchess.doppel://doppel-login?login_code=")
     r = sign_in(c, fake, code="bad")
-    assert r.headers["location"] == "https://doppel.test/play/?login_error=lichess"
+    assert r.headers["location"] == "https://doppel.test/account/?login_error=lichess"
 
 
 def test_anonymous_account_gets_linked_and_keeps_games(env):

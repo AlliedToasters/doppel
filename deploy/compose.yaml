@@ -1,15 +1,15 @@
 # Stage 1: one cloud CPU VM. `docker compose up -d --build` from deploy/ (copy .env.example to .env first).
 services:
   caddy:
-    image: caddy:2.10
+    build: {context: ., dockerfile: caddy.Dockerfile}
     restart: unless-stopped
     ports: ["80:80", "443:443", "443:443/udp"]
     environment:
       DOMAIN: ${DOMAIN}
+      CF_API_TOKEN: ${CF_API_TOKEN:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../site/dist:/srv/site:ro          # Astro landing page (npm run build in site/)
-      - ../client/build/web:/srv/play:ro   # Flutter web build (flutter build web --base-href /play/)
       - caddy_data:/data
       - caddy_config:/config
     depends_on: [api]
@@ -22,7 +22,7 @@ services:
       DOPPEL_INFER_URL: http://infer:8614
       DOPPEL_DB_URL: postgresql+psycopg://doppel:${POSTGRES_PASSWORD}@db:5432/doppel
       DOPPEL_REQUIRE_AUTH: "1"
-      DOPPEL_PUBLIC_URL: https://${DOMAIN}
+      DOPPEL_PUBLIC_URL: ${PUBLIC_URL:-https://${DOMAIN}}
     depends_on:
       db: {condition: service_healthy}
       infer: {condition: service_started}

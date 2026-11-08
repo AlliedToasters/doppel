@@ -6,34 +6,28 @@ with `lichess_bot` optional. Domain: doppelbot.org.
 | Path | Served by |
 |---|---|
 | `/` | `site/` (Astro landing page), static |
-| `/play/` | `client/` Flutter web build, static |
+| `/account/` | part of `site/`: sign in with Lichess, training consent, delete account |
 | `/api/*` | `backend/api` (REST + WebSocket); it calls `infer` on the internal network |
 
-## Build the static parts (on bigbox)
+## Ship
 
-    (cd site && npm ci && npm run build)                          # -> site/dist
-    (cd client && flutter build web --base-href /play/ --dart-define=BACKEND_URL=https://doppelbot.org)
+    deploy/provision.sh   # once: Hetzner VM (ccx23, fsn1) + firewall + Cloudflare DNS and TLS Full (strict)
+    deploy/ship.sh        # every release: builds site/, copies HEAD + Maia-3 packages, docker compose up
 
-## On the VM
+Tokens live outside git in `~/.config/doppel/`: `hcloud.token` (Hetzner, Read & Write) and `cloudflare.token`
+(Zone.DNS edit + Zone.Zone Settings edit on doppelbot.org). `provision.sh` writes `deploy.env` (the VM's IP).
+Caddy gets certificates over DNS-01 with the Cloudflare token, so it works behind the proxy.
 
-    cp .env.example .env                  # set POSTGRES_PASSWORD
-    rsync models/ <vm>:doppel/models/     # Maia-3 packages only; ChessMimic is never deployed
-    docker compose up -d --build
-
-`DOPPEL_REQUIRE_AUTH=1`: every game needs an account token.
+`/play/` (Flutter web) is not served: dartchess uses 64-bit integer literals, which dart2js rejects, and
+`flutter build web --wasm` still builds the JS fallback.
 
 The Lichess bot is off by default because only one host may run the doppelbot account at a time. To move it,
 stop `doppel-lichess-bot` on bigbox, put the token in `deploy/secrets/lichess_bot.token`, then run
 `docker compose --profile bot up -d`.
 
-## Cloudflare
-
-Proxied A/AAAA records for `@` and `www` point at the VM. Set SSL mode to Full (strict). Caddy gets its own
-Let's Encrypt certificate over HTTP-01; Cloudflare passes `/.well-known/acme-challenge/` through.
-
 ## Local smoke test
 
-    DOMAIN=localhost docker compose -p doppeltest -f compose.yaml -f <override mapping 127.0.0.1:18443:443> up -d
+    DOMAIN=localhost PUBLIC_URL=https://localhost:18443 CF_API_TOKEN=<any 40 chars> docker compose -p doppeltest -f compose.yaml -f <override mapping 127.0.0.1:18443:443> up -d
 
-Checked 2026-11-07: `/`, `/play/`, `/api/bots` and a 404 page all serve, `www` redirects, unauthenticated
+Checked 2026-11-07: `/`, `/account/`, `/api/bots` and a 404 page all serve, `/account/` signs in from a login code, `www` redirects, unauthenticated
 games get 401, and a game with a token plays e2e4 e7e5 against Postgres.
