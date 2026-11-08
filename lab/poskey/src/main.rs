@@ -76,7 +76,29 @@ fn edge_key(parent: u64, uci: &[u8]) -> u64 {
     splitmix(parent ^ splitmix(fnv(uci)))
 }
 
-/// Replay up to `cap` UCI moves from the start position; f(ply, position key, edge key) after each.
+/// Key mode: false = Polyglot position key (R0), true = book.py's move-order prefix key (R1).
+static PREFIX: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// book.py `prefix_hashes`: h0 = 0x9E3779B97F4A7C15, h = mix(h ^ (id + 1)), id = from*64 + to + 4096*promo.
+#[inline]
+fn prefix_step(h: u64, uci: &[u8]) -> u64 {
+    let sq = |f: u8, r: u8| (f.wrapping_sub(b'a') as u64) + 8 * (r.wrapping_sub(b'1') as u64);
+    let promo = match uci.get(4) {
+        Some(b'q') => 1,
+        Some(b'r') => 2,
+        Some(b'b') => 3,
+        Some(b'n') => 4,
+        _ => 0,
+    };
+    let id = sq(uci[0], uci[1]) * 64 + sq(uci[2], uci[3]) + 4096 * promo;
+    let mut x = h ^ (id + 1);
+    x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    x = (x ^ (x >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    x ^ (x >> 31)
+}
+
+/// Replay up to `cap` UCI moves from the start position; f(ply, key, edge key) after each, where key is the
+/// position key or (with --key prefix) the move-order prefix key.
 /// Stops at the first unparsable or illegal move. Returns plies replayed.
 fn replay<'a, I, F>(moves: I, cap: usize, mut f: F) -> usize
 where
@@ -85,13 +107,21 @@ where
 {
     let mut pos = Chess::default();
     let mut parent = poly(&pos, EnPassantMode::PseudoLegal);
+    let prefix = PREFIX.load(Relaxed);
+    let mut h = 0x9E37_79B9_7F4A_7C15u64;
     let mut n = 0;
     for (i, mv) in moves.take(cap).enumerate() {
         let Ok(u) = UciMove::from_ascii(mv) else { break };
         let Ok(m) = u.to_move(&pos) else { break };
         pos.play_unchecked(&m);
         let k = poly(&pos, EnPassantMode::PseudoLegal);
-        f(i, k, edge_key(parent, mv));
+        let e = edge_key(parent, mv);
+        if prefix {
+            h = prefix_step(h, mv);
+            f(i, h, e);
+        } else {
+            f(i, k, e);
+        }
         parent = k;
         n = i + 1;
     }
@@ -408,6 +438,9 @@ enum Cmd {
         /// evaluation games (parquet with `moves`): exact per-ply counts at every subsample level
         #[arg(long)]
         probe: Option<PathBuf>,
+        /// key: position (Polyglot, R0) or prefix (book.py move-order prefix, R1)
+        #[arg(long, default_value = "position")]
+        key: String,
         files: Vec<PathBuf>,
     },
     /// Per-ply position keys of every game (after each ply, up to --cap), in file and row order:
@@ -431,6 +464,9 @@ enum Cmd {
         per_file: usize,
         #[arg(long, default_value_t = 16)]
         threads: usize,
+        /// keep only games corpus.py keeps: Rated Blitz, no BOT, Normal / Time forfeit, both Elo 600-2800, clocks
+        #[arg(long)]
+        lichess_blitz: bool,
     },
 }
 
@@ -630,8 +666,10 @@ fn main() -> io::Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
         Cmd::Keys { ep } => keys_cmd(&ep),
-        Cmd::Count { out, fpr, expected, exact, cap, threads, band_min, band_max, probe, files } => {
+        Cmd::Count { out, fpr, expected, exact, cap, threads, band_min, band_max, probe, key, files } => {
             assert!(cap <= 255, "cap must fit in u8");
+            assert!(key == "position" || key == "prefix", "--key position|prefix");
+            PREFIX.store(key == "prefix", Relaxed);
             rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
             count_cmd(&out, fpr, expected, exact, cap, (band_min, band_max), probe.as_deref(), &files)
         }
@@ -639,9 +677,9 @@ fn main() -> io::Result<()> {
             rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
             annotate_cmd(&out, cap, &files)
         }
-        Cmd::Pgn { out, cap, per_file, threads } => {
+        Cmd::Pgn { out, cap, per_file, threads, lichess_blitz } => {
             rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
-            pgn::pgn_cmd(&out, cap, per_file)
+            pgn::pgn_cmd(&out, cap, per_file, lichess_blitz)
         }
     }
 }

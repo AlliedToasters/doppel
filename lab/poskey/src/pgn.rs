@@ -134,6 +134,20 @@ fn replay_san(movetext: &str, cap: usize) -> (Vec<String>, i64) {
     (moves, 0)
 }
 
+/// corpus.py `keep`: rated blitz, no BOT account, Termination Normal or Time forfeit, both Elo in 600-2800,
+/// moves carrying [%clk].
+fn lichess_blitz(g: &RawGame) -> bool {
+    let h = |k: &str| g.headers.iter().find(|(t, _)| t == k).map(|(_, v)| v.as_str());
+    let elo_ok = |k: &str| h(k).and_then(|s| s.parse::<i64>().ok()).is_some_and(|e| (600..=2800).contains(&e));
+    h("Event") == Some("Rated Blitz game")
+        && h("WhiteTitle") != Some("BOT")
+        && h("BlackTitle") != Some("BOT")
+        && matches!(h("Termination"), Some("Normal") | Some("Time forfeit"))
+        && elo_ok("WhiteElo")
+        && elo_ok("BlackElo")
+        && g.movetext.contains("%clk")
+}
+
 fn to_row(g: &RawGame, cap: usize) -> Row {
     let h = |k: &str| g.headers.iter().find(|(t, _)| t == k).map(|(_, v)| v.as_str());
     let (moves, stop) = replay_san(&g.movetext, cap);
@@ -210,7 +224,7 @@ fn write_part(path: &Path, rows: &[Row], first_id: u64) -> io::Result<()> {
     Ok(())
 }
 
-pub fn pgn_cmd(out: &Path, cap: usize, per_file: usize) -> io::Result<()> {
+pub fn pgn_cmd(out: &Path, cap: usize, per_file: usize, blitz_only: bool) -> io::Result<()> {
     std::fs::create_dir_all(out)?;
     let t0 = std::time::Instant::now();
     let stdin = io::stdin();
@@ -222,9 +236,14 @@ pub fn pgn_cmd(out: &Path, cap: usize, per_file: usize) -> io::Result<()> {
         if games.is_empty() {
             return Ok(());
         }
-        let rows: Vec<Row> = games.par_iter().map(|g| to_row(g, cap)).collect();
+        let rows: Vec<Row> =
+            games.par_iter().filter(|g| !blitz_only || lichess_blitz(g)).map(|g| to_row(g, cap)).collect();
         for r in &rows {
             stops[r.stop as usize] += 1;
+        }
+        if rows.is_empty() {
+            games.clear();
+            return Ok(());
         }
         write_part(&out.join(format!("part-{:04}.parquet", *part)), &rows, *total)?;
         *total += rows.len() as u64;
