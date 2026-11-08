@@ -6,7 +6,10 @@ device's install_id claims the games it played before accounts existed.
 
 Training consent is opt-in, versioned and withdrawable. Only games of users who hold it at export time are
 exported; withdrawing turns that user's previously exported games into tombstones (see export.py).
-Deleting the account removes its games, plies, consents, ratings and tokens.
+Deleting the account removes its games, plies, consents, ratings, tokens and imported Lichess history.
+
+History consent (history-v1, history.py) is a separate opt-in for importing the user's public Lichess games; it
+records a self-declared 18+ flag, and withdrawing it deletes the imported games.
 
 Signing in with Lichess (lichess_login.py) attaches a verified Lichess id to the account and lets more devices
 sign in to it; each device gets its own token.
@@ -25,7 +28,7 @@ from fastapi import APIRouter, HTTPException, Request, WebSocket
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, select, update
 
-from .db import AuthToken, Consent, Game, Ply, Rating, User
+from .db import AuthToken, Consent, Game, Ply, Rating, User, delete_history
 
 CONSENT_VERSION = "training-v1"
 CONSENT_TEXT = (
@@ -33,6 +36,14 @@ CONSENT_TEXT = (
     "involved) may be used to train and evaluate Doppel chess models. Your account is replaced by a random "
     "id in every training export, so the research side never sees who you are. You can turn it off at any "
     "time; games already exported are then deleted from training data at the next export.")
+
+HISTORY_VERSION = "history-v1"
+HISTORY_TEXT = (
+    "Import my Lichess games. If you turn this on, Doppel downloads your public Lichess games (moves, clock "
+    "times, ratings, openings and results; not your opponents' names), stores them, and uses them to train a "
+    "personal doppel that plays like you, for you to play against. Only if you have also turned on 'Help train "
+    "doppels' may they also be used to train general Doppel models. You must be 18 or older. You can turn this "
+    "off at any time: turning it off, or deleting your account, deletes the imported games.")
 
 router = APIRouter()
 
@@ -105,6 +116,7 @@ def holds_consent(sess, user_id: str, kind: str = "training") -> Consent | None:
 
 def me(sess, u: User) -> dict:
     c = holds_consent(sess, u.id)
+    h = holds_consent(sess, u.id, "history")
     r = sess.get(Rating, f"user:{u.id}")
     n_games = len(sess.scalars(select(Game.id).where(Game.user_id == u.id)).all())
     return {
@@ -112,6 +124,8 @@ def me(sess, u: User) -> dict:
         "lichess": {"id": u.lichess_id, "username": u.lichess_username} if u.lichess_id else None,
         "consent": {"training": c is not None, "version": c.version if c else None,
                     "current_version": CONSENT_VERSION},
+        "history_consent": {"granted": h is not None, "version": h.version if h else None,
+                            "adult": bool(h.adult) if h else False, "current_version": HISTORY_VERSION},
         "rating": {"rating": r.rating, "rd": r.rd, "games": r.games} if r else None,
     }
 
@@ -172,7 +186,8 @@ def patch_me(req: Profile, request: Request):
 
 @router.get("/api/consent")
 def consent_text():
-    return {"version": CONSENT_VERSION, "training": CONSENT_TEXT}
+    return {"version": CONSENT_VERSION, "training": CONSENT_TEXT,
+            "history_version": HISTORY_VERSION, "history": HISTORY_TEXT}
 
 
 @router.put("/api/me/consent")
@@ -194,11 +209,17 @@ def put_consent(req: ConsentIntent, request: Request):
 
 
 @router.delete("/api/me")
-def delete_me(request: Request):
-    """Delete the account and everything it played. Games already exported become tombstones at the next
-    export (the export ledger remembers their ids, nothing else)."""
+async def delete_me(request: Request):
+    """Delete the account and everything it played, and its imported Lichess history. Games already exported
+    become tombstones at the next export (the export ledger remembers their ids, nothing else).
+    Async on purpose: it runs on the event loop, like the history import's writes, so a running import is
+    cancelled and purged with no batch slipping in between."""
     with request.app.state.sessions() as sess:
         u = _me_or_401(sess, request)
+        importer = getattr(request.app.state, "history", None)
+        if importer is not None:
+            importer.cancel(u.id)
+        imported = delete_history(sess, u.id)
         ids = sess.scalars(select(Game.id).where(Game.user_id == u.id)).all()
         sess.execute(delete(Ply).where(Ply.game_id.in_(ids)))
         sess.execute(delete(Game).where(Game.id.in_(ids)))
@@ -207,4 +228,4 @@ def delete_me(request: Request):
         sess.execute(delete(AuthToken).where(AuthToken.user_id == u.id))
         sess.delete(u)
         sess.commit()
-        return {"deleted_games": len(ids)}
+        return {"deleted_games": len(ids), "deleted_imported_games": imported}
