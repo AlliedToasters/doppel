@@ -1,0 +1,194 @@
+---
+// The post queue (dev server only; see queue/integration.mjs). Drafts -> approved queue -> published.
+import Base from '../src/layouts/Base.astro';
+---
+
+<Base title="Post queue · Doppel">
+  <main class="wrap q" id="app">
+    <section id="list">
+      <h1>Post queue</h1>
+      <p class="lede">Edit and approve drafts here. Approved posts publish one at a time, from the top of the queue.</p>
+      <h2>Up next <small id="n-approved"></small></h2>
+      <ol class="cards" id="approved"></ol>
+      <p class="empty" id="approved-empty">Nothing approved yet. Approve a draft to queue it.</p>
+      <h2>Drafts</h2>
+      <ul class="cards" id="drafts"></ul>
+      <form id="new" class="new">
+        <input name="title" placeholder="New post title" required />
+        <button class="btn">New draft</button>
+      </form>
+      <h2>Published</h2>
+      <ul class="cards" id="published"></ul>
+    </section>
+
+    <section id="editor" hidden>
+      <div class="bar">
+        <button class="btn ghost" id="back">← Queue</button>
+        <span class="ttl" id="ed-title"></span>
+        <span class="state" id="ed-state"></span>
+        <div class="tabs">
+          <button class="btn ghost" data-pane="src">Edit</button>
+          <button class="btn ghost" data-pane="view">Preview</button>
+        </div>
+        <button class="btn" id="save">Save</button>
+        <button class="btn ghost" id="toggle"></button>
+      </div>
+      <div class="panes" data-show="view">
+        <textarea id="src" spellcheck="true"></textarea>
+        <iframe id="view" title="Preview"></iframe>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<script>
+  type Post = { slug: string; title: string; description: string; status: string; queue: number | null; date: string };
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const H = { 'x-queue': '1', 'content-type': 'application/json' };
+  let posts: Post[] = [];
+  let cur: Post | null = null;
+  let dirty = false;
+
+  async function api(method: string, path: string, body?: unknown, raw = false) {
+    const r = await fetch(`/__queue/${path}`, { method, headers: H, body: body === undefined ? undefined : raw ? (body as string) : JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) { alert(j.error ?? r.statusText); throw new Error(j.error); }
+    return j;
+  }
+
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  function card(p: Post, i: number, n: number) {
+    const moves = p.status === 'approved'
+      ? `<button class="mini" data-act="up" ${i === 0 ? 'disabled' : ''} aria-label="Move up">↑</button>
+         <button class="mini" data-act="down" ${i === n - 1 ? 'disabled' : ''} aria-label="Move down">↓</button>` : '';
+    const flip = p.status === 'draft' ? '<button class="mini go" data-act="approve">Approve</button>'
+      : p.status === 'approved' ? '<button class="mini" data-act="unapprove">Back to draft</button>' : '';
+    return `<li data-slug="${p.slug}">
+      <div class="meta">${p.status === 'approved' ? `<b class="pos">${i + 1}</b>` : ''}
+        <a href="#edit/${p.slug}"><strong>${esc(p.title)}</strong></a>
+        <span>${esc(p.description)}</span>${p.status === 'published' ? `<time>${p.date}</time>` : ''}</div>
+      <div class="acts">${moves}<a class="mini" href="#edit/${p.slug}">${p.status === 'published' ? 'View' : 'Edit'}</a>${flip}</div>
+    </li>`;
+  }
+
+  async function load() {
+    posts = (await api('GET', 'posts')).posts;
+    const q = posts.filter((p) => p.status === 'approved').sort((a, b) => (a.queue ?? 1e9) - (b.queue ?? 1e9));
+    const fill = (id: string, ps: Post[]) => { $(id).innerHTML = ps.map((p, i) => card(p, i, ps.length)).join(''); };
+    fill('approved', q);
+    fill('drafts', posts.filter((p) => p.status === 'draft').sort((a, b) => a.title.localeCompare(b.title)));
+    fill('published', posts.filter((p) => p.status === 'published').sort((a, b) => b.date.localeCompare(a.date)));
+    $('approved-empty').hidden = q.length > 0;
+    $('n-approved').textContent = q.length ? `${q.length} approved` : '';
+  }
+
+  $('list').addEventListener('click', async (ev) => {
+    const b = (ev.target as HTMLElement).closest<HTMLButtonElement>('button[data-act]');
+    if (!b) return;
+    const slug = b.closest('li')!.dataset.slug!;
+    const act = b.dataset.act;
+    if (act === 'approve' || act === 'unapprove') await api('POST', `status?slug=${slug}`, { status: act === 'approve' ? 'approved' : 'draft' });
+    else {
+      const order = [...$('approved').querySelectorAll('li')].map((li) => li.dataset.slug!);
+      const i = order.indexOf(slug), j = act === 'up' ? i - 1 : i + 1;
+      [order[i], order[j]] = [order[j], order[i]];
+      await api('POST', 'order', { slugs: order });
+    }
+    await load();
+  });
+
+  $('new').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const title = (new FormData(ev.target as HTMLFormElement).get('title') as string).trim();
+    const slug = title.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    await api('POST', 'new', { slug, title });
+    location.hash = `#edit/${slug}`;
+  });
+
+  // --- editor ---
+  const src = $<HTMLTextAreaElement>('src'), view = $<HTMLIFrameElement>('view');
+  function setState(s: string) { $('ed-state').textContent = s; }
+  async function open(slug: string) {
+    await load();
+    cur = posts.find((p) => p.slug === slug) ?? null;
+    if (!cur) { location.hash = ''; return; }
+    src.value = (await api('GET', `source?slug=${slug}`)).text;
+    dirty = false; setState(cur.status);
+    $('ed-title').textContent = cur.title;
+    const tg = $<HTMLButtonElement>('toggle');
+    tg.hidden = cur.status === 'published';
+    tg.textContent = cur.status === 'approved' ? 'Back to draft' : 'Approve';
+    $<HTMLButtonElement>('save').hidden = src.readOnly = cur.status === 'published';
+    view.src = `/blog/${slug}/`;
+  }
+  async function save() {
+    if (!cur || cur.status === 'published') return;
+    await api('PUT', `source?slug=${cur.slug}`, src.value, true);
+    dirty = false; setState('saved, rendering…');
+    // Give the content layer a moment to pick up the file, then re-render the preview.
+    setTimeout(() => { view.contentWindow?.location.reload(); setState(cur!.status); }, 900);
+  }
+  src.addEventListener('input', () => { if (!dirty) { dirty = true; setState('unsaved'); } });
+  $('save').addEventListener('click', save);
+  document.addEventListener('keydown', (ev) => {
+    if ((ev.ctrlKey || ev.metaKey) && ev.key === 's' && !$('editor').hidden) { ev.preventDefault(); save(); }
+  });
+  $('toggle').addEventListener('click', async () => {
+    if (!cur) return;
+    if (dirty) await save();
+    await api('POST', `status?slug=${cur.slug}`, { status: cur.status === 'approved' ? 'draft' : 'approved' });
+    await open(cur.slug);
+  });
+  $('back').addEventListener('click', () => { location.hash = ''; });
+  document.querySelectorAll<HTMLButtonElement>('.tabs button').forEach((b) =>
+    b.addEventListener('click', () => { document.querySelector<HTMLElement>('.panes')!.dataset.show = b.dataset.pane!; }));
+  window.addEventListener('beforeunload', (ev) => { if (dirty) ev.preventDefault(); });
+
+  async function route() {
+    if (dirty && !confirm('Discard unsaved changes?')) return;
+    dirty = false;
+    const m = location.hash.match(/^#edit\/([a-z0-9-]+)$/);
+    $('list').hidden = !!m; $('editor').hidden = !m;
+    if (m) await open(m[1]); else { cur = null; await load(); }
+  }
+  window.addEventListener('hashchange', route);
+  route();
+</script>
+
+<style>
+  .q { padding-bottom: 72px; }
+  h1 { font-size: 2.2rem; font-weight: 900; margin: 24px 0 6px; }
+  h2 { font-size: 1.2rem; font-weight: 900; margin: 32px 0 10px; }
+  h2 small { color: var(--muted); font-weight: 700; font-size: 0.85rem; margin-left: 6px; }
+  .lede, .empty { color: var(--muted); }
+  .cards { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .cards :global(li) { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 12px 16px; }
+  .cards :global(.meta) { display: flex; flex-direction: column; min-width: 0; flex: 1 1 280px; position: relative; padding-left: 0; }
+  #approved :global(.meta) { padding-left: 40px; }
+  .cards :global(.pos) { position: absolute; left: 0; top: 2px; width: 28px; height: 28px; border-radius: 999px; background: var(--green);
+    color: var(--bg); display: grid; place-items: center; font-weight: 900; }
+  .cards :global(.meta a) { color: var(--ink); text-decoration: none; }
+  .cards :global(.meta span), .cards :global(time) { color: var(--muted); font-size: 0.9rem; }
+  .cards :global(.acts) { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cards :global(.mini), .btn { font: inherit; font-weight: 800; font-size: 0.85rem; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    border: 2px solid var(--line); background: transparent; color: var(--ink); text-decoration: none; }
+  .cards :global(.mini:disabled) { opacity: 0.35; cursor: default; }
+  .cards :global(.mini.go), .btn:not(.ghost) { background: var(--green); border-color: var(--green); color: var(--bg); }
+  .new { display: flex; gap: 8px; margin-top: 12px; }
+  .new input { flex: 1; font: inherit; padding: 8px 14px; border-radius: 999px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 16px 0 12px; }
+  .ttl { font-weight: 900; font-size: 1.1rem; }
+  .state { color: var(--gold); font-weight: 800; font-size: 0.85rem; flex: 1; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: calc(100vh - 170px); min-height: 480px; }
+  #src { width: 100%; height: 100%; resize: none; font: 14px/1.5 ui-monospace, monospace; padding: 14px; border-radius: 16px;
+    border: 2px solid var(--line); background: var(--panel); color: var(--ink); }
+  #view { width: 100%; height: 100%; border: 2px solid var(--line); border-radius: 16px; background: var(--bg); }
+  .tabs { display: none; }
+  @media (max-width: 900px) {
+    .tabs { display: flex; gap: 6px; }
+    .panes { grid-template-columns: 1fr; }
+    .panes[data-show='view'] #src, .panes[data-show='src'] #view { display: none; }
+  }
+  @media (min-width: 901px) { .q { max-width: none; } }
+</style>

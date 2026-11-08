@@ -1,0 +1,54 @@
+---
+title: Hello, Doppel
+description: Why we're building chess opponents that play like people, what we hope they'll become, and why we're doing the research in the open.
+date: 2026-11-08
+status: draft
+---
+
+Most chess bots are engines with the strength turned down. They play near-perfect moves, then throw in a random
+blunder to seem beatable. Anyone who has played one knows the feeling: it doesn't play like a person. It never
+panics with ten seconds left. It never misses the knight fork that a real 1200 would miss, and it never finds the one
+a real 1200 would find. It moves instantly in positions where a person would stop and think.
+
+Doppel is an attempt to build the other kind of opponent: one that plays like a real person at your level.
+
+## What we're aiming for
+
+A *doppelgänger* is a double, someone who looks just like you. A Doppel should be a double of a human player:
+
+1. **Human moves.** The moves a player at your level actually plays, learned from millions of real games, not an
+   engine's best move with noise added.
+2. **Human mistakes.** Errors where people make them: in strange positions, under time pressure, after a long
+   game. Not at random.
+3. **Human time.** Quick in familiar positions, slow when it's lost the thread, scrappy when its clock runs low.
+4. **Moods that last a game.** People have off days. A Doppel should be able to be sharp, cautious or on tilt, and
+   stay that way until the game ends.
+5. **Eventually, you.** If you choose to share your own games, a Doppel that plays like *you*: your openings, your
+   habits, your favourite ways of going wrong.
+
+Why bother? Because playing a person teaches you things an engine can't. A human-like opponent at your level is
+a fair game you can actually learn from. A double of yourself is a mirror: it shows you the habits you can't
+see from the inside. And building one means answering a question that's interesting on its own: what makes
+someone's chess *theirs*?
+
+## Why the research is open
+
+We don't know yet how to build most of this. So we're doing the science in public:
+
+- **The code is open** (AGPL-3.0), and so are the results, in our [repository](https://github.com/AlliedToasters/doppel).
+- **Every claim gets a yardstick.** Each thing we model is scored against a simple baseline, against other chess
+  bots, and, where we can measure it, against how consistent people are with themselves. A clever model that
+  can't beat a simple rule hasn't learned anything.
+- **Failed results count.** Our first model of "who a player is" failed its own tests. We'll write about that too.
+- **Public models use freely licensed games only.** Lichess publishes its games openly, and that is what our released
+  models learn from.
+
+## What these lab notes are
+
+This is where we'll write up what we learn as we go, with the data behind each chart. Some posts will be about
+chess players: how predictable people are, what gives a player away, when people slow down and why. Some will
+be about the bot: what worked, what didn't, and what we're trying next.
+
+You can already play an early Doppel: challenge [doppelbot on Lichess](https://lichess.org/@/doppelbot). It
+matches your Lichess rating and plays human moves with Maia-3, an open model trained to predict what people
+play. Everything else on the list above is still in the lab. We'll tell you here when it isn't.

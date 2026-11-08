@@ -8,7 +8,8 @@ const blog = defineCollection({
     title: z.string(),
     description: z.string(),
     date: z.coerce.date(),
-    draft: z.boolean().default(false),
+    status: z.enum(['draft', 'approved', 'published']).default('draft'),
+    queue: z.number().int().positive().optional(),
   }),
 });
 

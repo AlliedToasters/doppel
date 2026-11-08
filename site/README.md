@@ -6,9 +6,17 @@ third-party requests. Pieces are copied from `client/assets/pieces/doppel`.
 
 ## Lab notes (blog)
 
-Posts live in `src/content/blog/` as `.md` or `.mdx`, with frontmatter `title`, `description`, `date` and
-`draft`. A post with `draft: true` shows in `npm run dev` (marked "draft") and is left out of `npm run build`, so
-it never ships. Flip it to `false` to publish, then run `deploy/ship.sh`.
+Posts live in `src/content/blog/` as `.md` or `.mdx`, with frontmatter `title`, `description`, `date`, `status`
+(`draft`, `approved` or `published`) and, for approved posts, `queue` (publishing order). Only `published` posts
+are built; `npm run dev` shows the rest, badged.
+
+**Post queue.** In `npm run dev`, open `/queue/`: edit a post with a live preview (Save or Ctrl+S re-renders it),
+approve it into the queue, reorder the queue, or send it back to draft. The page and its API (`queue/`) exist in
+the dev server only and never ship. Writes need an `X-Queue` header and a same-origin request.
+To serve it on the tailnet: `npx astro dev --host <tailnet IP>`.
+
+**Publishing** takes one post at a time from the top of the queue:
+`node scripts/publish-next.mjs` (sets `status: published` and today's date), then commit, push and `deploy/ship.sh`.
 
 Charts: in an `.mdx` post, import `src/components/LineChart.astro` and pass data. Copy result JSON from
 `lab/results/` into `src/results/` and import it, so the numbers in a post come from the same file as the lab notes.

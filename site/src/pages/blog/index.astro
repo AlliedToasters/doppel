@@ -14,7 +14,7 @@ const list = await posts();
         <li>
           <a href={`/blog/${p.id}/`}>
             <time datetime={p.data.date.toISOString()}>{fmtDate(p.data.date)}</time>
-            <h2>{p.data.title}{p.data.draft && <small>draft</small>}</h2>
+            <h2>{p.data.title}{p.data.status !== 'published' && <small>{p.data.status}</small>}</h2>
             <p>{p.data.description}</p>
           </a>
         </li>

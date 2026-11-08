@@ -1,8 +1,8 @@
 import { getCollection } from 'astro:content';
 
-/** Published posts, newest first. Drafts show only in `npm run dev`. */
+/** Published posts, newest first. Drafts and approved posts show only in `npm run dev` (see /queue/). */
 export async function posts() {
-  const all = await getCollection('blog', (p) => import.meta.env.DEV || !p.data.draft);
+  const all = await getCollection('blog', (p) => import.meta.env.DEV || p.data.status === 'published');
   return all.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 }
 
