@@ -10,8 +10,6 @@ everything here is lab research.
 
 | Job | What it answers | Approx. GPU time |
 |---|---|---|
-| `v0e_train train --run v0f_half --w-con 0.1 --tau 0.1 --train-frac 0.5 --max-steps 32808` | v0f on half the games at equal steps: is the corpus the bottleneck? | 3 h |
-| `v0e_train eval --run v0f_half` (queued behind it); then CPU `v0e_suite --run v0f_half` | gate metrics and re-ID vs v0f | 20 min |
 
 ## Ready (code exists; just submit)
 
@@ -36,6 +34,8 @@ everything here is lab research.
 
 ## Done
 
+- 2026-11-09: v0f_half data scaling: half the games costs 40% of z-swap gain and 30% of the teacher gain;
+  re-ID at 20+ games and rating unchanged. Bigger corpus helps z a little. SCIENCE.md §8.
 - 2026-11-09: player_markov (CPU): personal history at repeated positions beats Maia by 0.93 nats per visit;
   per-player gain split-half ρ +0.89. SCIENCE.md §8.
 - 2026-11-09: style traits at scale on the net-labeled v0 corpus: 26,757 players; steering +0.49 and

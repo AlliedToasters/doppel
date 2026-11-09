@@ -715,6 +715,26 @@ memorize "this player plays 3.Bb5 here", and this is where most of a player's pr
 by the shrinkage above, with Maia + z for positions the player hasn't shown us. Open: score v0f itself on these
 visits (GPU), and check that the gain survives in held-out players with a context-games split.
 
+**Finding, v0 data scaling: more games help z's predictions, not its identity.** (`v0e_train --train-frac 0.5`,
+run v0f_half; `lab/results/v0_v0f_half.json`, `players_pool_v0f_half.json`.) The v0f recipe on a random half of
+the 700k train games (dropped games leave both the targets and the players' histories), at the same 32,808 steps,
+against v0f on the full set:
+
+| Metric (full val) | v0f, 700k games | v0f_half, 350k |
+|---|---|---|
+| ce_post − ce_teacher (nats) | −0.00128 | −0.00090 |
+| z-swap gain (nats) | 0.00115 [0.00090, 0.00143] | 0.00069 [0.00054, 0.00085] |
+| KL per half-game / active units | 0.86 / 28 | 0.69 / 23 |
+| re-ID top-1 at k = 5 / 10 / 20 / 40 | 0.46 / 0.67 / 0.93 / 0.97 | 0.43 / 0.56 / 0.92 / 0.97 |
+| rating R² at k = 40 | 0.74 | 0.74 |
+| top-1, think r | 0.556, 0.708 | 0.556, 0.706 |
+
+Halving the data costs 40% of the z-swap gain (the CIs don't overlap) and 30% of the gain over the teacher, and
+re-ID at 10 games drops 11 points; re-ID at 20+ games and rating don't move. So doubling the corpus should help
+z, roughly +0.0005 nats on z-swap if the curve is log-linear. That is two orders of magnitude below the
+repertoire signal above (0.05 nats per position). A bigger corpus still pays twice: more games per player
+for z, and more repeat visits for a repertoire memory, which is the larger prize.
+
 **Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
 prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
 Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
