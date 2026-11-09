@@ -10,6 +10,7 @@ everything here is lab research.
 
 | Job | What it answers | Approx. GPU time |
 |---|---|---|
+| `v0e_train train --run v0f_quarter ... --train-frac 0.25` + eval | third data-scaling point (full / half / quarter) | 3 h |
 
 ## Ready (code exists; just submit)
 
@@ -22,7 +23,6 @@ everything here is lab research.
    on the 2.39M repeat visits; compare with Maia (−1.47 nats) and the shrunk personal history (−0.55). Then the
    mixture: personal history shrunk toward v0f rather than Maia. About 30–60 min GPU.
 
-3. **v0 data-scaling, quarter point.** If v0f_half shows a cost: `--train-frac 0.25` for a third curve point.
 4. **Eval-net distillation sweep.** Fine-tune the 23M Maia-3 trunk (if available) on the same labels: is a 3×
    cheaper net good enough for screening? About 40 min.
 5. **Full-month corpus (more games per player).** The v0 corpus is the head of the 2026-10 file: median player has
