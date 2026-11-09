@@ -294,9 +294,25 @@ top-move probability, clock, ply and the side's own pace in the game explain R²
 is autocorrelated: residual correlation with the side's previous move is +0.153, then +0.143 at lag 2, +0.114
 at 3, +0.068 at 5 and 0 by 10. Players have short "slow" and "fast" spells lasting about five moves, which no
 position feature explains. A think-time head needs the recent think history to reproduce them. v0's head has it: `tempo_feats`
-in `v0_data.py` carries the median and a 0.7-decay EWMA of the side's recent think fractions. A check that
-sampled v0 times show the +0.15 lag-1 correlation is still open. Sampling each move's time independently would
+in `v0_data.py` carries the median and a 0.7-decay EWMA of the side's recent think fractions. Sampling each move's time independently would
 flatten them.
+
+**Checked 2026-11-08** (`doppel_lab/think_spells.py`, `lab/results/think_spells_v0d.json`). The data is 2,000 val
+games: 132k own moves at ply ≥ 10, with real positions and clocks, and z drawn once per side from the prior. The
+residual is log1p(think s) after entropy, clock and ply, minus the side-game mean.
+
+| Within-game residual correlation | lag 1 | lag 2 | lag 3 | lag 5 | mean log1p(s) |
+|---|---|---|---|---|---|
+| human | +0.148 | +0.136 | +0.104 | +0.053 | 1.48 |
+| v0d sampled, tempo from human thinks (as trained) | +0.137 | +0.104 | +0.081 | +0.033 | 1.49 |
+| **v0d sampled, tempo from its own samples** (a Doppel playing) | **+0.169** | +0.121 | +0.085 | +0.035 | 1.58 |
+| v0d median time, own tempo (no sampling) | +0.464 | +0.377 | +0.298 | +0.175 | 1.54 |
+
+Fed its own sampled times, v0d reproduces human spells. Lag 1 is slightly sticky (+0.17 vs +0.15) and the tail
+decays a little faster. Its times run about 10% slow (+0.10 in log1p). Two rules for shipping the head:
+sample the time, never the median, because the median plus the tempo feedback locks into spells three times
+too strong; and feed the bot's own sampled times back into tempo_feats. The live bots don't use the think
+head yet (`backend/infer` returns no think time).
 
 Players play the book from memory (`doppel_lab/book_think.py`, 87.7k train games with a book exit at plies 8–30,
 plies relative to the exit, both sides). Think time rises slowly through the book, from 2.0 s six plies before
