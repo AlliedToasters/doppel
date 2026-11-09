@@ -20,6 +20,10 @@ everything here is lab research.
 
 ## Needs a little code first
 
+0. **v0f at repeated positions (player_markov step 2).** Score v0f, with each player's z from their earlier games,
+   on the 2.39M repeat visits; compare with Maia (−1.47 nats) and the shrunk personal history (−0.55). Then the
+   mixture: personal history shrunk toward v0f rather than Maia. About 30–60 min GPU.
+
 3. **v0 data-scaling, quarter point.** If v0f_half shows a cost: `--train-frac 0.25` for a third curve point.
 4. **Eval-net distillation sweep.** Fine-tune the 23M Maia-3 trunk (if available) on the same labels: is a 3×
    cheaper net good enough for screening? About 40 min.
@@ -32,6 +36,8 @@ everything here is lab research.
 
 ## Done
 
+- 2026-11-09: player_markov (CPU): personal history at repeated positions beats Maia by 0.93 nats per visit;
+  per-player gain split-half ρ +0.89. SCIENCE.md §8.
 - 2026-11-09: style traits at scale on the net-labeled v0 corpus: 26,757 players; steering +0.49 and
   allocation +0.51 split-half, performance null within ±0.015. SCIENCE.md §8.
 - 2026-11-09: evalnet labels for all 700k v0 train games (49M positions, 70 min) ->

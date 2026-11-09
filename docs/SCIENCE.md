@@ -688,6 +688,33 @@ Performance itself has split-half ρ −0.009, so at 1500 nothing about a player
 Lichess ratings already absorb it. Steering slightly *lowers* opponents' later blunder rate (−0.07): sharper
 positions don't make opponents crack.
 
+**Finding, per-player repeated positions: a player's own history beats Maia by 0.93 nats where it exists.**
+(`doppel_lab/player_markov.py`, `lab/results/player_markov.json`; the user's per-player sparse Markov-chain
+idea.) Each player's empirical next-move distribution at positions they reach more than once, on the 700k v0
+1500-band train games. Position = Polyglot key of the decision position (transpositions merge), plies 0–79, one
+visit per game. For every visit with an earlier visit by the same player, the played move is forecast online
+(earlier games only) by Maia-3 alone, and by the player's earlier moves there shrunk toward Maia:
+p = (n_prev(move) + α·p_Maia(move)) / (N_prev + α), with α = 0.5 best on the grid.
+
+- **Coverage:** 2.39M of 42.9M visits (5.6%) are repeats. 73,786 of 126,458 players have one or more repeats,
+  21,743 have 30 or more. Repeats are openings: median ply 2, 90% at ply ≤ 6, and only 54k at ply ≥ 10.
+- **Gain:** Maia's log-likelihood at these visits is −1.47 nats; the shrunk personal history gets −0.55, a gain
+  of **0.93 nats per visit**. Players replay a move they played there before 90% of the time; Maia gives that
+  move 0.39 on average.
+- **It grows with history:** 0.66 nats after one earlier visit, 1.04 after 3–4, 1.16 after 9–16.
+- **It persists past the opening:** 0.95 at plies 1–9, 0.36 at plies 10–19, 0.21 at 20–39 (thin there: 651
+  visits). It is largest at the most common positions (1.07 nats at positions with 100k+ visits), where
+  personal repertoire is the whole story.
+- **It is a stable per-player trait:** among 11,675 players with 60+ scored visits, 99.4% gain, median 0.87
+  nats; split-half ρ of the per-player gain is **+0.89** (9,667 players, odd vs even games).
+
+For scale: spread over all positions, 0.93 × 5.6% ≈ 0.052 nats per position, against v0f's whole
+personalization gain of 0.0005 nats (ce_post − ce_teacher) and its z-swap gain of 0.0012. A set-encoder z can't
+memorize "this player plays 3.Bb5 here", and this is where most of a player's predictable individuality lives at
+1500. Design implication: a Doppel should carry an explicit per-player repertoire memory, mixed with the model
+by the shrinkage above, with Maia + z for positions the player hasn't shown us. Open: score v0f itself on these
+visits (GPU), and check that the gain survives in held-out players with a context-games split.
+
 **Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
 prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
 Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
