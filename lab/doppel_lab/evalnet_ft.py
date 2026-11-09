@@ -34,6 +34,9 @@ BLOCK = 2000
 
 
 def games_for(split: str, n: int | None) -> list:
+    if split == "human_all":  # every corpus game, Stockfish evals or not (dummy zeros: labels unused)
+        g = pl.read_parquet(en.ROOT / "data/human/games_2026-10.parquet", columns=["game_id", "moves"])
+        return [(gid, m, [0] * (len(m) + 1)) for gid, m in g.iter_rows()]
     if split == "human":
         ev = pl.read_parquet(en.HUMAN_EVALS)
         g = pl.read_parquet(en.ROOT / "data/human/games_2026-10.parquet", columns=["game_id", "moves"]).join(ev, on="game_id")
@@ -103,7 +106,7 @@ def predict(net, pool, rows, device, batch=1024):
             "game": np.concatenate(GI), "game_ids": np.array([r[0] for r in rows])}
 
 
-def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke: bool = False):
+def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke: bool = False, epochs: int = 1):
     import torch
     torch.manual_seed(0)
     rows = games_for("train", n_games)
@@ -113,13 +116,15 @@ def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke:
     net = Net(device)
     opt = torch.optim.AdamW([{"params": net.m.parameters(), "lr": 5e-5}, {"params": net.head.parameters(), "lr": 1e-3}],
                             weight_decay=0.01)
-    est_steps = int(sum(len(r[1]) for r in rows) / batch) + 1
+    est_steps = int(epochs * sum(len(r[1]) for r in rows) / batch) + 1
     warm = 2 if smoke else 500
     base = [g["lr"] for g in opt.param_groups]
     rng = np.random.default_rng(0)
     t0, step, seen, run_loss = time.time(), 0, 0, []
     with mp.get_context("fork").Pool(workers) as pool:
-        for b0 in range(0, len(rows), BLOCK):
+        for ep, b0 in ((e, b) for e in range(epochs) for b in range(0, len(rows), BLOCK)):
+            if b0 == 0 and ep > 0:
+                rows = [rows[i] for i in rng.permutation(len(rows))]
             planes, hidx, y, *_ = block_tensors(pool, rows[b0:b0 + BLOCK], device)
             perm = torch.from_numpy(rng.permutation(len(hidx))).to(device)
             for s in range(0, len(perm) - batch + 1, batch):
@@ -138,10 +143,11 @@ def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke:
                 seen += batch
                 run_loss.append(loss.item())
             el = time.time() - t0
-            print(f"{b0 + BLOCK:,}/{len(rows):,} games, step {step}/{est_steps}, loss {np.mean(run_loss[-200:]):.4f}, "
+            print(f"ep {ep + 1}/{epochs} {b0 + BLOCK:,}/{len(rows):,} games, step {step}/{est_steps}, loss {np.mean(run_loss[-200:]):.4f}, "
                   f"{seen / el:,.0f} pos/s", flush=True)
         en.OUT.mkdir(parents=True, exist_ok=True)
-        sfx = "_smoke" if smoke else ("" if n_games == 80_000 else f"_g{n_games // 1000}k")
+        sfx = "_smoke" if smoke else ("" if n_games == 80_000 and epochs == 1 else f"_g{n_games // 1000}k")
+        sfx += f"_e{epochs}" if epochs > 1 else ""
         torch.save({"head": net.head.state_dict(), "trunk": net.m.state_dict(), "steps": step},
                    en.OUT / f"evalnet_ft{sfx}.pt")
         for name, rs in (("val", val), ("human", hum)):
@@ -151,6 +157,21 @@ def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke:
             print(f"{name}: {len(d['pred']):,} positions predicted, {len(d['pred']) / (time.time() - t1):,.0f}/s",
                   flush=True)
     print(f"done ({time.time() - t0:.0f}s)")
+
+
+def label(device: str, ckpt: str = "", workers: int = 20):
+    """Screening pass: the fine-tuned net over all 36k corpus games (Stockfish has 12k) -> data/evals format."""
+    import torch
+    t0 = time.time()
+    net = Net(device)
+    s = torch.load(en.OUT / f"evalnet_ft{ckpt}.pt", map_location=device, weights_only=False)
+    net.m.load_state_dict(s["trunk"])
+    net.head.load_state_dict(s["head"])
+    rows = games_for("human_all", None)
+    with mp.get_context("fork").Pool(workers) as pool:
+        d = predict(net, pool, rows, device)
+    print(f"{len(d['pred']):,} positions, {len(d['pred']) / (time.time() - t0):,.0f}/s incl. load", flush=True)
+    en.write_hat(d, d["pred"].astype(np.float64), en.ROOT / f"data/evals/human_evalnet_ft{ckpt}_all.parquet")
 
 
 def score(tag: str = ""):
@@ -185,10 +206,16 @@ if __name__ == "__main__":
     t.add_argument("--batch", type=int, default=512)
     t.add_argument("--gpu-ok", action="store_true")
     t.add_argument("--smoke", action="store_true")
+    t.add_argument("--epochs", type=int, default=1)
+    lb = sub.add_parser("label")
+    lb.add_argument("--ckpt", default="", help="checkpoint suffix, e.g. _g100k_e2")
+    lb.add_argument("--gpu-ok", action="store_true")
     sc = sub.add_parser("score")
     sc.add_argument("--tag", default="", help="e.g. _g20k for a data-scaling run")
     a = ap.parse_args()
     if a.cmd == "train":
-        train(a.games, "cuda" if a.gpu_ok else "cpu", a.batch, smoke=a.smoke)
+        train(a.games, "cuda" if a.gpu_ok else "cpu", a.batch, smoke=a.smoke, epochs=a.epochs)
+    elif a.cmd == "label":
+        label("cuda" if a.gpu_ok else "cpu", a.ckpt)
     else:
         score(a.tag)

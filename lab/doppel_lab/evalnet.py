@@ -265,6 +265,42 @@ def science(hat: str = "mlp", workers: int = 24):
     print(f"-> {rf.name} science ({time.time() - t0:.0f}s)")
 
 
+def screen(workers: int = 24):
+    """Corpus-scale screening: Stockfish labels 12k corpus games; the fine-tuned net labels all 36k. Does T2 from net
+    evals on 3x the games beat T2 from Stockfish on the 12k? Scored on all 36k (CV) and on the 12k Stockfish subset
+    (same CV predictions, filtered), against T0 / T0+T1 on 36k."""
+    from doppel_lab import game_science as gs
+    from doppel_lab import sharpness as sh
+    t0 = time.time()
+    ply = ROOT / "data/v0/features/human_evalnet_ft_all_T2.parquet"
+    if not ply.exists():
+        gs.build(workers, evals=ROOT / "data/evals/human_evalnet_ft_all.parquet", out=ply)
+    sf_ids = set(pl.read_parquet(HUMAN_EVALS, columns=["game_id"])["game_id"].to_list())
+    _, games = gs.tables(ply)
+    games = sh.add_t1(games)
+    tc = ["base", "inc"]
+    t0f = tc + ["plies", "decisive", "time_forfeit"] + gs.tier_feats("T0", "w_") + gs.tier_feats("T0", "b_")
+    t2f = tc + ["plies", "decisive", "time_forfeit", "lead_changes"] + gs.tier_feats("T2", "w_") + \
+        gs.tier_feats("T2", "b_")
+    t1 = [pre + f for pre in ("w_", "b_") for f in sh.T1_FEATS]
+    y = games["elo_mean"].cast(pl.Float64).to_numpy()
+    band = games["band"].to_numpy()
+    sub = np.array([g in sf_ids for g in games["game_id"].to_list()])
+    out = {"n_all": int(len(y)), "n_sf_subset": int(sub.sum())}
+    for name, fs in (("T0", t0f), ("T0+T1", t0f + t1), ("net_T2", t2f), ("net_T2+T1", t2f + t1)):
+        X = games.select([pl.col(f).cast(pl.Float64) for f in fs]).to_numpy()
+        pr = gs.cv_reg(X, y, games["game_id"].to_numpy())
+        a = gs.reg_scores(y, pr, band)
+        b = gs.reg_scores(y[sub], pr[sub], band[sub])
+        out[name] = {"all36k": {k: a[k] for k in ("mae", "r2")}, "on_sf12k": {k: b[k] for k in ("mae", "r2")}}
+        print(f"{name:10} 36k mae {a['mae']:6.1f} | on the Stockfish 12k {b['mae']:6.1f}", flush=True)
+    rf = RESULTS / "evalnet_ft.json"
+    res = json.loads(rf.read_text())
+    res["screen36k"] = out
+    rf.write_text(json.dumps(res, indent=1) + "\n")
+    print(f"-> evalnet_ft.json screen36k ({time.time() - t0:.0f}s)")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -275,8 +311,11 @@ if __name__ == "__main__":
     sub.add_parser("fit")
     sc = sub.add_parser("science")
     sc.add_argument("--hat", choices=["mlp", "ft"], default="mlp")
+    sub.add_parser("screen")
     a = ap.parse_args()
-    if a.cmd == "extract":
+    if a.cmd == "screen":
+        screen()
+    elif a.cmd == "extract":
         extract(a.split, a.games, "cuda" if a.gpu_ok else "cpu")
     elif a.cmd == "fit":
         fit()

@@ -186,6 +186,22 @@ is always pre.
   positions, a whole month of games), computed in the same GPU pass as T1. It is not a substitute for blunder
   labels or for the final numbers in a write-up: keep Stockfish 50k for labels and headline results, and use the
   net for screening at corpus scale.
+
+  **Screening test (2026-11-09; `evalnet.py screen`, `evalnet_ft.json` "screen36k").** The fine-tuned net
+  labelled all 36k corpus games (2.48M positions in 3.5 minutes; Stockfish has 12k of them). Same rating model,
+  5-fold CV on all 36k, scored on all 36k and on the 12k Stockfish games (same CV predictions, filtered):
+
+  | Features | 36k, net evals | on the Stockfish 12k | Stockfish on its 12k |
+  |---|---|---|---|
+  | T0 | 240 | 239 | 242 |
+  | T0 + T1 | 227 | 225 | 230 |
+  | T2 | 223 | 223 | 221 |
+  | T2 + T1 | 215 | **214** | 214 |
+
+  With 3× the games, net T2 closes the gap to Stockfish T2: 223 vs 221, and 214 vs 214 with T1. At this corpus
+  size the rating model is data-limited as much as label-limited, so cheap labels on more games are worth as much
+  as expensive labels on fewer. For rating-style science, the net on a whole corpus is a valid substitute;
+  blunder-level claims still need Stockfish.
 - **Caveat:** Stockfish sees tactics a 1500 player does not. A better eval is not always a better predictor of
   human behavior; Maia-3's win/draw/loss is closer to how a human of that rating sees the position.
 
