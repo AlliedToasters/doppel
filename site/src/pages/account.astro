@@ -43,7 +43,7 @@ import Base from '../layouts/Base.astro';
         <p id="consent-text" class="muted"></p>
         <label class="switch">
           <input id="consent" type="checkbox" />
-          <span>Use my games here for training</span>
+          <span>Use my games here for training. I am 18 or older.</span>
         </label>
       </div>
 
@@ -174,8 +174,8 @@ import Base from '../layouts/Base.astro';
   $('consent').addEventListener('change', async (ev) => {
     const box = ev.target as HTMLInputElement;
     try {
-      render(await api('/api/me/consent', { method: 'PUT', body: JSON.stringify({ training: box.checked, version: consentVersion }) }));
-    } catch { box.checked = !box.checked; status("Couldn't save that. Try again."); }
+      render(await api('/api/me/consent', { method: 'PUT', body: JSON.stringify({ training: box.checked, version: consentVersion, adult: box.checked }) }));
+    } catch (e: any) { box.checked = !box.checked; status(detail(e, "Couldn't save that. Try again.")); }
   });
   $('import').addEventListener('click', async () => {
     const line = (msg: string) => { $('history-status').textContent = msg; $('history-status').hidden = false; };

@@ -4,8 +4,10 @@ Stage 0 accounts are anonymous: the device calls POST /api/users once, keeps the
 as `Authorization: Bearer <token>` (WebSocket: `?token=`). Only the token's sha256 is stored. Passing the
 device's install_id claims the games it played before accounts existed.
 
-Training consent is opt-in, versioned and withdrawable. Only games of users who hold it at export time are
-exported; withdrawing turns that user's previously exported games into tombstones (see export.py).
+Training consent is opt-in, versioned, withdrawable and 18+ only (self-declared, and refused for Lichess
+kid-mode accounts). Only games of users who hold it with the 18+ flag at export time are exported, so
+training-v1 grants, made before the age check, no longer count; withdrawing turns that user's previously
+exported games into tombstones (see export.py).
 Deleting the account removes its games, plies, consents, ratings, tokens and imported Lichess history.
 
 History consent (history-v1, history.py) is a separate opt-in for importing the user's public Lichess games; it
@@ -30,12 +32,12 @@ from sqlalchemy import delete, select, update
 
 from .db import AuthToken, Consent, Game, Ply, Rating, User, delete_history
 
-CONSENT_VERSION = "training-v1"
+CONSENT_VERSION = "training-v2"
 CONSENT_TEXT = (
     "Help train doppels. If you turn this on, the games you play here (moves, clock times and the ratings "
     "involved) may be used to train and evaluate Doppel chess models. Your account is replaced by a random "
     "id in every training export, so the research side never sees who you are. You can turn it off at any "
-    "time; games already exported are then deleted from training data at the next export.")
+    "time; games already exported are then deleted from training data at the next export. You must be 18 or older.")
 
 HISTORY_VERSION = "history-v1"
 HISTORY_TEXT = (
@@ -114,8 +116,18 @@ def holds_consent(sess, user_id: str, kind: str = "training") -> Consent | None:
     return c if c is not None and c.withdrawn_at is None else None
 
 
+def training_consent(sess, user_id: str) -> Consent | None:
+    """The training consent that opens the export: held, granted with the 18+ flag, and the account not
+    (or no longer) in Lichess kid mode."""
+    c = holds_consent(sess, user_id)
+    if c is None or not c.adult:
+        return None
+    u = sess.get(User, user_id)
+    return c if u is not None and not u.lichess_kid else None
+
+
 def me(sess, u: User) -> dict:
-    c = holds_consent(sess, u.id)
+    c = training_consent(sess, u.id)
     h = holds_consent(sess, u.id, "history")
     r = sess.get(Rating, f"user:{u.id}")
     n_games = len(sess.scalars(select(Game.id).where(Game.user_id == u.id)).all())
@@ -138,6 +150,7 @@ class NewUser(BaseModel):
 class ConsentIntent(BaseModel):
     training: bool
     version: str = CONSENT_VERSION
+    adult: bool = False   # "I am 18 or older", ticked by the user
 
 
 class Profile(BaseModel):
@@ -196,12 +209,16 @@ def put_consent(req: ConsentIntent, request: Request):
         u = _me_or_401(sess, request)
         held = holds_consent(sess, u.id)
         if req.training:
+            if u.lichess_kid:
+                raise HTTPException(403, "Lichess kid-mode accounts can't help train doppels.")
             if req.version != CONSENT_VERSION:
                 raise HTTPException(409, f"consent text changed: show version {CONSENT_VERSION}")
-            if held is None or held.version != req.version:
+            if not req.adult:
+                raise HTTPException(422, "You must be 18 or older to help train doppels.")
+            if held is None or held.version != req.version or not held.adult:
                 if held is not None:
                     held.withdrawn_at = time.time()
-                sess.add(Consent(user_id=u.id, kind="training", version=req.version))
+                sess.add(Consent(user_id=u.id, kind="training", version=req.version, adult=True))
         elif held is not None:
             held.withdrawn_at = time.time()
         sess.commit()

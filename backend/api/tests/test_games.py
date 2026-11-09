@@ -183,10 +183,10 @@ def test_plies_recorded_and_exported(client, monkeypatch):
         ws.receive_json()
     assert run(app.state.sessions)[0] == []  # pre-account game: never exported
     tok = client.post("/api/users", json={"install_id": "dev1"}).json()["token"]  # claims the game
-    client.put("/api/me/consent", json={"training": True}, headers={"authorization": f"Bearer {tok}"})
+    client.put("/api/me/consent", json={"training": True, "adult": True}, headers={"authorization": f"Bearer {tok}"})
     (r,), _ = run(app.state.sessions, salt="s")
     assert r["white"].startswith("doppel:") and "dev1" not in r["white"] and r["black"] == "maia3-79m-deadbeef"
-    assert r["source"] == "doppel_native" and r["consent_version"] == "training-v1"
+    assert r["source"] == "doppel_native" and r["consent_version"] == "training-v2"
     assert r["actor"] == ["human", "bot", "human", "bot"]
     assert r["think_source"][1] == "heuristic_v1" and r["client_ms"][0] == 1234 and r["premove"] == [False, False, True, False]
     assert r["spent_ms"][:2] == [0, 0] and r["spent_ms"][3] == 2500  # clocks start after both sides moved

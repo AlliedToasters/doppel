@@ -489,6 +489,20 @@ class _PlayScreenState extends State<PlayScreen> {
                   subtitle: Text(consent.$2, style: Theme.of(context).textTheme.bodySmall),
                   value: me!['consent']['training'] as bool,
                   onChanged: (v) async {
+                    if (v) {
+                      final adult = await showDialog<bool>(
+                        context: context,
+                        builder: (d) => AlertDialog(
+                          title: const Text('Are you 18 or older?'),
+                          content: const Text('Only adults can help train doppels.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('No')),
+                            TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Yes, I am 18+')),
+                          ],
+                        ),
+                      );
+                      if (adult != true) return;
+                    }
                     try {
                       final m = await Account.setTrainingConsent(v, consent!.$1);
                       set(() => me = m);

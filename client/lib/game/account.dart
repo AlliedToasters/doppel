@@ -100,10 +100,11 @@ class Account {
     return (d['version'] as String, d['training'] as String);
   }
 
+  /// Turning it on declares 18+: callers confirm that with the user first.
   static Future<Map<String, dynamic>> setTrainingConsent(bool on, String version) async {
     final r = await http
         .put(Uri.parse('$backendUrl/api/me/consent'),
-            headers: headers, body: jsonEncode({'training': on, 'version': version}))
+            headers: headers, body: jsonEncode({'training': on, 'version': version, 'adult': on}))
         .timeout(const Duration(seconds: 5));
     if (r.statusCode != 200) throw Exception('backend ${r.statusCode}: ${r.body}');
     return jsonDecode(r.body) as Map<String, dynamic>;

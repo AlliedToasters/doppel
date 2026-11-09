@@ -1,6 +1,6 @@
 """Native-corpus export (Contract 2, backend -> lab): one Parquet row per fully clocked, consented game.
 
-Only games of accounts that hold training consent at export time are exported. Games played before
+Only games of accounts that hold 18+ training consent at export time are exported. Games played before
 accounts existed (no user) are never exported. Players appear as `doppel:<h>` where h is a salted hash
 with a fresh salt per export, so the lab cannot link a player across exports or back to an account.
 
@@ -27,7 +27,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from sqlalchemy import select
 
-from .accounts import holds_consent
+from .accounts import training_consent
 from .db import Exported, Game, Ply, make_sessionmaker
 
 
@@ -41,7 +41,7 @@ def run(sessions, include_active: bool = False, salt: str | None = None) -> tupl
         games = sess.scalars(select(Game).where(Game.user_id.is_not(None)).order_by(Game.created_at)).all()
         for g in games:
             if g.user_id not in consent:
-                c = holds_consent(sess, g.user_id)
+                c = training_consent(sess, g.user_id)
                 consent[g.user_id] = c.version if c else None
             if consent[g.user_id] is None or (g.status != "over" and not include_active):
                 continue
@@ -84,7 +84,7 @@ def _still_exportable_later(sess, game_id: str, include_active: bool) -> bool:
     --include-active) is not a tombstone."""
     g = sess.get(Game, game_id)
     return g is not None and g.user_id is not None and g.status != "over" and not include_active \
-        and holds_consent(sess, g.user_id) is not None
+        and training_consent(sess, g.user_id) is not None
 
 
 def main():

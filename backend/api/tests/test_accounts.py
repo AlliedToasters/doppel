@@ -75,10 +75,10 @@ def test_require_auth(client, monkeypatch):
 
 def test_consent_versioned_and_withdrawable(client):
     tok, _ = new_user(client)
-    assert client.get("/api/consent").json()["version"] == "training-v1"
+    assert client.get("/api/consent").json()["version"] == "training-v2"
     assert client.put("/api/me/consent", json={"training": True, "version": "old"}, headers=auth(tok)).status_code == 409
-    me = client.put("/api/me/consent", json={"training": True}, headers=auth(tok)).json()
-    assert me["consent"] == {"training": True, "version": "training-v1", "current_version": "training-v1"}
+    me = client.put("/api/me/consent", json={"training": True, "adult": True}, headers=auth(tok)).json()
+    assert me["consent"] == {"training": True, "version": "training-v2", "current_version": "training-v2"}
     me = client.put("/api/me/consent", json={"training": False}, headers=auth(tok)).json()
     assert me["consent"]["training"] is False
 
@@ -86,7 +86,7 @@ def test_consent_versioned_and_withdrawable(client):
 def test_export_consented_only_salted_and_tombstones(client):
     yes, _ = new_user(client)
     no, _ = new_user(client)
-    client.put("/api/me/consent", json={"training": True}, headers=auth(yes))
+    client.put("/api/me/consent", json={"training": True, "adult": True}, headers=auth(yes))
     gy, gn = play_and_resign(client, yes), play_and_resign(client, no)
     r1, t1 = run(app.state.sessions)
     assert [r["game_id"] for r in r1] == [gy] and t1 == []
@@ -96,7 +96,7 @@ def test_export_consented_only_salted_and_tombstones(client):
     r3, t3 = run(app.state.sessions)
     assert r3 == [] and t3 == [gy]
     assert run(app.state.sessions)[1] == []  # a tombstone is sent once
-    client.put("/api/me/consent", json={"training": True}, headers=auth(yes))
+    client.put("/api/me/consent", json={"training": True, "adult": True}, headers=auth(yes))
     assert [r["game_id"] for r in run(app.state.sessions)[0]] == [gy]
     assert client.delete("/api/me", headers=auth(yes)).json()["deleted_games"] == 1
     assert run(app.state.sessions) == ([], [gy])

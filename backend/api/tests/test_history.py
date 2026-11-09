@@ -65,7 +65,7 @@ def stored(user_id):
 def test_consent_text_served_and_versioned(env):
     c, fake = env
     t = c.get("/api/consent").json()
-    assert t["version"] == "training-v1" and t["history_version"] == "history-v1"
+    assert t["version"] == "training-v2" and t["history_version"] == "history-v1"
     for words in ("public Lichess games", "personal doppel", "18 or older", "deletes the imported games"):
         assert words in t["history"]
     x = signed_in(c, fake)
