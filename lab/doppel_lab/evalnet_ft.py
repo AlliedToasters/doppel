@@ -34,8 +34,9 @@ BLOCK = 2000
 
 
 def games_for(split: str, n: int | None) -> list:
-    if split == "human_all":  # every corpus game, Stockfish evals or not (dummy zeros: labels unused)
-        g = pl.read_parquet(en.ROOT / "data/human/games_2026-10.parquet", columns=["game_id", "moves"])
+    if split == "human_all" or split.endswith(".parquet"):  # every game, evals or not (dummy zeros: labels unused)
+        src = "data/human/games_2026-10.parquet" if split == "human_all" else split
+        g = pl.read_parquet(en.ROOT / src, columns=["game_id", "moves"]).filter(pl.col("moves").list.len() > 0)
         return [(gid, m, [0] * (len(m) + 1)) for gid, m in g.iter_rows()]
     if split == "human":
         ev = pl.read_parquet(en.HUMAN_EVALS)
@@ -159,19 +160,26 @@ def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke:
     print(f"done ({time.time() - t0:.0f}s)")
 
 
-def label(device: str, ckpt: str = "", workers: int = 20):
-    """Screening pass: the fine-tuned net over all 36k corpus games (Stockfish has 12k) -> data/evals format."""
+def label(device: str, ckpt: str = "", workers: int = 20, games: str = "", out: str = ""):
+    """Screening pass: the fine-tuned net over every game of a games parquet (default: the 36k corpus, which
+    Stockfish labels 12k of) -> data/evals format. Large files go in chunks of 50k games, one output part each."""
     import torch
     t0 = time.time()
     net = Net(device)
     s = torch.load(en.OUT / f"evalnet_ft{ckpt}.pt", map_location=device, weights_only=False)
     net.m.load_state_dict(s["trunk"])
     net.head.load_state_dict(s["head"])
-    rows = games_for("human_all", None)
+    rows = games_for(games or "human_all", None)
+    dest = en.ROOT / (out or f"data/evals/human_evalnet_ft{ckpt}_all.parquet")
+    CH = 50_000
     with mp.get_context("fork").Pool(workers) as pool:
-        d = predict(net, pool, rows, device)
-    print(f"{len(d['pred']):,} positions, {len(d['pred']) / (time.time() - t0):,.0f}/s incl. load", flush=True)
-    en.write_hat(d, d["pred"].astype(np.float64), en.ROOT / f"data/evals/human_evalnet_ft{ckpt}_all.parquet")
+        for c0 in range(0, len(rows), CH):
+            path = dest if len(rows) <= CH else dest.with_name(f"{dest.stem}.part{c0 // CH:03d}.parquet")
+            if path.exists():  # resumable after preemption
+                continue
+            d = predict(net, pool, rows[c0:c0 + CH], device)
+            en.write_hat(d, d["pred"].astype(np.float64), path)
+            print(f"{min(c0 + CH, len(rows)):,}/{len(rows):,} games ({time.time() - t0:.0f}s)", flush=True)
 
 
 def score(tag: str = ""):
@@ -210,12 +218,14 @@ if __name__ == "__main__":
     lb = sub.add_parser("label")
     lb.add_argument("--ckpt", default="", help="checkpoint suffix, e.g. _g100k_e2")
     lb.add_argument("--gpu-ok", action="store_true")
+    lb.add_argument("--games", default="", help="games parquet relative to the repo (default: the 36k corpus)")
+    lb.add_argument("--out", default="", help="output parquet relative to the repo")
     sc = sub.add_parser("score")
     sc.add_argument("--tag", default="", help="e.g. _g20k for a data-scaling run")
     a = ap.parse_args()
     if a.cmd == "train":
         train(a.games, "cuda" if a.gpu_ok else "cpu", a.batch, smoke=a.smoke, epochs=a.epochs)
     elif a.cmd == "label":
-        label("cuda" if a.gpu_ok else "cpu", a.ckpt)
+        label("cuda" if a.gpu_ok else "cpu", a.ckpt, games=a.games, out=a.out)
     else:
         score(a.tag)
