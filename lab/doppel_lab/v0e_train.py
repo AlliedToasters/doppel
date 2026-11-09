@@ -53,12 +53,12 @@ class FakeVecs:
         self.sweep = rng.standard_normal((G, 2, 3)).astype(np.float32)
 
 
-def load_split(name: str, fake_vecs: bool) -> Split:
+def load_split(name: str, fake_vecs: bool, frac: float = 1.0) -> Split:
     if fake_vecs:
         from doppel_lab.v0_data import Index
         ix = Index(V0 / f"index_1500_{name}.npz" if name in ("train", "val") else V0E / f"index_1500_{name}.npz")
-        return Split(name, vec=FakeVecs(ix.game_id))
-    return Split(name)
+        return Split(name, vec=FakeVecs(ix.game_id), frac=frac)
+    return Split(name, frac=frac)
 
 
 def build(fake: bool, device: str, norm: bool = True) -> DoppelV0e:
@@ -241,7 +241,7 @@ def train(args):
         msg = {"init": args.init, "copied": len(rep["copied"]), "partial": rep["partial"], "skipped": rep["skipped"]}
         log.write(json.dumps(msg) + "\n")
         print(json.dumps(msg), flush=True)
-    ds = TrainSamples(load_split(args.train_split, args.fake_vecs), K=args.K, seed=args.seed)
+    ds = TrainSamples(load_split(args.train_split, args.fake_vecs, args.train_frac), K=args.K, seed=args.seed)
     steps_per_epoch = len(ds) // args.batch
     total = args.max_steps or steps_per_epoch * args.epochs
     vl = val_loader(args, min(args.workers, 8))
@@ -367,6 +367,8 @@ if __name__ == "__main__":
         p.add_argument("--seed", type=int, default=0)
     t = sub.choices["train"]
     t.add_argument("--train-split", default="train")
+    t.add_argument("--train-frac", type=float, default=1.0,
+                   help="data scaling: train on this random share of the split's games (histories shrink too)")
     t.add_argument("--init", default="v0d", help="v0d run to initialise residual/think/resign from ('' = none)")
     t.add_argument("--epochs", type=int, default=6)
     t.add_argument("--max-steps", type=int, default=0)

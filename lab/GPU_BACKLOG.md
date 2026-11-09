@@ -10,7 +10,7 @@ everything here is lab research.
 
 | Job | What it answers | Approx. GPU time |
 |---|---|---|
-| `evalnet_ft label --games data/v0/games_1500_train.parquet --out data/evals/v0_train_evalnet_ft.parquet` | T2-lite evals for all 700k v0 games (49M positions); unlocks the style study at scale | 70 min |
+| `v0e_train train --run v0f_half --w-con 0.1 --tau 0.1 --train-frac 0.5 --max-steps 32808` | v0f on half the games at equal steps: is the corpus the bottleneck? Then `v0e_train eval --run v0f_half` and the players suite vs v0f | 3.75 h |
 
 ## Ready (code exists; just submit)
 
@@ -22,10 +22,7 @@ everything here is lab research.
 
 ## Needs a little code first
 
-3. **v0 data-scaling run (answers "would a bigger corpus help v0?").** The v0f recipe on 50% of the training
-   games, everything else equal. Compare val ce_post − ce_teacher, z active units, z-swap gain and the players
-   suite re-ID against v0f. If halving the data costs re-ID, doubling it will help. Needs a `--train-frac` flag in
-   `v0_train.py`. About 3.75 h.
+3. **v0 data-scaling, quarter point.** If v0f_half shows a cost: `--train-frac 0.25` for a third curve point.
 4. **Eval-net distillation sweep.** Fine-tune the 23M Maia-3 trunk (if available) on the same labels: is a 3×
    cheaper net good enough for screening? About 40 min.
 5. **Full-month corpus (more games per player).** The v0 corpus is the head of the 2026-10 file: median player has
@@ -37,6 +34,8 @@ everything here is lab research.
 
 ## Done
 
+- 2026-11-09: evalnet labels for all 700k v0 train games (49M positions, 70 min) ->
+  `data/evals/v0_train_evalnet_ft.part*.parquet`.
 - 2026-11-09: evalnet fine-tune on 100k games × 3 epochs (99 min). MAE 2.78 → 2.62 win%, blunder recall 0.59 →
   0.62, still short of 1,000-node Stockfish (0.65). Checkpoint `data/probe/evalnet_ft_g100k_e3.pt`. SCIENCE.md §3.1.
 - 2026-11-09: evalnet labels for all 36k corpus games (3.5 min). Net T2+T1 on 36k matches Stockfish T2+T1 on 12k

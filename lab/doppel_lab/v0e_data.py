@@ -181,26 +181,29 @@ def norm(band: int = 1500, n: int = 200_000, seed: int = 0):
 class Split:
     """Index + vectors + meta of one split, and each side's place in its player's time-ordered history."""
 
-    def __init__(self, split: str, band: int = 1500, vec=None):
+    def __init__(self, split: str, band: int = 1500, vec=None, frac: float = 1.0, frac_seed: int = 0):
         self.ix = Index(V0 / f"index_{band}_{split}.npz" if split in ("train", "val")
                         else V0E / f"index_{band}_{split}.npz")
         m = np.load(V0E / f"meta_{band}_{split}.npz", allow_pickle=True)
         self.t, self.pid, self.players, self.surf = m["t"], m["pid"], m["players"], m["surf"]
         self.vec = vec if vec is not None else Vecs(split, band)
         assert (self.vec.game_ids == self.ix.game_id).all() and (m["game_id"] == self.ix.game_id).all()
+        # data-scaling runs: keep a random share of games; dropped games vanish from targets and histories alike
+        self.kept = (np.arange(len(self.t)) if frac >= 1.0 else
+                     np.sort(np.random.default_rng(frac_seed).permutation(len(self.t))[:int(round(frac * len(self.t)))]))
         self._order()
         self.feat = ctx_feats(self.vec.scal, self.vec.sweep, self.surf)  # (G, 2, CTX_FEATS)
 
     def _order(self):
         G = len(self.t)
-        g = np.r_[np.arange(G), np.arange(G)]
-        col = np.r_[np.zeros(G, np.int64), np.ones(G, np.int64)]
+        g = np.r_[self.kept, self.kept]
+        col = np.r_[np.zeros(len(self.kept), np.int64), np.ones(len(self.kept), np.int64)]
         p = self.pid[g, col]
         order = np.lexsort((col, self.t[g], p))                # by player, then time
         self.hg, self.hc, hp = g[order], col[order], p[order]
         start = np.r_[0, np.flatnonzero(np.diff(hp)) + 1]
         self.start_of = np.repeat(start, np.diff(np.r_[start, len(hp)]))
-        self.pos = np.empty((G, 2), np.int64)                  # (g, c) -> index in hg/hc
+        self.pos = np.full((G, 2), -1, np.int64)               # (g, c) -> index in hg/hc (-1: dropped game)
         self.pos[self.hg, self.hc] = np.arange(len(self.hg))
 
     def history(self, g: int, col: int) -> tuple[np.ndarray, np.ndarray]:
@@ -261,10 +264,10 @@ class TrainSamples:
         self.sp, self.K, self.seed, self.epoch = sp, K, seed, 0
 
     def __len__(self):
-        return self.sp.ix.G * 2
+        return len(self.sp.kept) * 2
 
     def __getitem__(self, i):
-        g, col = i // 2, i % 2
+        g, col = int(self.sp.kept[i // 2]), i % 2
         rng = np.random.default_rng((self.seed, self.epoch, i))
         hg, _ = self.sp.history(g, col)
         return build(self.sp, g, col, draw_k(len(hg), rng), self.K, rng)
