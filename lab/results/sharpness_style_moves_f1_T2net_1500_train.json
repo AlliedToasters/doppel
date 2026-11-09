@@ -1,0 +1,213 @@
+{
+ "n_side_games": 1400000,
+ "min_games": 16,
+ "traits": [
+  "faced_ent",
+  "steer_ent",
+  "steer_vol",
+  "sharp_gap",
+  "alloc_rho",
+  "obvious_miss",
+  "maia_lp",
+  "opp_blunder",
+  "blunder"
+ ],
+ "game_level_rho_with_perf": {
+  "faced_ent": -0.10170235342790791,
+  "steer_ent": 0.11589149671069106,
+  "steer_vol": -0.3123770961369667,
+  "sharp_gap": -0.05375559191264933,
+  "alloc_rho": -0.008921051924354155,
+  "obvious_miss": -0.06125279007691665,
+  "maia_lp": 0.2183963390085734,
+  "opp_blunder": 0.25425038504131603,
+  "blunder": -0.2542116455319205
+ },
+ "players": 26757,
+ "per_trait": {
+  "faced_ent": {
+   "split_half_rho": 0.3419919336785113,
+   "split_half_rho_rating_resid": 0.3261753528555041,
+   "rho_with_rating": -0.15786848751712476,
+   "cross_half_rho_perf": 0.004227756571054557,
+   "cross_half_rho_opp_blunder": -0.0405232900362468,
+   "players": 26757,
+   "mean": 1.3202292349091684
+  },
+  "steer_ent": {
+   "split_half_rho": 0.48809616332875166,
+   "split_half_rho_rating_resid": 0.48589064311439184,
+   "rho_with_rating": 0.06829834209193565,
+   "cross_half_rho_perf": 0.002649821060570002,
+   "cross_half_rho_opp_blunder": -0.06767842643003233,
+   "players": 26757,
+   "mean": -0.009772126431157033
+  },
+  "steer_vol": {
+   "split_half_rho": 0.11520700754124395,
+   "split_half_rho_rating_resid": 0.10445940225412086,
+   "rho_with_rating": -0.11115140764514729,
+   "cross_half_rho_perf": 0.013688942605952464,
+   "cross_half_rho_opp_blunder": 0.06482797235792855,
+   "players": 26757,
+   "mean": 0.023110075105634162
+  },
+  "sharp_gap": {
+   "split_half_rho": 0.06135859091347413,
+   "split_half_rho_rating_resid": 0.05992199775907572,
+   "rho_with_rating": -0.03245428782377437,
+   "cross_half_rho_perf": 0.0010949209173733566,
+   "cross_half_rho_opp_blunder": 0.07680841752821618,
+   "players": 26757,
+   "mean": 0.050756475489335616
+  },
+  "alloc_rho": {
+   "split_half_rho": 0.5123320229400431,
+   "split_half_rho_rating_resid": 0.5122061223591385,
+   "rho_with_rating": -0.0014202468179487962,
+   "cross_half_rho_perf": 0.007205086647297403,
+   "cross_half_rho_opp_blunder": -0.05458491714424045,
+   "players": 26757,
+   "mean": 0.22448050180932702
+  },
+  "obvious_miss": {
+   "split_half_rho": 0.12531074364262548,
+   "split_half_rho_rating_resid": 0.12490308343319811,
+   "rho_with_rating": -0.02166483544771356,
+   "cross_half_rho_perf": -0.0006397043389075256,
+   "cross_half_rho_opp_blunder": 0.06653323174853704,
+   "players": 26757,
+   "mean": 0.07660643178700233
+  },
+  "maia_lp": {
+   "split_half_rho": 0.4635690591418589,
+   "split_half_rho_rating_resid": 0.45243766858878764,
+   "rho_with_rating": 0.14463484904941787,
+   "cross_half_rho_perf": 0.0009498246670374146,
+   "cross_half_rho_opp_blunder": -0.08963136827079454,
+   "players": 26757,
+   "mean": -1.3027730852050932
+  },
+  "opp_blunder": {
+   "split_half_rho": 0.19666654144073867,
+   "split_half_rho_rating_resid": 0.1958270531715584,
+   "rho_with_rating": 0.03799588357496263,
+   "cross_half_rho_perf": -0.014197255704721322,
+   "cross_half_rho_opp_blunder": 0.19564040543477318,
+   "players": 26757,
+   "mean": 0.07147224192260651
+  },
+  "blunder": {
+   "split_half_rho": 0.24599120170104918,
+   "split_half_rho_rating_resid": 0.23606839667124715,
+   "rho_with_rating": -0.10190327515499235,
+   "cross_half_rho_perf": 4.122814553843518e-05,
+   "cross_half_rho_opp_blunder": 0.1828686620303558,
+   "players": 26757,
+   "mean": 0.06968007978226538
+  }
+ },
+ "trait_corr_half_a": {
+  "faced_ent": {
+   "faced_ent": 1.0,
+   "steer_ent": 0.26383115262061874,
+   "steer_vol": 0.08681476515230058,
+   "sharp_gap": -0.06630302556121682,
+   "alloc_rho": -0.08453150141968328,
+   "obvious_miss": -0.006531416160558047,
+   "maia_lp": -0.5019117543068505,
+   "opp_blunder": -0.09298310476542693,
+   "blunder": -0.018039220068893233
+  },
+  "steer_ent": {
+   "faced_ent": 0.26383115262061874,
+   "steer_ent": 1.0,
+   "steer_vol": -0.12997421138852044,
+   "sharp_gap": -0.09965356436982689,
+   "alloc_rho": -0.12112015044089895,
+   "obvious_miss": 0.04706016690213798,
+   "maia_lp": -0.24153492808515076,
+   "opp_blunder": -0.056011138627492366,
+   "blunder": -0.1654034374466559
+  },
+  "steer_vol": {
+   "faced_ent": 0.08681476515230058,
+   "steer_ent": -0.12997421138852044,
+   "steer_vol": 1.0,
+   "sharp_gap": 0.14413335572150607,
+   "alloc_rho": -0.02287904184434943,
+   "obvious_miss": 0.07397709246941722,
+   "maia_lp": -0.21030484872191638,
+   "opp_blunder": 0.11088575562776148,
+   "blunder": 0.5105803251365625
+  },
+  "sharp_gap": {
+   "faced_ent": -0.06630302556121682,
+   "steer_ent": -0.09965356436982689,
+   "steer_vol": 0.14413335572150607,
+   "sharp_gap": 1.0,
+   "alloc_rho": 0.06392109273856697,
+   "obvious_miss": -0.18353949705102973,
+   "maia_lp": 0.02505310461922534,
+   "opp_blunder": 0.14069816678837818,
+   "blunder": 0.2123359686326834
+  },
+  "alloc_rho": {
+   "faced_ent": -0.08453150141968328,
+   "steer_ent": -0.12112015044089895,
+   "steer_vol": -0.02287904184434943,
+   "sharp_gap": 0.06392109273856697,
+   "alloc_rho": 1.0,
+   "obvious_miss": -0.1459012880737955,
+   "maia_lp": 0.22269745070156638,
+   "opp_blunder": -0.08469306247594108,
+   "blunder": -0.06268490830224328
+  },
+  "obvious_miss": {
+   "faced_ent": -0.006531416160558047,
+   "steer_ent": 0.04706016690213799,
+   "steer_vol": 0.07397709246941722,
+   "sharp_gap": -0.1835394970510297,
+   "alloc_rho": -0.14590128807379546,
+   "obvious_miss": 0.9999999999999999,
+   "maia_lp": -0.3457345926539222,
+   "opp_blunder": 0.06610575712732766,
+   "blunder": 0.1306086559681487
+  },
+  "maia_lp": {
+   "faced_ent": -0.5019117543068505,
+   "steer_ent": -0.24153492808515076,
+   "steer_vol": -0.21030484872191638,
+   "sharp_gap": 0.02505310461922534,
+   "alloc_rho": 0.22269745070156638,
+   "obvious_miss": -0.3457345926539222,
+   "maia_lp": 1.0,
+   "opp_blunder": -0.05555008214633925,
+   "blunder": -0.22579896757960669
+  },
+  "opp_blunder": {
+   "faced_ent": -0.09298310476542693,
+   "steer_ent": -0.056011138627492366,
+   "steer_vol": 0.11088575562776148,
+   "sharp_gap": 0.14069816678837818,
+   "alloc_rho": -0.08469306247594108,
+   "obvious_miss": 0.06610575712732766,
+   "maia_lp": -0.05555008214633925,
+   "opp_blunder": 1.0,
+   "blunder": 0.567936625694203
+  },
+  "blunder": {
+   "faced_ent": -0.018039220068893233,
+   "steer_ent": -0.1654034374466559,
+   "steer_vol": 0.5105803251365625,
+   "sharp_gap": 0.2123359686326834,
+   "alloc_rho": -0.06268490830224328,
+   "obvious_miss": 0.1306086559681487,
+   "maia_lp": -0.22579896757960669,
+   "opp_blunder": 0.567936625694203,
+   "blunder": 1.0
+  }
+ },
+ "perf_split_half_rho": -0.009149456372262707,
+ "table": "moves_f1_T2net_1500_train"
+}

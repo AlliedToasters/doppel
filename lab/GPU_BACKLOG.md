@@ -14,10 +14,7 @@ everything here is lab research.
 
 ## Ready (code exists; just submit)
 
-1. **Style traits at scale.** After the v0 label job: rerun `sharpness style` on the 700k v0 games with net evals.
-   Today it covers 873 players; the v0 corpus has 21,659 players with 20+ games. Tests whether steering and time
-   allocation stay stable, rating-free and unprofitable on 25× the players. (CPU after the label job.)
-2. **Fixed-1500 Maia teacher over v0 val + a fresh month.** `teacher.py --games <parquet> --out <dir> --fixed-elo
+1. **Fixed-1500 Maia teacher over v0 val + a fresh month.** `teacher.py --games <parquet> --out <dir> --fixed-elo
    1500`: T1 features for any new corpus build (see item 5).
 
 ## Needs a little code first
@@ -34,6 +31,8 @@ everything here is lab research.
 
 ## Done
 
+- 2026-11-09: style traits at scale on the net-labeled v0 corpus: 26,757 players; steering +0.49 and
+  allocation +0.51 split-half, performance null within ±0.015. SCIENCE.md §8.
 - 2026-11-09: evalnet labels for all 700k v0 train games (49M positions, 70 min) ->
   `data/evals/v0_train_evalnet_ft.part*.parquet`.
 - 2026-11-09: evalnet fine-tune on 100k games × 3 epochs (99 min). MAE 2.78 → 2.62 win%, blunder recall 0.59 →

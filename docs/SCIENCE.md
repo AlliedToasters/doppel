@@ -667,6 +667,27 @@ own blunder rate (ρ 0.55 within player): their games are messy on both sides. F
 allocation are style dimensions z should carry: as stable as opening choice within a band, and invisible to
 rating.
 
+*At scale (2026-11-09; `sharpness style --table moves_f1_T2net_1500_train`,
+`lab/results/sharpness_style_moves_f1_T2net_1500_train.json`).* The eval net labeled all 700k v0 train games
+(§3.1), so the same study runs on 26,757 players with at least 16 games, 31× the players. The eval-based traits
+(volatility steering, sharp-minus-quiet loss, blunder rates) now use net evals; steering, allocation and Maia
+log-prob don't use evals at all.
+
+| Trait | Split-half ρ, 873 players | 26,757 players | Half A → half B performance |
+|---|---|---|---|
+| time allocation | +0.40 | **+0.51** | +0.007 |
+| steering | +0.42 | **+0.49** | +0.003 |
+| Maia log-prob of own moves | +0.43 | +0.46 | +0.001 |
+| mean entropy faced | +0.26 | +0.34 | +0.004 |
+| own blunder rate | +0.16 | +0.25 | 0.000 |
+| opponents' blunder rate | +0.16 | +0.20 | −0.014 |
+
+The finding holds and tightens. Steering and allocation are the most stable traits measured, and with 27k
+players the predictive null is now precise: every cross-half performance correlation is within ±0.015.
+Performance itself has split-half ρ −0.009, so at 1500 nothing about a player predicts beating their rating:
+Lichess ratings already absorb it. Steering slightly *lowers* opponents' later blunder rate (−0.07): sharper
+positions don't make opponents crack.
+
 **Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
 prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
 Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
