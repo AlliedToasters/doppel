@@ -1,0 +1,101 @@
+{
+  "run": "v0f",
+  "band": 1500,
+  "step": 32808,
+  "verdict": "fail",
+  "status": {
+    "z_used": "fail",
+    "accuracy": "pass",
+    "think": "pass",
+    "persistence": "pass",
+    "variance": "pass"
+  },
+  "checks": {
+    "z_used": {
+      "active_units": 28,
+      "kl_nats_per_half": 0.8574368357658386,
+      "free_bits": 0.5,
+      "kl_nats_by_k": {
+        "0": 0.0,
+        "1": 0.6708,
+        "2-4": 0.7504,
+        "5-9": 0.9391,
+        "10-19": 0.9002,
+        "20-40": 0.942
+      },
+      "ce_post": 1.3331142663955688,
+      "ce_swap": 1.3342692852020264,
+      "z_swap_gain_nats": 0.0011548714246600866,
+      "z_swap_gain_ci": [
+        0.0009017334809629058,
+        0.0014308938052439758
+      ],
+      "parts": {
+        "active_units": true,
+        "kl": false,
+        "z_swap": true
+      },
+      "pass": false,
+      "rule": "active units >= 4; KL >= free bits + 1.0; z-swap gain CI > 0"
+    },
+    "accuracy": {
+      "top1_prior": 0.5559224486351013,
+      "top1_post": 0.5561347603797913,
+      "top1_teacher": 0.5564683675765991,
+      "pass": true,
+      "rule": "top-1 with prior z >= Maia-3 79M top-1 - 0.3 points"
+    },
+    "think": {
+      "r_log_prior": 0.6974302330949389,
+      "r_log_post": 0.7080407818045222,
+      "chessmimic": 0.56,
+      "pass": true,
+      "rule": "log-seconds r with prior z > ChessMimic's 0.56"
+    },
+    "persistence": {
+      "pass": true,
+      "rule": "doppel half-corr > maia3's, and doppel's CI lower bound > maia3's point",
+      "human": {
+        "n": 3968,
+        "r": 0.03899640739647329,
+        "ci": [
+          0.008512807028532864,
+          0.07164051962721353
+        ]
+      },
+      "maia3": {
+        "n": 1979,
+        "r": -0.05499592132538286,
+        "ci": [
+          -0.09988652377814926,
+          -0.011330073287801957
+        ]
+      },
+      "doppel": {
+        "n": 1992,
+        "r": -0.006114217573474534,
+        "ci": [
+          -0.048518888943223135,
+          0.040709472910750846
+        ]
+      }
+    },
+    "variance": {
+      "pass": true,
+      "rule": "per-game ACPL KS to humans: doppel <= maia3",
+      "ks_to_human": {
+        "maia3": 0.07118468719946525,
+        "doppel": 0.0616144011529991
+      },
+      "ks_gap_ci": [
+        -0.03334857487753502,
+        0.01829670426436724
+      ],
+      "mean_acpl": {
+        "human": 61.776187903399396,
+        "maia3": 67.31863017777614,
+        "doppel": 65.85656541591766
+      }
+    }
+  }
+}
