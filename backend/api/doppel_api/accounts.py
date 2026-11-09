@@ -60,7 +60,12 @@ class RedactTokens(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
         if "=" in msg and _TOKEN_IN_URL.search(msg):
-            record.msg, record.args = _TOKEN_IN_URL.sub(r"\1REDACTED", msg), None
+            if isinstance(record.args, tuple) and record.args:
+                # uvicorn's access formatter unpacks args (client, method, path, ...): redact inside them
+                record.args = tuple(_TOKEN_IN_URL.sub(r"\1REDACTED", a) if isinstance(a, str) else a
+                                    for a in record.args)
+            if isinstance(record.msg, str):
+                record.msg = _TOKEN_IN_URL.sub(r"\1REDACTED", record.msg)
         return True
 
 

@@ -132,3 +132,19 @@ def test_tokens_never_reach_logs():
 
 def test_no_stateless_move_endpoint(client):
     assert client.post("/api/move", json={"bot": "x", "moves": []}).status_code in (404, 405)
+
+
+def test_redacted_access_lines_still_format():
+    """uvicorn's access formatter unpacks record.args; redaction must keep that shape (the live Lichess callback
+    line raised TypeError and was dropped)."""
+    import logging
+
+    from uvicorn.logging import AccessFormatter
+
+    from doppel_api.accounts import RedactTokens
+    rec = logging.LogRecord("uvicorn.access", logging.INFO, "", 0, '%s - "%s %s HTTP/%s" %d',
+                            ("1.2.3.4:0", "GET", "/api/auth/lichess/callback?state=st4te&code=c0de", "1.1", 302),
+                            None)
+    RedactTokens().filter(rec)
+    line = AccessFormatter('%(client_addr)s - "%(request_line)s" %(status_code)s').format(rec)
+    assert "st4te" not in line and "c0de" not in line and "code=REDACTED" in line and "302" in line
