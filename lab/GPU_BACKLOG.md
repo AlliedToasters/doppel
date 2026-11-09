@@ -10,7 +10,6 @@ everything here is lab research.
 
 | Job | What it answers | Approx. GPU time |
 |---|---|---|
-| `evalnet_ft train --games 100000 --epochs 3` | does 3× more training move blunder recall off 0.59? | 100 min |
 | `evalnet_ft label --games data/v0/games_1500_train.parquet --out data/evals/v0_train_evalnet_ft.parquet` | T2-lite evals for all 700k v0 games (49M positions); unlocks the style study at scale | 70 min |
 
 ## Ready (code exists; just submit)
@@ -38,5 +37,7 @@ everything here is lab research.
 
 ## Done
 
+- 2026-11-09: evalnet fine-tune on 100k games × 3 epochs (99 min). MAE 2.78 → 2.62 win%, blunder recall 0.59 →
+  0.62, still short of 1,000-node Stockfish (0.65). Checkpoint `data/probe/evalnet_ft_g100k_e3.pt`. SCIENCE.md §3.1.
 - 2026-11-09: evalnet labels for all 36k corpus games (3.5 min). Net T2+T1 on 36k matches Stockfish T2+T1 on 12k
   (214 vs 214). SCIENCE.md §3.1.

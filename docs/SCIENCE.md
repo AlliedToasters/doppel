@@ -169,6 +169,10 @@ is always pre.
   0.003 per doubling, while blunder recall stays at 0.58–0.59. More labels sharpen the eval slowly and don't touch
   blunders. A blunder is a tactic, and a static net at this size doesn't see it, the same wall the static NNUE
   hits (recall 0.06).
+  A longer run (all 100k labelled games, 3 epochs, 3.75× the compute of the 80k pass; `scaling.g100k_e3`) gets
+  wc MAE 0.052 (2.62 win%), blunder AUC 0.936 and recall 0.62 at the 0.3 threshold (precision 0.67). That is the
+  first recall gain, but small: 1,000-node Stockfish is still ahead (0.65 / 0.78). Compute buys eval accuracy
+  faster than it buys blunders.
 
   **Science test:** game_science's per-ply table rebuilt from the net's evals, then the same game_mean rating
   model on the 12k games:
