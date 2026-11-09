@@ -10,7 +10,8 @@ everything here is lab research.
 
 | Job | What it answers | Approx. GPU time |
 |---|---|---|
-| `v0e_train train --run v0f_half --w-con 0.1 --tau 0.1 --train-frac 0.5 --max-steps 32808` | v0f on half the games at equal steps: is the corpus the bottleneck? Then `v0e_train eval --run v0f_half` and the players suite vs v0f | 3.75 h |
+| `v0e_train train --run v0f_half --w-con 0.1 --tau 0.1 --train-frac 0.5 --max-steps 32808` | v0f on half the games at equal steps: is the corpus the bottleneck? | 3 h |
+| `v0e_train eval --run v0f_half` (queued behind it); then CPU `v0e_suite --run v0f_half` | gate metrics and re-ID vs v0f | 20 min |
 
 ## Ready (code exists; just submit)
 
