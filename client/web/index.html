@@ -48,6 +48,8 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- Inlined: Cloudflare caches .js for hours whatever the origin says, and the bootstrap carries the
+       hash of main.dart.wasm, so a cached copy would break the page after a deploy. HTML is not cached. -->
+  <script>{{flutter_bootstrap_js}}</script>
 </body>
 </html>
