@@ -163,6 +163,29 @@ def rating():
     print(f"-> sharpness_rating.json ({time.time() - t0:.0f}s)")
 
 
+def add_t1(games: pl.DataFrame) -> pl.DataFrame:
+    """game_science games + w_/b_ rating-free T1 aggregates (fixed-Elo Maia; independent of any eval source)."""
+    from doppel_lab import game_science as gs
+    ply = pl.read_parquet(gs.PLY, columns=["game_id", "ply", "mover"])
+    p = (ply.join(teacher_frame(ROOT / "data/human/teacher_e1500"), on=["game_id", "ply"]).sort("game_id", "ply")
+         .with_columns(handed=c("t_ent").shift(-1).over("game_id")).filter(c("ply") >= 10))
+    d = p.filter(c("handed").is_not_null())
+    Z = np.c_[np.ones(d.height), d["t_ent"].to_numpy(), d["t_ent"].to_numpy() ** 2]
+    beta = np.linalg.lstsq(Z, d["handed"].to_numpy(), rcond=None)[0]
+    p = p.with_columns(steer=c("handed") - (beta[0] + beta[1] * c("t_ent") + beta[2] * c("t_ent") ** 2))
+    lo, hi = np.quantile(p["t_ent"].to_numpy(), [1 / 3, 2 / 3])
+    sharp, quiet, obvious = c("t_ent") >= hi, c("t_ent") <= lo, c("t_ptop") >= 0.8
+    agg = p.group_by("game_id", "mover").agg(
+        t1_lp=c("t_lp").mean(), t1_top1=c("t_top1").mean(), t1_ent=c("t_ent").mean(),
+        t1_lp_sharp=c("t_lp").filter(sharp).mean(), t1_lp_quiet=c("t_lp").filter(quiet).mean(),
+        t1_obvious_miss=(1 - c("t_top1")).filter(obvious).mean(), t1_steer=c("steer").mean())
+    agg = agg.with_columns([c(k).cast(pl.Float64).fill_nan(None) for k in T1_FEATS])
+    for side, pre in ((0, "w_"), (1, "b_")):
+        games = games.join(agg.filter(c("mover") == side).select("game_id", *[c(k).alias(pre + k) for k in T1_FEATS]),
+                           on="game_id", how="left")
+    return games
+
+
 def style():
     t0 = time.time()
     s = side_table()

@@ -102,9 +102,11 @@ def _task(args):
     return game_rows((row, None, ev))
 
 
-def build(workers: int):
+def build(workers: int, evals: Path | None = None, out: Path | None = None):
+    """evals/out default to the Stockfish labels and PLY; evalnet.py passes its own evals (same format)."""
+    out = out or PLY
     g = pl.read_parquet(ROOT / "data/human/games_2026-10.parquet")
-    ev = dict(pl.read_parquet(ROOT / "data/evals/human.parquet").iter_rows())
+    ev = dict(pl.read_parquet(evals or ROOT / "data/evals/human.parquet").iter_rows())
     rows = g.select("game_id", "white_elo", "black_elo", "base", "inc", "moves", "clocks").iter_rows(named=True)
     tasks = [(r, ev.get(r["game_id"])) for r in rows if r["moves"]]
     t = time.time()
@@ -112,16 +114,16 @@ def build(workers: int):
         parts = p.map(_task, tasks, chunksize=64)
     from doppel_lab.features.table import _concat
     df = _concat(parts)
-    PLY.parent.mkdir(parents=True, exist_ok=True)
-    df.write_parquet(PLY)
-    print(f"{len(tasks):,} games, {df.height:,} plies, {df.width} columns, {time.time() - t:.0f}s -> {PLY}")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    df.write_parquet(out)
+    print(f"{len(tasks):,} games, {df.height:,} plies, {df.width} columns, {time.time() - t:.0f}s -> {out}")
 
 
 # --- tables ------------------------------------------------------------------------------------------------------
 
-def tables() -> tuple[pl.DataFrame, pl.DataFrame]:
+def tables(ply_path: Path | None = None) -> tuple[pl.DataFrame, pl.DataFrame]:
     """(sides, games): one row per (game, side) and one per game."""
-    ply = pl.read_parquet(PLY)
+    ply = pl.read_parquet(ply_path or PLY)
     ply = ply.with_columns([c(k).fill_nan(None) for k, t in ply.schema.items() if t.is_float()])  # mean() skips null, not NaN
     meta = pl.read_parquet(ROOT / "data/human/games_2026-10.parquet",
                            columns=["game_id", "band", "base", "inc", "result", "termination", "white_elo",
