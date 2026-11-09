@@ -10,6 +10,9 @@ Shards: <out>/shard-XXXX.npz with game_ids and per-game offsets into the positio
     python -m doppel_lab.teacher select --band 1500 --games 700000      # CPU, after corpus.py
     python -m doppel_lab.teacher run --split train --gpu-ok              # GPU, via the warden
     python -m doppel_lab.teacher run --split val --gpu-ok
+    # any games file (game_id, moves, white_elo, black_elo), optionally with both Elos fixed (a rating-free view)
+    python -m doppel_lab.teacher run --games data/human/games_2026-10.parquet --out data/human/teacher_e1500 \
+        --fixed-elo 1500 --gpu-ok
 """
 
 from __future__ import annotations
@@ -64,12 +67,16 @@ def encode_game(args):
             np.array(played, np.int16), np.array(e_self, np.int32), np.array(e_opp, np.int32))
 
 
-def run(split: str, band: int, device: str, workers: int, batch: int):
+def run(split: str, band: int, device: str, workers: int, batch: int, games_path: str | None = None,
+        out: str | None = None, fixed_elo: int | None = None):
     import torch
 
     from doppel_lab.engines import Maia3
-    games = pl.read_parquet(V0 / f"games_{band}_{split}.parquet").select("game_id", "moves", "white_elo", "black_elo")
-    out_dir = V0 / f"teacher_{band}_{split}"
+    src = ROOT / games_path if games_path else V0 / f"games_{band}_{split}.parquet"
+    games = pl.read_parquet(src).select("game_id", "moves", "white_elo", "black_elo")
+    if fixed_elo is not None:
+        games = games.with_columns(white_elo=pl.lit(fixed_elo), black_elo=pl.lit(fixed_elo))
+    out_dir = ROOT / out if out else V0 / f"teacher_{band}_{split}"
     out_dir.mkdir(parents=True, exist_ok=True)
     eng = Maia3("79m", device)
     model = eng.model
@@ -150,9 +157,12 @@ if __name__ == "__main__":
     r.add_argument("--band", type=int, default=1500)
     r.add_argument("--workers", type=int, default=20)
     r.add_argument("--batch", type=int, default=2048)
+    r.add_argument("--games", default=None, help="games parquet (repo-relative) instead of the v0 band split")
+    r.add_argument("--out", default=None, help="output dir (repo-relative)")
+    r.add_argument("--fixed-elo", type=int, default=None, help="feed this Elo for both sides")
     r.add_argument("--gpu-ok", action="store_true")
     a = ap.parse_args()
     if a.cmd == "select":
         select(a.band, a.games, a.val)
     else:
-        run(a.split, a.band, "cuda" if a.gpu_ok else "cpu", a.workers, a.batch)
+        run(a.split, a.band, "cuda" if a.gpu_ok else "cpu", a.workers, a.batch, a.games, a.out, a.fixed_elo)

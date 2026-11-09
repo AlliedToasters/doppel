@@ -535,6 +535,61 @@ position (real sharpness is still untested) or more games per player. A side res
 predicts second-half band width at +0.055 within a band, close to the +0.063 persistence of experiment zero.
 It carries the same confound, because it includes skill differences between players inside a band.
 
+**Finding, sharpness: rating-free Maia beats the T2 ceiling; sharpness-gated Stockfish features don't.**
+(`doppel_lab/sharpness.py rating`, `lab/results/sharpness_rating.json`, 2026-11-08.) This follows up the envelope
+study's open thread on real sharpness. Maia-3 79M was run over all 36k games of the six-band human corpus with
+**both Elos fixed at 1500** (`teacher.py --fixed-elo`), so its outputs carry no rating input. Sharpness is
+Maia's policy entropy in the position. Each side gets two new feature sets:
+
+- T1: the played move's mean log-prob, top-1 agreement and mean entropy faced; log-prob in sharp positions
+  (top entropy third) and in quiet ones (bottom third); the miss rate in obvious positions (Maia top move ≥ 0.8);
+  and steering (the entropy handed to the opponent beyond what the faced position predicts).
+- Sharpness-gated Stockfish: win-chance loss and blunder rate in sharp and in quiet positions, loss in obvious
+  positions, and time allocation (Spearman of think fraction against entropy).
+
+| Feature set (game_mean model, 5-fold CV) | Games | MAE | R² |
+|---|---|---|---|
+| T0 (moves, clocks) | 12k with evals | 242.4 | 0.272 |
+| T0 + T1 (Maia at 1500) | 12k | 230.1 | 0.332 |
+| T2 (Stockfish) | 12k | 221.4 | 0.378 |
+| T2 + sharpness-gated Stockfish | 12k | 222.1 | 0.376 |
+| **T2 + T1** | 12k | **214.2** | **0.413** |
+| T2 + T1 + gated | 12k | 215.3 | 0.408 |
+| T0 | all 36k | 240.5 | 0.281 |
+| T0 + T1 | all 36k | 226.9 | 0.347 |
+
+Gating Stockfish loss by sharpness adds nothing, which matches the envelope null. Maia's view of the moves adds
+7 Elo of MAE beyond everything Stockfish gives. That is 20× the run-to-run noise and the first gain over T2 since
+game_science. Without Stockfish, T1 recovers about 60% of the T0 → T2 gain. The strongest single T1 features
+(Spearman with rating): mean entropy faced +0.14 (stronger players play sharper positions), steering +0.12 and
+log-prob in sharp positions +0.11, against −0.14 for Stockfish loss in sharp positions. Agreement with a
+fixed-1500 Maia is only weakly monotone in rating (log-prob +0.09), so the gain comes from *where* the
+agreement happens, not its level.
+
+**Finding, sharpness as style: steering is a stable trait that doesn't pay.** (`doppel_lab/sharpness.py style`,
+`lab/results/sharpness_style.json` and `_min8.json`.) This uses the 1500-band train table (the 1460–1640 Elo
+range, 100k games with Stockfish and Maia-3 per move): 873 players with at least 16 games, split by odd and even
+games. Spearman correlations, with mean rating regressed out (rating barely moves any of them):
+
+| Trait | Split-half ρ | Half A → half B performance | → opponents' blunder rate |
+|---|---|---|---|
+| steering (entropy handed beyond expected) | +0.42 | +0.02 | −0.04 |
+| time allocation (think vs entropy) | +0.40 | −0.02 | 0.00 |
+| Maia log-prob of own moves | +0.43 | −0.01 | −0.02 |
+| mean entropy faced | +0.26 | +0.02 | −0.04 |
+| own blunder rate | +0.16 | +0.03 | +0.14 |
+| opponents' blunder rate | +0.16 | +0.03 | +0.16 |
+| volatility steering, sharp-minus-quiet loss, obvious misses | 0.00–0.08 | ≈ 0 | ≈ 0 |
+
+Performance (score minus Elo expectation) itself has split-half ρ +0.09 at 16 games, so a trait can't predict
+it much better than this. With 5,811 players at ≥ 8 games, the halves shrink and steering reads +0.26 and
+allocation +0.30, close to the Spearman–Brown expectation. Steering correlates only −0.28 with own Maia log-prob,
+so it is not just "plays unusual moves". A player who sharpens the game does not make opponents blunder more and
+does not outscore their rating. Opponents' blunder rate is persistent (+0.16), but it travels with the player's
+own blunder rate (ρ 0.55 within player): their games are messy on both sides. For a Doppel, steering and time
+allocation are style dimensions z should carry: as stable as opening choice within a band, and invisible to
+rating.
+
 **Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
 prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
 Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
