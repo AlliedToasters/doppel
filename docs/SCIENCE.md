@@ -505,6 +505,36 @@ match or beat on the same splits (§2). Every result here is CPU-only.
 3.6 → 2.4 s) but reach time trouble more (3.2% → 5.7%). Rating from one game: MAE 281 (time control only),
 240 (T0), 223 (T2), with strong shrinkage to the mean.
 
+**Finding, envelope features (null).** (`doppel_lab/envelope.py`, the same 12k games with evals,
+`lab/results/envelope.json`, 2026-11-08.) The question: do shape, timing or difficulty features of the eval
+trajectory add rating signal beyond the T2 aggregates? Five families were tested, each added to the T2 game_mean
+model:
+
+- quiet-move loss: win-chance loss where local volatility is under 2 win% points. This stands in for
+  sharpness, which is not stored for this corpus.
+- underwater area: mean and RMS drawdown, and the share of own moves more than 10 points underwater.
+- quality band: burstiness of win-chance loss, spikes above the causal upper band, and band width per half of
+  the game.
+- MACD gap: the mean |fast EMA − slow EMA| of White's win% (α 0.5 vs 0.1), and its sign changes.
+- time axis: the features above, weighted by seconds spent instead of by move. This covers loss per second
+  thought, time-weighted underwater and volatility, win% swing per minute and time-weighted game volatility.
+  Before this run, every transform used the move as its axis.
+
+| Feature set | MAE | R² |
+|---|---|---|
+| T2 baseline | 221.8–222.1 | 0.376 |
+| + any single family | 221.8–222.4 | 0.375–0.377 |
+| + all five (98 features) | 222.1 | 0.377 |
+| envelope and time features alone (32) | 245.2 | 0.262 |
+
+The baseline moves about 0.3 Elo between identical runs, so none of the families changes the score. Within
+a band, the new features correlate 0.3–0.76 with ACPL, the MACD gap correlates about 0.5 with volatility, and
+no feature correlates more than |0.03| with rating. One game's eval trajectory appears to be used up as a
+rating signal at this model size. Further gains would have to come from outside it: Maia-3's view of the
+position (real sharpness is still untested) or more games per player. A side result: first-half band width
+predicts second-half band width at +0.055 within a band, close to the +0.063 persistence of experiment zero.
+It carries the same confound, because it includes skill differences between players inside a band.
+
 **Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
 prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
 Weird-move rate (a move chosen by < 1% of the ≥ 100 games reaching that prefix): 6.0% → 2.5% → 1.4%. Depth
