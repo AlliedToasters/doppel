@@ -3,17 +3,16 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import 'server_game.dart' show installId;
+import 'token_store/token_store.dart';
 
-/// The device's anonymous Doppel account: a bearer token from POST /api/users, kept in prefs.
+/// The device's anonymous Doppel account: a bearer token from POST /api/users, kept by [readToken].
 /// Signing up passes the install id, so games this device played before accounts move to the account.
 class Account {
   static String? token;
-  static const _key = 'auth_token';
 
   static Map<String, String> get headers => {
         'content-type': 'application/json',
@@ -22,15 +21,14 @@ class Account {
 
   /// Load the saved token, or create an account. Returns null if the backend is unreachable.
   static Future<String?> ensure() async {
-    final prefs = await SharedPreferences.getInstance();
-    token ??= prefs.getString(_key);
+    token ??= await readToken();
     if (token != null) return token;
     final id = await installId();
     var r = await _signup({'install_id': id});
     if (r.statusCode == 409) r = await _signup({}); // install id already claimed and its token lost
     if (r.statusCode != 200) return null;
     token = (jsonDecode(r.body) as Map<String, dynamic>)['token'] as String;
-    await prefs.setString(_key, token!);
+    await writeToken(token!);
     return token;
   }
 
@@ -71,7 +69,7 @@ class Account {
     if (r.statusCode != 200) throw Exception('backend ${r.statusCode}');
     final d = jsonDecode(r.body) as Map<String, dynamic>;
     token = d['token'] as String;
-    await (await SharedPreferences.getInstance()).setString(_key, token!);
+    await writeToken(token!);
     return d['user'] as Map<String, dynamic>;
   }
 
@@ -79,7 +77,7 @@ class Account {
   /// server and comes back by linking again.
   static Future<void> signOut() async {
     token = null;
-    await (await SharedPreferences.getInstance()).remove(_key);
+    await clearToken();
     await ensure();
   }
 

@@ -29,6 +29,16 @@ www.{$DOMAIN} {
 	handle /api/* {
 		reverse_proxy api:8612
 	}
+	# The Flutter web client (flutter build web --wasm into site/dist/play; see ship.sh). Its file names carry
+	# no content hash, so every response revalidates (ETag) instead of risking a stale main.dart.js next to a new
+	# main.dart.wasm after a deploy.
+	redir /play /play/ 308
+	handle /play/* {
+		root * /srv/site
+		header Cache-Control no-cache
+		try_files {path} /play/index.html
+		file_server
+	}
 	handle {
 		root * /srv/site
 		file_server

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:chessground/chessground.dart';
 import 'package:dartchess/dartchess.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,7 +21,7 @@ import 'game/server_game.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await preloadPieces();
-  await LichessAuth.load();
+  if (!kIsWeb) await LichessAuth.load();
   runApp(const DoppelApp());
 }
 
@@ -511,39 +512,42 @@ class _PlayScreenState extends State<PlayScreen> {
                 ),
               ],
               const Divider(height: 24),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.public),
-                title: Text(LichessAuth.signedIn ? 'Lichess: ${LichessAuth.username}' : 'Sign in with Lichess'),
-                subtitle: Text(
-                  LichessAuth.signedIn
-                      ? 'Stays on this phone. Doppel never sees your Lichess games.'
-                      : 'Play your Lichess games here, with this board.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                trailing: LichessAuth.signedIn
-                    ? TextButton(
-                        onPressed: () async {
-                          await LichessAuth.signOut();
+              // Playing on Lichess from this board keeps a board:play token on the device; its OAuth redirect is
+              // an app scheme, so it is app-only. Web visitors play Lichess on lichess.org.
+              if (!kIsWeb)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.public),
+                  title: Text(LichessAuth.signedIn ? 'Lichess: ${LichessAuth.username}' : 'Sign in with Lichess'),
+                  subtitle: Text(
+                    LichessAuth.signedIn
+                        ? 'Stays on this phone. Doppel never sees your Lichess games.'
+                        : 'Play your Lichess games here, with this board.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  trailing: LichessAuth.signedIn
+                      ? TextButton(
+                          onPressed: () async {
+                            await LichessAuth.signOut();
+                            set(() {});
+                          },
+                          child: const Text('Sign out'),
+                        )
+                      : null,
+                  onTap: LichessAuth.signedIn
+                      ? null
+                      : () async {
+                          try {
+                            await LichessAuth.signIn();
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lichess sign-in: $e')));
+                            }
+                          }
                           set(() {});
                         },
-                        child: const Text('Sign out'),
-                      )
-                    : null,
-                onTap: LichessAuth.signedIn
-                    ? null
-                    : () async {
-                        try {
-                          await LichessAuth.signIn();
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lichess sign-in: $e')));
-                          }
-                        }
-                        set(() {});
-                      },
-              ),
-              if (LichessAuth.signedIn) ...[
+                ),
+              if (!kIsWeb && LichessAuth.signedIn) ...[
                 Wrap(
                   spacing: 8,
                   children: [

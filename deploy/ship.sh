@@ -7,8 +7,12 @@ source ~/.config/doppel/deploy.env
 H=doppel@$DOPPEL_HOST
 export RSYNC_RSH="ssh -i $HOME/.ssh/doppel_deploy -o IdentitiesOnly=yes"
 ssh() { command ssh -i ~/.ssh/doppel_deploy -o IdentitiesOnly=yes "$@"; }
-[ -z "$(git status --porcelain -- backend packages deploy site pyproject.toml uv.lock)" ] || { echo "commit first: shipping HEAD" >&2; exit 1; }
+[ -z "$(git status --porcelain -- backend packages deploy site client pyproject.toml uv.lock)" ] || { echo "commit first: shipping HEAD" >&2; exit 1; }
 (cd site && npm ci --silent && npm run build >/dev/null)
+# The Flutter web client at /play/ (WebAssembly only; see client/lib/web_entry.dart). Same origin as the api.
+FLUTTER=${FLUTTER:-$HOME/opt/flutter/bin/flutter}
+(cd client && "$FLUTTER" build web --wasm --release -t lib/web_entry.dart --base-href /play/ --no-web-resources-cdn \
+  -o ../site/dist/play >/dev/null)
 ssh "$H" 'mkdir -p ~/doppel/models ~/doppel/site'
 git archive HEAD pyproject.toml uv.lock packages backend lab/pyproject.toml deploy .dockerignore | ssh "$H" 'tar -x -C ~/doppel'
 rsync -a --delete site/dist/ "$H:doppel/site/dist/"
