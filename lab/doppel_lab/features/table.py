@@ -74,15 +74,19 @@ def _concat(parts: list[dict]) -> pl.DataFrame:
     return pl.DataFrame(data)
 
 
-def build(split: str, tier: str = "T2", band: int = 1500, workers: int = 8, limit: int | None = None):
+def build(split: str, tier: str = "T2", band: int = 1500, workers: int = 8, limit: int | None = None,
+          evals: str = "", name: str = ""):
+    """evals: an alternate evals glob (e.g. the eval net's data/evals/v0_train_evalnet_ft.part*.parquet);
+    name: the output directory name under data/v0/features (default moves_<VERSION>_<tier>_<band>_<split>)."""
     games = pl.read_parquet(V0 / f"games_{band}_{split}.parquet",
                             columns=["game_id", "white_elo", "black_elo", "base", "inc", "moves", "clocks"])
     ev = None
     if registry.TIERS.index(tier) >= 2:
-        ev = dict(pl.read_parquet(V0 / f"evals_{band}_{split}.parquet").iter_rows())
+        src = sorted(ROOT.glob(evals)) if evals else [V0 / f"evals_{band}_{split}.parquet"]
+        ev = dict(pl.concat([pl.read_parquet(f) for f in src]).iter_rows())
     shards = sorted((V0 / f"teacher_{band}_{split}").glob("shard-*.npz"))
     use_t1 = registry.TIERS.index(tier) >= 1
-    d = out_dir(split, tier, band)
+    d = OUT / name if name else out_dir(split, tier, band)
     d.mkdir(parents=True, exist_ok=True)
     by_id = {gid: i for i, gid in enumerate(games["game_id"].to_list())}
     rows_total = 0
@@ -128,5 +132,7 @@ if __name__ == "__main__":
     ap.add_argument("--band", type=int, default=1500)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--limit", type=int, default=None, help="games per shard (smoke test)")
+    ap.add_argument("--evals", default="", help="alternate evals glob, relative to the repo")
+    ap.add_argument("--name", default="", help="output directory name under data/v0/features")
     a = ap.parse_args()
-    build(a.split, a.tier, a.band, a.workers, a.limit)
+    build(a.split, a.tier, a.band, a.workers, a.limit, a.evals, a.name)

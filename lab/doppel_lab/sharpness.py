@@ -248,7 +248,10 @@ def style():
     out["perf_split_half_rho"] = float(spearmanr(perf_a, perf_b).statistic)
     print(f"perf split-half rho {out['perf_split_half_rho']:+.3f}", flush=True)
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / ("sharpness_style.json" if MIN_GAMES == 16 else f"sharpness_style_min{MIN_GAMES}.json")).write_text(json.dumps(out, indent=1) + "\n")
+    out["table"] = TABLE.name
+    name = "sharpness_style" + ("" if TABLE.name == "moves_f1_T2_1500_train" else "_" + TABLE.name) + \
+        ("" if MIN_GAMES == 16 else f"_min{MIN_GAMES}")
+    (RESULTS / f"{name}.json").write_text(json.dumps(out, indent=1) + "\n")
     print(f"-> sharpness_style.json ({time.time() - t0:.0f}s)")
 
 
@@ -256,7 +259,10 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["style", "rating"])
     ap.add_argument("--min-games", type=int, default=MIN_GAMES)
+    ap.add_argument("--table", default="", help="per-move table under data/v0/features (default: the Stockfish one)")
     a = ap.parse_args()
     MIN_GAMES = a.min_games
+    if a.table:
+        TABLE = ROOT / "data/v0/features" / a.table
     {"style": style, "rating": rating}[a.cmd]()
     sys.exit(0)
