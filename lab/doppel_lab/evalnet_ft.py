@@ -141,7 +141,7 @@ def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke:
             print(f"{b0 + BLOCK:,}/{len(rows):,} games, step {step}/{est_steps}, loss {np.mean(run_loss[-200:]):.4f}, "
                   f"{seen / el:,.0f} pos/s", flush=True)
         en.OUT.mkdir(parents=True, exist_ok=True)
-        sfx = "_smoke" if smoke else ""
+        sfx = "_smoke" if smoke else ("" if n_games == 80_000 else f"_g{n_games // 1000}k")
         torch.save({"head": net.head.state_dict(), "trunk": net.m.state_dict(), "steps": step},
                    en.OUT / f"evalnet_ft{sfx}.pt")
         for name, rs in (("val", val), ("human", hum)):
@@ -153,11 +153,11 @@ def train(n_games: int, device: str, batch: int = 512, workers: int = 20, smoke:
     print(f"done ({time.time() - t0:.0f}s)")
 
 
-def score():
+def score(tag: str = ""):
     t0 = time.time()
     res = {}
-    for name in ("val", "human"):
-        d = dict(np.load(en.OUT / f"evalnet_ft_{name}.npz"))
+    for name in ("val", "human") if not tag else ("val",):
+        d = dict(np.load(en.OUT / f"evalnet_ft_{name}{tag}.npz"))
         d["y"] = (np.where(d["ply"] % 2 == 0, 1.0, -1.0) * wc(d["cp"].astype(float))).astype(np.float32)
         p = d["pred"].astype(np.float64)
         r = en.pos_scores(d["y"], p, d["ply"]) | {"moves": en.move_scores(d, p)}
@@ -167,7 +167,13 @@ def score():
               f"game mean-loss rho {r['moves']['game_mean_loss_spearman']:.3f}", flush=True)
         if name == "human":
             en.write_hat(d, p, en.ROOT / "data/evals/human_evalnet_ft.parquet")
-    (en.RESULTS / "evalnet_ft.json").write_text(json.dumps(res, indent=1) + "\n")
+    rf = en.RESULTS / "evalnet_ft.json"
+    if tag:  # data-scaling runs: val scores only, filed under the main result
+        main = json.loads(rf.read_text())
+        main.setdefault("scaling", {})[tag.lstrip("_")] = res["val"]
+        rf.write_text(json.dumps(main, indent=1) + "\n")
+    else:
+        rf.write_text(json.dumps(res, indent=1) + "\n")
     print(f"-> evalnet_ft.json ({time.time() - t0:.0f}s)")
 
 
@@ -179,9 +185,10 @@ if __name__ == "__main__":
     t.add_argument("--batch", type=int, default=512)
     t.add_argument("--gpu-ok", action="store_true")
     t.add_argument("--smoke", action="store_true")
-    sub.add_parser("score")
+    sc = sub.add_parser("score")
+    sc.add_argument("--tag", default="", help="e.g. _g20k for a data-scaling run")
     a = ap.parse_args()
     if a.cmd == "train":
         train(a.games, "cuda" if a.gpu_ok else "cpu", a.batch, smoke=a.smoke)
     else:
-        score()
+        score(a.tag)

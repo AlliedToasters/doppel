@@ -142,9 +142,50 @@ is always pre.
   that only search sees. Search is sequential alpha-beta built around incremental CPU updates of the net, so a
   GPU does not speed it up; corpus throughput already scales linearly with cores (one engine per game). Labels
   stay at 50k nodes. A **T2-lite** channel at 5,000 nodes (full corpus in about 3 h on 28 cores) is an option
-  when a baseline needs Stockfish features on every position. **Planned (future ML work): an auxiliary eval net**, trained
-  on our 50k-node labels to predict wc and wc loss directly, batched on the GPU at T1 cost. It is a new feature
-  with its own measured error against the 50k-node labels, not a faster Stockfish. Blunder rates from 2,866 positions are noisy (about ±0.05).
+  when a baseline needs Stockfish features on every position. Blunder rates from 2,866 positions are noisy
+  (about ±0.05).
+- **Eval approximator (measured 2026-11-08; `doppel_lab/evalnet.py`, `evalnet_ft.py`,
+  `lab/results/evalnet{,_ft}.json`).** The question: how well does a net estimate our 50k-node win chance, and can
+  it stand in for Stockfish in the science? The setup:
+  - Maia-3 79M with both Elos fixed at 1500.
+  - Target: side-to-move wc.
+  - Scored on 5,000 held-out 1500-band games (347k positions), and out of distribution on the six-band corpus's
+    12k Stockfish games (829k positions).
+  - Probes on frozen features use 25k training games; the fine-tune trains the whole trunk plus a new head, one
+    pass over 80k games.
+
+  | Estimator | wc correlation | wc MAE | Blunder recall | Blunder precision | Blunder AUC |
+  |---|---|---|---|---|---|
+  | Maia-3's own W/D/L head, calibrated | 0.926 | 0.132 | 0.41 | 0.29 | 0.76 |
+  | ridge on the frozen pooled features | 0.948 | 0.112 | 0.47 | 0.40 | 0.83 |
+  | MLP on the frozen features | 0.966 | 0.077 | 0.50 | 0.52 | 0.87 |
+  | **fine-tuned trunk** (80k games) | **0.979** | **0.056** | 0.59 | 0.67 | 0.93 |
+  | fine-tuned, six-band corpus (out of distribution) | 0.976 | 0.058 | 0.58 | 0.63 | 0.93 |
+
+  The fine-tuned net sits between 100 and 1,000 nodes of Stockfish (table above). It matches 1,000 nodes on
+  eval accuracy but not on blunders (recall 0.59 vs 0.65, precision 0.67 vs 0.78). It runs at 11.6k
+  positions/s on one GPU. That is about 20× the 50k-node labeller and about the same as 1,000 nodes on 28 cores.
+  **Data scaling** (fine-tuned on 20k, 40k and 80k games): wc MAE is 0.061, 0.058 and 0.056, gaining about
+  0.003 per doubling, while blunder recall stays at 0.58–0.59. More labels sharpen the eval slowly and don't touch
+  blunders. A blunder is a tactic, and a static net at this size doesn't see it, the same wall the static NNUE
+  hits (recall 0.06).
+
+  **Science test:** game_science's per-ply table rebuilt from the net's evals, then the same game_mean rating
+  model on the 12k games:
+
+  | Eval source for T2 | T2 MAE | T2 + rating-free T1 |
+  |---|---|---|
+  | none (T0: moves, clocks) | 242 | 230 |
+  | frozen MLP | 232 | 223 |
+  | fine-tuned net | 227 | 219 |
+  | Stockfish 50k | 222 | 215 |
+
+  Per-side ACPL from the fine-tuned net ranks players like Stockfish's (Spearman 0.85; per side-game mean loss
+  0.87). The answer to the question: a net recovers about 75% of Stockfish's rating signal over T0, and with T1 it
+  beats Stockfish T2 alone. That makes it a usable T2-lite for any position set too big to label (the 49M v0
+  positions, a whole month of games), computed in the same GPU pass as T1. It is not a substitute for blunder
+  labels or for the final numbers in a write-up: keep Stockfish 50k for labels and headline results, and use the
+  net for screening at corpus scale.
 - **Caveat:** Stockfish sees tactics a 1500 player does not. A better eval is not always a better predictor of
   human behavior; Maia-3's win/draw/loss is closer to how a human of that rating sees the position.
 

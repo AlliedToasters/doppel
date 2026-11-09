@@ -262,7 +262,7 @@ def science(hat: str = "mlp", workers: int = 24):
     res = json.loads(rf.read_text())
     res["science"] = out
     rf.write_text(json.dumps(res, indent=1) + "\n")
-    print(f"-> evalnet.json science ({time.time() - t0:.0f}s)")
+    print(f"-> {rf.name} science ({time.time() - t0:.0f}s)")
 
 
 if __name__ == "__main__":
