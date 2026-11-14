@@ -1,0 +1,77 @@
+{
+ "run": "v0g_b",
+ "band": 1500,
+ "split": "Maia-3 policy entropy quintile (q1 = most obvious)",
+ "quintiles": {
+  "q1": {
+   "positions": 19461,
+   "ent_range": [
+    -0.0,
+    0.69
+   ],
+   "maia_top1": 0.913,
+   "gain_pts": -0.005,
+   "ci95": [
+    -0.025,
+    0.01
+   ],
+   "nats_saved": 0.0002
+  },
+  "q2": {
+   "positions": 19461,
+   "ent_range": [
+    0.69,
+    1.18
+   ],
+   "maia_top1": 0.672,
+   "gain_pts": -0.041,
+   "ci95": [
+    -0.206,
+    0.119
+   ],
+   "nats_saved": 0.0015
+  },
+  "q3": {
+   "positions": 19462,
+   "ent_range": [
+    1.18,
+    1.57
+   ],
+   "maia_top1": 0.537,
+   "gain_pts": 0.19,
+   "ci95": [
+    -0.046,
+    0.424
+   ],
+   "nats_saved": 0.006
+  },
+  "q4": {
+   "positions": 19461,
+   "ent_range": [
+    1.57,
+    1.94
+   ],
+   "maia_top1": 0.414,
+   "gain_pts": 0.283,
+   "ci95": [
+    0.01,
+    0.554
+   ],
+   "nats_saved": 0.0128
+  },
+  "q5": {
+   "positions": 19461,
+   "ent_range": [
+    1.94,
+    3.26
+   ],
+   "maia_top1": 0.296,
+   "gain_pts": 0.437,
+   "ci95": [
+    0.132,
+    0.733
+   ],
+   "nats_saved": 0.0134
+  }
+ }
+}

@@ -1,6 +1,6 @@
 ---
 title: A small, real edge on the standard test
-description: The best models of human chess moves have all landed near 57% on the same benchmark. We gave one a player's earlier games and it gained a quarter of a point on that benchmark's own positions. Small, but outside the noise, and it grows with history.
+description: The best models of human chess moves have all landed near 57% on the same benchmark. We gave one a player's earlier games and it gained on that benchmark's own positions, in every rating band we tested. Small, but outside the noise, and it lives in the hard positions.
 date: 2026-11-13
 status: approved
 queue: 3
@@ -10,11 +10,15 @@ import BarChart from '../../components/BarChart.astro';
 import Figure from '../../components/Figure.astro';
 import mem from '../../results/allie_memory.json';
 import r from '../../results/allie_v0e_v0g_b.json';
+import r11 from '../../results/allie_v0e_v0g_1100.json';
+import r19 from '../../results/allie_v0e_v0g_1900.json';
+import dif from '../../results/allie_difficulty.json';
 
 export const ks = [0, 1, 5, 10, 40];
 export const j = r.joined;
-export const pts = (v) => 100 * (v - j.maia3_top1py);
-export const gain = ks.map((k) => 100 * (r.by_k[String(k)].top1_doppel - r.joined.maia3_top1py));
+export const pts = (v) => 100 * (v - j.teacher_here);
+export const gain = ks.map((k) => 100 * (r.by_k[String(k)].top1_doppel - r.by_k[String(k)].top1_teacher));
+export const band = (x) => 100 * (x.joined.doppel - x.joined.teacher_here);
 
 Models that predict human chess moves are usually scored on one number: how often their top choice is the move
 the person actually played. On the standard test set, about 884,000 positions from Lichess blitz games in 2022
@@ -141,11 +145,11 @@ to adjust Maia-3's move probabilities. Maia-3 itself is frozen. The model was tr
   series={[{ name: 'Doppel', slot: 1, values: gain }]}
 />
 
-With no earlier games, the Doppel is Maia-3 to within noise. With 40, it gains 0.18 points (95% interval 0.08 to
-0.29). Adding a lookup on top ("if you've played this exact position before, predict your most common earlier
-move") brings the gain to **0.26 points** (0.16 to 0.37).
+With no earlier games, the Doppel is Maia-3 to within noise. With 40, it gains 0.17 points (95% interval 0.07 to
+0.27). Adding a lookup on top ("if you've played this exact position before, predict your most common earlier
+move") brings the gain to **0.25 points** (0.15 to 0.36).
 
-The lookup alone, added to Maia-3, gains 0.10. So the player description adds 0.16 points (0.06 to 0.26) beyond
+The lookup alone, added to Maia-3, gains 0.10. So the player description adds 0.16 points (0.05 to 0.26) beyond
 exact repeats.
 
 <BarChart
@@ -154,10 +158,52 @@ exact repeats.
   format="pts" max={0.4}
   bars={[
     { label: 'Maia-3 + lookup', value: pts(j.maia3_plus_memory), slot: 2 },
-    { label: 'Doppel', value: pts(j.doppel), slot: 1, note: '95% interval +0.08 to +0.29' },
-    { label: 'Doppel + lookup', value: pts(j.doppel_plus_memory), slot: 4, note: '95% interval +0.16 to +0.37' },
+    { label: 'Doppel', value: pts(j.doppel), slot: 1, note: '95% interval +0.07 to +0.27' },
+    { label: 'Doppel + lookup', value: pts(j.doppel_plus_memory), slot: 4, note: '95% interval +0.15 to +0.36' },
   ]}
 />
+
+## Every rating band
+
+We then trained the same model for two more rating bands, 1000–1400 and 1600–2000, and scored each on its own part
+of the benchmark. Together the three bands cover 495,000 positions, more than half the test set.
+
+<BarChart
+  title="Doppel's gain over Maia-3, by rating band"
+  note="Points of top-1 accuracy with 40 earlier games, no lookup. 95% intervals from a bootstrap over games."
+  format="pts" max={0.35}
+  bars={[
+    { label: '1000–1400', value: band(r11), slot: 1, note: '184,599 positions · +0.18 to +0.35' },
+    { label: '1400–1600', value: band(r), slot: 1, note: '97,306 positions · +0.07 to +0.27' },
+    { label: '1600–2000', value: band(r19), slot: 1, note: '213,192 positions · +0.05 to +0.16' },
+  ]}
+/>
+
+All three clear zero. The gain is largest for the lowest-rated players and shrinks as ratings rise. The lookup
+runs the other way: stronger players repeat their openings more, so at 1600–2000 the lookup adds 0.20 points, and at
+1000–1400 only 0.03. Beyond exact repeats, the player description still adds 0.25, 0.16 and 0.09 points.
+
+## Where the gain lives
+
+Some positions have one obvious move: almost everyone plays it, whoever they are. Others leave several reasonable
+choices. We sorted the 1400–1600 positions by how spread out Maia-3's predictions are, into five equal groups.
+
+<BarChart
+  title="Doppel's gain by how open the position is"
+  note="1400–1600 bucket, five equal groups by the spread (entropy) of Maia-3's move probabilities. Under each label: how often Maia-3 is right in that group."
+  format="pts" min={-0.1} max={0.5}
+  bars={[
+    { label: 'One obvious move', value: dif.quintiles.q1.gain_pts, slot: 1, note: `Maia-3 right ${Math.round(100 * dif.quintiles.q1.maia_top1)}%` },
+    { label: 'Fairly clear', value: dif.quintiles.q2.gain_pts, slot: 1, note: `Maia-3 right ${Math.round(100 * dif.quintiles.q2.maia_top1)}%` },
+    { label: 'In between', value: dif.quintiles.q3.gain_pts, slot: 1, note: `Maia-3 right ${Math.round(100 * dif.quintiles.q3.maia_top1)}%` },
+    { label: 'Several options', value: dif.quintiles.q4.gain_pts, slot: 1, note: `Maia-3 right ${Math.round(100 * dif.quintiles.q4.maia_top1)}%` },
+    { label: 'Wide open', value: dif.quintiles.q5.gain_pts, slot: 1, note: `Maia-3 right ${Math.round(100 * dif.quintiles.q5.maia_top1)}%` },
+  ]}
+/>
+
+When one move is obvious, a player's history adds nothing. All of the gain is in positions where people disagree,
+rising to 0.44 points (0.13 to 0.73) in the most open fifth. Knowing the player works as a tie-breaker among
+plausible moves. An average over every position, the obvious ones included, makes it look smaller than it is.
 
 ## How big is that?
 
@@ -165,22 +211,24 @@ Small. A quarter of a point is about 250 more correct moves per 100,000. But the
 published models on this test are about a point, and this gain comes from the player alone: same base model,
 same positions.
 
-Three caveats:
+Two caveats:
 
-1. **One rating bucket.** Models for other ratings are training now.
-2. **The intervals are wide.** They come from about 2,000 games; the whole test set would make them about three
-   times tighter.
-3. **The add-on is deliberately weak.** It can only nudge Maia-3's final answer, not change how Maia-3 reads the
+1. **The intervals are still wide.** Each band rests on 2,000 to 4,000 games.
+2. **The add-on is deliberately weak.** It can only nudge Maia-3's final answer, not change how Maia-3 reads the
    board.
 
 ## What's next
 
-The third caveat is the interesting one. The gain is concentrated in moves 10 to 19, where people play their
-repertoire. Later in the game, a nudge to the final answer does little.
+The second caveat is the interesting one. Our first try at retrieval, with no training at all, makes the point.
+For each position, it finds the most similar positions in the player's earlier games, as Maia-3 itself sees them,
+and lets those vote with what the player played there. It gains 0.11 points (0.07 to 0.15); the same lookup run on
+other players' games gains nothing. But all of that gain is in moves 10 to 19, and only when a near-identical
+position exists. Maia-3's own view of the board finds near-copies of a player's openings, not their style in
+new positions.
 
-Next we'll try retrieval: the model looks up the positions from your earlier games that most resemble the one in
-front of you, and what you played there. After that, we'll put the player description inside the model, where it
+So the next step is to learn the lookup, and after that to put the player description inside the model, where it
 can change how a position is read, not only which move wins.
 
-*Data and code: `doppel_lab/allie_v0e.py`, `doppel_lab/allie_memory.py`, results in
-`lab/results/allie_v0e_v0g_b.json`, in the [repository](https://github.com/AlliedToasters/doppel).*
+*Data and code: `doppel_lab/allie_v0e.py`, `doppel_lab/allie_memory.py`, `doppel_lab/allie_knn.py`, results in
+`lab/results/`: `allie_v0e_v0g_1100.json`, `allie_v0e_v0g_b.json`, `allie_v0e_v0g_1900.json`,
+`allie_difficulty.json` and `allie_knn.json`, in the [repository](https://github.com/AlliedToasters/doppel).*
