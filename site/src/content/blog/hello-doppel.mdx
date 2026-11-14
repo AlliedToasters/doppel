@@ -5,10 +5,27 @@ date: 2026-11-14
 status: published
 ---
 
+import Board from '../../components/Board.astro';
+import Figure from '../../components/Figure.astro';
+
+export const twoknights = 'r1bqkb1r/pppp1pp1/2n2n1p/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R w KQkq - 0 5';
+export const ruy = 'r1bq1rk1/2p1bppp/p2p1n2/1p2p3/1n2P3/1BP2N1P/PP1P1PP1/RNBQR1K1 w - - 1 10';
+
 Most chess bots are engines with the strength turned down. They play near-perfect moves, then throw in a random
 blunder for you to exploit. Anyone who has played one knows the feeling: it doesn't play like a person. It never
 panics with ten seconds left. It never misses the knight fork that a real 1200 would miss, and it never finds the one
 a real 1200 would find. It moves instantly in positions where a person would stop and think.
+
+<Figure title="Two kinds of blunder" note="Left: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Nf6 4.Ng5 h6??, a mistake people make every day. Kicking the knight looks natural, but 5.Nxf7 forks queen and rook, and the bishop on c4 guards the knight. Right: a quiet Ruy Lopez where an engine on a low setting simply gives away a knight. Both are illustrations, not games from our data.">
+  <div class="dg-row">
+    <Board fen={twoknights} marks={[{ sq: 'h7', slot: 1 }, { sq: 'h6', slot: 1 }, { sq: 'd8', slot: 3 }, { sq: 'h8', slot: 3 }]} arrows={[{ from: 'g5', to: 'f7', slot: 3 }]}
+      caption="A person's blunder: 4...h6?? misses the knight fork 5.Nxf7." />
+    <Board fen={ruy} marks={[{ sq: 'c6', slot: 2 }, { sq: 'b4', slot: 2 }]} arrows={[{ from: 'c3', to: 'b4', slot: 3 }]}
+      caption="An engine's blunder: 9...Nb4?? hangs a knight to a pawn." />
+  </div>
+</Figure>
+
+
 
 Doppel is an attempt to build another kind of synthetic opponent: one that plays like a real person at your level.
 
@@ -34,7 +51,31 @@ rung between lessons and playing people:
 - **Honest progress.** A Doppel's weights are frozen, so its average strength never changes. If you start beating
   it more often, you improved.
 
-The ladder goes: Doppels to practice, Lichess to test it against real people, and social enjoyment of over-the-board games as the goal.
+The ladder goes: lessons to learn, Doppels to practice, Lichess to test it against real people, and the social
+enjoyment of over-the-board games as the goal.
+
+<Figure title="The ladder" note="Each rung is a step closer to playing people. Doppels are the one that was missing.">
+  <svg viewBox="0 0 360 304" style="max-width: 440px; margin: 0 auto;" role="img" aria-label="A staircase of four steps, bottom to top: lessons to learn the moves and patterns; Doppels to practise, winning about half the time, marked as the missing rung; Lichess to test it against real people; and over-the-board play, the goal, games with people.">
+    <rect class="dg-hi c4" x="92" y="6" width="264" height="52" rx="12" />
+    <text class="dg-t dg-b" x="106" y="28">Over the board</text>
+    <text class="dg-m" x="106" y="47">the goal: games with people</text>
+    <path class="dg-arrow" d="M132 86 V 62" />
+    <rect class="dg-hi c3" x="64" y="86" width="264" height="52" rx="12" />
+    <text class="dg-t dg-b" x="78" y="108">Lichess</text>
+    <text class="dg-m" x="78" y="127">test it against real people</text>
+    <path class="dg-arrow" d="M104 166 V 142" />
+    <rect class="dg-hi c1" x="36" y="166" width="264" height="52" rx="12" />
+    <text class="dg-t dg-b" x="50" y="188">Doppels</text>
+    <text class="dg-m" x="50" y="207">practice: win about half the time</text>
+    <text class="dg-m" x="286" y="188" text-anchor="end">the missing rung</text>
+    <path class="dg-arrow" d="M76 246 V 222" />
+    <rect class="dg-box" x="8" y="246" width="264" height="52" rx="12" />
+    <text class="dg-t dg-b" x="22" y="268">Lessons</text>
+    <text class="dg-m" x="22" y="287">learn the moves and the patterns</text>
+  </svg>
+</Figure>
+
+
 
 ## The shoulders we stand on
 
@@ -70,12 +111,60 @@ In human games, how well someone played the first half predicts how well they pl
 it doesn't. People carry a state through a game: focus, fatigue, frustration. Bots don't. That gap is the first
 thing Doppel is built to fill, and we'll write the experiment up properly in a later post.
 
+<Figure title="What carries over" note="Schematic, not data. Both people and Maia-3 play good and bad games. Only for people does the first half say something about the second; the link is small, but it is there.">
+  <svg viewBox="0 0 360 230" style="max-width: 440px; margin: 0 auto;" role="img" aria-label="Schematic. Two rows, each a game split into a first half and a second half. For people, an arrow labelled focus, fatigue, frustration carries from the first half to the second. For Maia-3, the halves are separated by a dashed line labelled nothing carries over.">
+    <text class="dg-t dg-b" x="8" y="18">People</text>
+    <text class="dg-m" x="180" y="42" text-anchor="middle">focus, fatigue, frustration</text>
+    <path class="dg-arrow c3" d="M110 70 Q 180 40 250 68" />
+    <rect class="dg-hi c3" x="8" y="72" width="160" height="40" rx="10" />
+    <rect class="dg-hi c3" x="192" y="72" width="160" height="40" rx="10" />
+    <text class="dg-t" x="88" y="97" text-anchor="middle">first half</text>
+    <text class="dg-t" x="272" y="97" text-anchor="middle">second half</text>
+    <text class="dg-t dg-b" x="8" y="148">Maia-3</text>
+    <text class="dg-m" x="180" y="172" text-anchor="middle">nothing carries over</text>
+    <rect class="dg-hi c2" x="8" y="184" width="160" height="40" rx="10" />
+    <rect class="dg-hi c2" x="192" y="184" width="160" height="40" rx="10" />
+    <text class="dg-t" x="88" y="209" text-anchor="middle">first half</text>
+    <text class="dg-t" x="272" y="209" text-anchor="middle">second half</text>
+    <path class="dg-line" d="M180 180 V 228" stroke-dasharray="5 5" />
+  </svg>
+</Figure>
+
+
+
 ## Beyond Maia: a population of players
 
 Maia answers "what would a 1500 play here?" But there is no such thing as *a* 1500. One 1500 plays the King's
 Gambit every game and loves a messy position. Another trades queens at the first chance and grinds out endgames.
 One plays fast and loose; another burns half their clock on move twelve. They have the same rating and play
 nothing alike.
+
+<Figure title="One rating, many players" note="Four made-up 1500s. A model of the average 1500 plays like none of them.">
+  <svg viewBox="0 0 360 296" style="max-width: 440px; margin: 0 auto;" role="img" aria-label="One box labelled rated 1500 in the centre, linked to four different players around it: the attacker, who plays the King's Gambit every game; the grinder, who trades queens early and grinds the endgame; fast and loose, who moves in seconds; and the deep thinker, who spends half the clock on move 12.">
+    <path class="dg-arrow c3" d="M130 124 L 104 104" /><path class="dg-arrow c3" d="M230 124 L 256 104" /><path class="dg-arrow c3" d="M130 172 L 104 192" /><path class="dg-arrow c3" d="M230 172 L 256 192" />
+    <rect class="dg-hi c3" x="8" y="8" width="168" height="92" rx="12" />
+    <text class="dg-t dg-b" x="22" y="36">The attacker</text>
+    <text class="dg-m" x="22" y="60">King's Gambit,</text>
+    <text class="dg-m" x="22" y="80">every single game</text>
+    <rect class="dg-hi c3" x="184" y="8" width="168" height="92" rx="12" />
+    <text class="dg-t dg-b" x="198" y="36">The grinder</text>
+    <text class="dg-m" x="198" y="60">trades queens early,</text>
+    <text class="dg-m" x="198" y="80">grinds the endgame</text>
+    <rect class="dg-hi c3" x="8" y="196" width="168" height="92" rx="12" />
+    <text class="dg-t dg-b" x="22" y="224">Fast and loose</text>
+    <text class="dg-m" x="22" y="248">moves in seconds,</text>
+    <text class="dg-m" x="22" y="268">never short of time</text>
+    <rect class="dg-hi c3" x="184" y="196" width="168" height="92" rx="12" />
+    <text class="dg-t dg-b" x="198" y="224">The deep thinker</text>
+    <text class="dg-m" x="198" y="248">half the clock</text>
+    <text class="dg-m" x="198" y="268">on move 12</text>
+    <rect class="dg-hi c2" x="110" y="124" width="140" height="48" rx="12" />
+    <text class="dg-t dg-b" x="180" y="145" text-anchor="middle">Rated 1500</text>
+    <text class="dg-m" x="180" y="163" text-anchor="middle">one number</text>
+  </svg>
+</Figure>
+
+
 
 We want to build that population: many distinct players at every level, each with their own openings, habits,
 clock and temperament, and moods that come and go from game to game. A Doppel should be:
@@ -110,6 +199,38 @@ most.
   never saw. If it doesn't, the flaw may be in the model, not in you.
 - **Close the loop.** Positions where your Doppel goes wrong become your personal puzzle set. Then check whether the
   weakness actually fades in your real games, and refit your Doppel every few weeks as you improve.
+
+<Figure title="Coaching by simulation" note="The loop we want to build. None of it runs yet.">
+  <svg viewBox="0 0 360 458" style="max-width: 440px; margin: 0 auto;" role="img" aria-label="A loop of six steps. Your games train your Doppel. Your Doppel plays thousands of simulated games against a varied field. Weaknesses are ranked by points lost: fix one, rerun, and measure the points gained. Positions where the Doppel goes wrong become your puzzle set. Then check against your real games whether the weakness is there and fading. An arrow back to your Doppel says refit every few weeks.">
+    <rect class="dg-hi c1" x="8" y="6" width="300" height="52" rx="12" />
+    <text class="dg-t dg-b" x="22" y="28">Your games</text>
+    <text class="dg-m" x="22" y="47">the ones you choose to share</text>
+    <path class="dg-arrow" d="M48 58 V 82" />
+    <rect class="dg-hi c1" x="8" y="84" width="300" height="52" rx="12" />
+    <text class="dg-t dg-b" x="22" y="106">Your Doppel</text>
+    <text class="dg-m" x="22" y="125">plays like you: openings, habits, clock</text>
+    <path class="dg-arrow" d="M48 136 V 160" />
+    <rect class="dg-hi c3" x="8" y="162" width="300" height="52" rx="12" />
+    <text class="dg-t dg-b" x="22" y="184">Thousands of simulated games</text>
+    <text class="dg-m" x="22" y="203">against a varied field of opponents</text>
+    <path class="dg-arrow" d="M48 214 V 238" />
+    <rect class="dg-hi c4" x="8" y="240" width="300" height="52" rx="12" />
+    <text class="dg-t dg-b" x="22" y="262">Rank weaknesses by points lost</text>
+    <text class="dg-m" x="22" y="281">fix one, rerun, measure points gained</text>
+    <path class="dg-arrow" d="M48 292 V 316" />
+    <rect class="dg-box" x="8" y="318" width="300" height="52" rx="12" />
+    <text class="dg-t dg-b" x="22" y="340">Your puzzle set</text>
+    <text class="dg-m" x="22" y="359">positions where your Doppel goes wrong</text>
+    <path class="dg-arrow" d="M48 370 V 394" />
+    <rect class="dg-hi c1" x="8" y="396" width="300" height="52" rx="12" />
+    <text class="dg-t dg-b" x="22" y="418">Check against your real games</text>
+    <text class="dg-m" x="22" y="437">is the weakness there, and fading?</text>
+    <path class="dg-arrow c1" d="M308 422 H 334 V 110 H 314" />
+    <text class="dg-m" transform="translate(352 266) rotate(-90)" text-anchor="middle">refit every few weeks</text>
+  </svg>
+</Figure>
+
+
 
 Simulations produce positions and statistics, not lessons. A language model could turn them into advice a person
 can take in. But language models are still weak at chess, so it never calculates: every claim it makes is checked
