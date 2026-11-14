@@ -5,7 +5,10 @@ date: 2026-11-07
 status: draft
 ---
 import LineChart from '../../components/LineChart.astro';
+import BarChart from '../../components/BarChart.astro';
+import Figure from '../../components/Figure.astro';
 import d from '../../results/players_pool_v0d.json';
+import f from '../../results/players_pool_v0f.json';
 
 export const ks = [1, 2, 5, 10, 20, 40];
 export const pick = (m, key) => ks.map((k) => m[key][String(k)]);
@@ -15,6 +18,7 @@ export const views = (m) => [
   { name: 'Maia embedding', slot: 3, values: pick(m, 'maia_emb') },
   { name: 'Clock and opening stats', slot: 4, values: pick(m, 'surface') },
 ];
+export const fr = f.scopes.all.reid_top1;
 
 A Doppel is meant to play like a particular kind of player, and later like *you*. For that, the model needs a
 compact description of a player that it can condition on. Before we train one, we wanted to know what a good
@@ -30,6 +34,35 @@ We took 2,000 Lichess players who were not in any training data, with 80 blitz (
 2. **Who are they?** Take the summary of their first *k* games and find them among 500 players, each
    summarized by their last 40 games. Chance is 0.2%.
 
+<Figure title="The re-identification test" note="One player shown. The test is run for every player, and we report how often the closest summary is the right one.">
+  <svg viewBox="0 0 520 250" role="img" aria-label="A player's first k games are turned into one summary. That summary is compared with 500 summaries, one per player, each built from that player's last 40 games. The test passes if the closest one belongs to the same player.">
+    <text class="dg-m" x="85" y="22" text-anchor="middle">Player A, first k games</text>
+    <rect class="dg-box" x="20" y="38" width="28" height="28" rx="5" />
+    <rect class="dg-box" x="56" y="38" width="28" height="28" rx="5" />
+    <rect class="dg-box" x="92" y="38" width="28" height="28" rx="5" />
+    <rect class="dg-box" x="128" y="38" width="28" height="28" rx="5" />
+    <rect class="dg-box" x="20" y="74" width="28" height="28" rx="5" />
+    <rect class="dg-box" x="56" y="74" width="28" height="28" rx="5" />
+    <text class="dg-m" x="106" y="93" text-anchor="middle">…</text>
+    <path class="dg-arrow" d="M88 112 V 146" />
+    <rect class="dg-box" style="stroke:var(--ink)" x="25" y="152" width="126" height="46" rx="10" />
+    <text class="dg-t dg-b" x="88" y="180" text-anchor="middle">One summary</text>
+    <text class="dg-m" x="395" y="22" text-anchor="middle">500 players, last 40 games each</text>
+    <rect class="dg-box" x="290" y="34" width="210" height="30" rx="8" />
+    <text class="dg-t" x="306" y="54">Player 1</text>
+    <rect class="dg-box" x="290" y="70" width="210" height="30" rx="8" />
+    <text class="dg-t" x="306" y="90">Player 2</text>
+    <rect class="dg-box" style="stroke:var(--ink);stroke-width:3" x="290" y="106" width="210" height="30" rx="8" />
+    <text class="dg-t dg-b" x="306" y="126">Player A</text>
+    <text class="dg-m" x="490" y="126" text-anchor="end">closest: found</text>
+    <text class="dg-m" x="395" y="160" text-anchor="middle">…</text>
+    <rect class="dg-box" x="290" y="176" width="210" height="30" rx="8" />
+    <text class="dg-t" x="306" y="196">Player 500</text>
+    <path class="dg-arrow" d="M151 170 C 220 170, 220 121, 284 121" />
+    <text class="dg-m" x="260" y="238" text-anchor="middle">Found means the closest summary is the same person. Chance: 1 in 500.</text>
+  </svg>
+</Figure>
+
 We compared three ways to summarize a game, and all three combined:
 
 - **Clock and opening stats.** Think times, the kinds of moves played, when the player leaves opening theory, and how
@@ -38,6 +71,31 @@ We compared three ways to summarize a game, and all three combined:
   each position, averaged over the game, describes how the moves "look".
 - **Rating sweep.** We ask Maia-3 how likely each move is for a player rated 800, 1000, … 2400. The rating at
   which the moves look most likely is an estimate of strength.
+
+<Figure title="The rating sweep" note="Schematic for one player, not data. Maia-3 scores the same moves once per rating; the peak is the readout.">
+  <svg viewBox="0 0 520 240" role="img" aria-label="Schematic. Nine dots at ratings 800 to 2400 show how likely Maia-3 finds one player's moves at each rating. The curve rises to a peak and falls again; the rating at the peak is the estimate of the player's strength.">
+    <path class="dg-line" d="M50 30 V 176 H 495" />
+    <text class="dg-m" x="30" y="105" text-anchor="middle" transform="rotate(-90 30 105)">How likely the moves are</text>
+    <path class="dg-line" d="M270 44 V 176" stroke-dasharray="5 5" />
+    <polyline class="c2" points="60,160 70,150 80,140 90,131 100,122 110,114 120,106 130,99 140,92 150,86 160,80 170,75 180,70 190,66 200,62 210,59 220,56 230,54 240,52 250,51 260,50 270,50 280,50 290,51 300,52 310,54 320,56 330,59 340,62 350,66 360,70 370,75 380,80 390,86 400,92 410,99 420,106 430,114 440,122 450,131 460,140 470,150 480,160" style="fill:none;stroke:var(--c);stroke-width:2.5;stroke-opacity:0.6" />
+    <circle class="dg-fill c2" cx="60" cy="160" r="5" />
+    <circle class="dg-fill c2" cx="112" cy="112" r="5" />
+    <circle class="dg-fill c2" cx="165" cy="78" r="5" />
+    <circle class="dg-fill c2" cx="218" cy="57" r="5" />
+    <circle class="dg-fill c2" cx="270" cy="50" r="5" />
+    <circle class="dg-fill c2" cx="322" cy="57" r="5" />
+    <circle class="dg-fill c2" cx="375" cy="78" r="5" />
+    <circle class="dg-fill c2" cx="428" cy="112" r="5" />
+    <circle class="dg-fill c2" cx="480" cy="160" r="5" />
+    <text class="dg-m" x="60" y="198" text-anchor="middle">800</text>
+    <text class="dg-m" x="165" y="198" text-anchor="middle">1200</text>
+    <text class="dg-m" x="270" y="198" text-anchor="middle">1600</text>
+    <text class="dg-m" x="375" y="198" text-anchor="middle">2000</text>
+    <text class="dg-m" x="480" y="198" text-anchor="middle">2400</text>
+    <text class="dg-m" x="272" y="222" text-anchor="middle">Rating given to Maia-3</text>
+    <text class="dg-t dg-b" x="282" y="38">Best fit: the strength estimate</text>
+  </svg>
+</Figure>
 
 ## Rating: the sweep wins from a single game
 
@@ -72,12 +130,51 @@ Strength and style are different things, and they need different inputs. The swe
 strength; the embedding carries who the player is. A Doppel's player description should get both: the
 sweep for strength, and a model that reads a *set* of games for style.
 
-It also sets a bar. Our current model's player description (v0d) found the right player 2.8% of the time at
+<Figure title="Strength and style come apart" note="Rating R² from 1 game; found among 500 from 40 games. Numbers from the two charts above.">
+  <svg viewBox="0 0 400 220" style="max-width:440px;margin:0 auto" role="img" aria-label="Two by two grid. Rating sweep: rating R² 0.57 from one game, strong; found among 500 only 11 percent from 40 games, weak. Maia embedding: rating R² 0.31 from one game, weaker; found among 500 77 percent from 40 games, strong.">
+    <text class="dg-t dg-b" x="192" y="24" text-anchor="middle">Rating</text>
+    <text class="dg-m" x="192" y="42" text-anchor="middle">R², 1 game</text>
+    <text class="dg-t dg-b" x="327" y="24" text-anchor="middle">Identity</text>
+    <text class="dg-m" x="327" y="42" text-anchor="middle">found, 40 games</text>
+    <text class="dg-t dg-b" x="10" y="98">Rating sweep</text>
+    <text class="dg-t dg-b" x="10" y="178">Maia embedding</text>
+    <rect class="dg-hi c2" x="130" y="56" width="124" height="70" rx="12" />
+    <text class="dg-t dg-b" x="192" y="90" text-anchor="middle">0.57</text>
+    <text class="dg-m" x="192" y="110" text-anchor="middle">best single view</text>
+    <rect class="dg-box" x="265" y="56" width="124" height="70" rx="12" />
+    <text class="dg-t dg-b" x="327" y="90" text-anchor="middle">11%</text>
+    <text class="dg-m" x="327" y="110" text-anchor="middle">almost blind</text>
+    <rect class="dg-box" x="130" y="136" width="124" height="70" rx="12" />
+    <text class="dg-t dg-b" x="192" y="170" text-anchor="middle">0.31</text>
+    <text class="dg-m" x="192" y="190" text-anchor="middle">needs ~5 games</text>
+    <rect class="dg-hi c3" x="265" y="136" width="124" height="70" rx="12" />
+    <text class="dg-t dg-b" x="327" y="170" text-anchor="middle">77%</text>
+    <text class="dg-m" x="327" y="190" text-anchor="middle">who they are</text>
+  </svg>
+</Figure>
+
+It also sets a bar. Our model at the time (v0d) found the right player 2.8% of the time at
 k = 40. Simply averaging an off-the-shelf embedding does 77%. The next model has to beat that before we can
 say it models a player at all.
 
-*Update, 2026-11-13:* it has. The next version's player description (v0f, which reads a set of games) finds the
-right player 97% of the time at k = 40, and 67% from just 10 games.
+*Update, 2026-11-13:* it has. On the same 2,000 players and pools, the next version's player description (v0f,
+which reads a set of games) finds the right player 97% of the time at k = 40, against 78% for averaged Maia
+embeddings and 91% for all three combined. From 10 games it finds 67%, ahead of the combination's 65%.
 
-*Data and code: `doppel_lab/players_suite.py` and `lab/results/players_pool_v0d.json` in the
+<BarChart
+  title="Finding a player among 500: v0f against the best baselines"
+  note="Top-1 accuracy, same 2,000 players and pools of 500. v0f is yellow here; clock and opening stats are not shown."
+  format="pct"
+  max={1}
+  bars={[
+    { label: 'v0f', note: '10 games', value: fr.v0f_z['10'], slot: 4 },
+    { label: 'All three combined', note: '10 games', value: fr['surface+maia+sweep']['10'], slot: 1 },
+    { label: 'Maia embedding', note: '10 games', value: fr.maia_emb['10'], slot: 3 },
+    { label: 'v0f', note: '40 games', value: fr.v0f_z['40'], slot: 4 },
+    { label: 'All three combined', note: '40 games', value: fr['surface+maia+sweep']['40'], slot: 1 },
+    { label: 'Maia embedding', note: '40 games', value: fr.maia_emb['40'], slot: 3 },
+  ]}
+/>
+
+*Data and code: `doppel_lab/players_suite.py` and `lab/results/players_pool_v0d.json` (v0f: `players_pool_v0f.json`) in the
 [repository](https://github.com/AlliedToasters/doppel).*

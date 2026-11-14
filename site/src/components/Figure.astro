@@ -1,0 +1,61 @@
+---
+/**
+ * A captioned panel for a hand-drawn diagram (inline SVG or Boards) in an .mdx post. Same frame as LineChart.
+ *
+ *   <Figure title="Two routes, one board" note="Optional one-line caption.">
+ *     <svg viewBox="0 0 600 200" role="img" aria-label="...">
+ *       <rect class="dg-box" x="10" y="10" width="160" height="60" rx="12" />
+ *       <text class="dg-t" x="90" y="45" text-anchor="middle">1.e4 e5 2.Nf3</text>
+ *       <path class="dg-arrow c1" d="M170 40 H 260" />
+ *     </svg>
+ *   </Figure>
+ *
+ * Diagram classes (global, so they reach slotted SVG):
+ *   dg-box   panel-coloured box with a line border       dg-hi    box filled with the slot colour (add c1-c4)
+ *   dg-t     ink text, 14px                              dg-m     muted text, 13px          dg-b  bold text
+ *   dg-line  plain line (stroke --line)                  dg-arrow line in the slot colour with an arrow head
+ *   c1-c4    slot colours: 1 blue, 2 orange, 3 aqua, 4 yellow (the same as the charts)
+ * Lay out wide content in a row with class="dg-row" (wraps on phones).
+ */
+interface Props { title: string; note?: string }
+const { title, note } = Astro.props;
+---
+
+<figure class="fig">
+  <figcaption>
+    <span class="t">{title}</span>
+    {note && <span class="n">{note}</span>}
+  </figcaption>
+  <div class="body"><slot /></div>
+</figure>
+
+<style>
+  .fig { margin: 32px 0; padding: 20px; background: var(--panel); border: 2px solid var(--line); border-radius: 20px; }
+  figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+  .t { font-weight: 900; font-size: 1.05rem; }
+  .n { color: var(--muted); font-size: 0.9rem; }
+  .body :global(svg) { width: 100%; height: auto; display: block; overflow: visible; }
+  @media (max-width: 520px) { .fig { padding: 14px 12px; margin: 24px -4px; } }
+</style>
+
+<style is:global>
+  .dg-row { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; align-items: flex-start; }
+  .dg-row > * { flex: 1 1 200px; max-width: 320px; }
+  .c1 { --c: #3987e5; } .c2 { --c: #d95926; } .c3 { --c: #199e70; } .c4 { --c: #c98500; }
+  .dg-box { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
+  .dg-hi { fill: var(--c, #3987e5); fill-opacity: 0.18; stroke: var(--c, #3987e5); stroke-width: 2; }
+  .dg-t { fill: var(--ink); font-size: 14px; font-family: inherit; }
+  .dg-m { fill: var(--muted); font-size: 13px; font-family: inherit; }
+  .dg-b { font-weight: 800; }
+  .dg-line { stroke: var(--line); stroke-width: 2; fill: none; }
+  .dg-arrow { stroke: var(--c, #a8b3ba); stroke-width: 2.5; fill: none; stroke-linecap: round; marker-end: url(#dg-head); }
+  .dg-fill { fill: var(--c, #3987e5); }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="dg-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="context-stroke" />
+    </marker>
+  </defs>
+</svg>

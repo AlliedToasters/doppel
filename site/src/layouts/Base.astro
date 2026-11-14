@@ -77,5 +77,11 @@ const { title, description = 'Chess opponents that play like people.' } = Astro.
   .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   .foot { display: flex; gap: 20px; border-top: 2px solid var(--line); padding-top: 24px; padding-bottom: 40px; color: var(--muted); font-size: 0.9rem; }
   .foot span { margin-right: auto; }
+  @media (max-width: 480px) {
+    .nav nav { gap: 14px; }
+    .brand { font-size: 1.2rem; gap: 6px; }
+    .brand img { width: 28px; height: 28px; }
+    .navlink { font-size: 0.9rem; }
+  }
   @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 </style>

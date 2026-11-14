@@ -1,0 +1,55 @@
+---
+/**
+ * Horizontal bars for a handful of labelled numbers (a comparison, not a trend; use LineChart for trends).
+ *
+ *   <BarChart title="Who predicts a repeat best?" note="..." format="pct" max={1}
+ *     bars={[{ label: 'Your own earlier move', value: 0.769, slot: 1 }, { label: 'Maia-3', value: 0.615, slot: 2 }]} />
+ *
+ * slot: 1 blue, 2 orange, 3 aqua, 4 yellow (one entity keeps one slot across charts). format: pct | num | num1 | pts
+ * (pts = signed points, e.g. +0.26). min defaults to 0; bars start at min, so negative values need min < 0.
+ */
+interface Bar { label: string; value: number; slot?: number; note?: string }
+interface Props { title: string; note?: string; bars: Bar[]; format?: 'pct' | 'num' | 'num1' | 'pts'; min?: number; max?: number }
+const { title, note, bars, format = 'pct', min = 0, max = Math.max(...bars.map((b) => b.value)) } = Astro.props;
+const fmt = (v: number) =>
+  format === 'pct' ? `${v < 0 ? '−' : ''}${Math.abs(v * 100).toFixed(Math.abs(v) < 0.01 ? 2 : Math.abs(v) < 0.1 ? 1 : 0)}%` : format === 'pts' ? `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`
+  : format === 'num1' ? v.toFixed(1) : v.toFixed(2);
+const pos = (v: number) => (100 * (v - min)) / (max - min || 1);
+const zero = pos(Math.max(min, Math.min(0, max)));
+---
+
+<figure class="bc">
+  <figcaption>
+    <span class="t">{title}</span>
+    {note && <span class="n">{note}</span>}
+  </figcaption>
+  <ul>
+    {bars.map((b) => {
+      const a = Math.min(zero, pos(b.value)), w = Math.abs(pos(b.value) - zero);
+      return (
+        <li class={`c${b.slot ?? 1}`}>
+          <span class="l">{b.label}{b.note && <small>{b.note}</small>}</span>
+          <span class="track"><span class="bar" style={`left:${a}%;width:${w}%`}></span></span>
+          <span class="v">{fmt(b.value)}</span>
+        </li>
+      );
+    })}
+  </ul>
+</figure>
+
+<style>
+  .bc { margin: 32px 0; padding: 20px; background: var(--panel); border: 2px solid var(--line); border-radius: 20px; }
+  figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+  .t { font-weight: 900; font-size: 1.05rem; }
+  .n { color: var(--muted); font-size: 0.9rem; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  li { display: grid; grid-template-columns: minmax(0, 13rem) 1fr 4rem; gap: 12px; align-items: center; }
+  .l { font-size: 0.92rem; line-height: 1.25; }
+  .l small { display: block; color: var(--muted); font-size: 0.8rem; }
+  .track { position: relative; height: 14px; background: var(--bg); border-radius: 7px; }
+  .bar { position: absolute; top: 0; bottom: 0; background: var(--c); border-radius: 7px; }
+  .v { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+  .c1 { --c: #3987e5; } .c2 { --c: #d95926; } .c3 { --c: #199e70; } .c4 { --c: #c98500; }
+  @media (max-width: 520px) { li { grid-template-columns: 1fr 3.5rem; } .track { grid-column: 1 / -1; grid-row: 2; } }
+  @media (max-width: 520px) { .bc { padding: 14px 12px; margin: 24px -4px; } }
+</style>

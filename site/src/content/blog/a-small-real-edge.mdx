@@ -5,9 +5,14 @@ date: 2026-11-13
 status: draft
 ---
 import LineChart from '../../components/LineChart.astro';
+import BarChart from '../../components/BarChart.astro';
+import Figure from '../../components/Figure.astro';
+import mem from '../../results/allie_memory.json';
 import r from '../../results/allie_v0e_v0g_b.json';
 
 export const ks = [0, 1, 5, 10, 40];
+export const j = r.joined;
+export const pts = (v) => 100 * (v - j.maia3_top1py);
 export const gain = ks.map((k) => 100 * (r.by_k[String(k)].top1_doppel - r.joined.maia3_top1py));
 
 Models that predict human chess moves are usually scored on one number: how often their top choice is the move
@@ -20,7 +25,18 @@ That looks like a wall. Our bet is that part of it is a wall only for models tha
 ## Why a general model stalls
 
 When a player reaches a position they've played before, they repeat their earlier move about 77% of the time.
-On the same positions Maia-3 gets 61%. A model that treats every 1500 player as the same person can't use that.
+On the same positions Maia-3 gets 62%. A model that treats every 1500 player as the same person can't use that.
+
+<BarChart
+  title="On a position the player has played before"
+  note="Top-1 on the roughly 12,000 benchmark positions where the player has an earlier visit. Crowd: the most common move other 2022 players chose there."
+  format="pct" max={1}
+  bars={[
+    { label: 'Their own most common earlier move', value: mem.overall.own_top1, slot: 1 },
+    { label: 'Maia-3', value: 0.615, slot: 2 },
+    { label: 'The crowd', value: mem.overall.crowd_top1_same, slot: 3 },
+  ]}
+/>
 
 The benchmark makes this hard to see: it starts scoring at move 10, after the stretch where people repeat
 themselves most. Over a whole game, that cut removes about 95% of what exact repeats are worth.
@@ -31,9 +47,88 @@ We took the test games where both players' ratings average 1400 to 1600 (2,021 g
 about 11% of the benchmark). For each player we pulled up to 40 of their *earlier* 2022 games from the Lichess
 archive: strictly before the test game, never a test game.
 
+<Figure title="What the model may read, and what gets scored" note="Context comes only from the past. Scoring follows the benchmark: from ply 10 until the player to move first has under 30 seconds.">
+  <svg viewBox="0 0 400 270" style="max-width: 460px; margin: 0 auto" role="img" aria-label="Timeline of one player's games. Up to 40 earlier games before the test game are the context; other test games and later games are never used. Inside the test game, plies 0 to 9 are not scored, scoring runs from ply 10 until the player to move has under 30 seconds.">
+    <line class="dg-line" x1="10" y1="72" x2="390" y2="72" />
+    <text class="dg-m" x="390" y="44" text-anchor="end">time →</text>
+    <rect class="dg-hi c1" x="15" y="58" width="16" height="28" rx="4" />
+    <rect class="dg-hi c1" x="37" y="58" width="16" height="28" rx="4" />
+    <rect class="dg-hi c1" x="59" y="58" width="16" height="28" rx="4" />
+    <rect class="dg-hi c1" x="81" y="58" width="16" height="28" rx="4" />
+    <rect class="dg-hi c1" x="103" y="58" width="16" height="28" rx="4" />
+    <rect class="dg-box" x="125" y="58" width="16" height="28" rx="4" stroke-dasharray="4 3" />
+    <line class="dg-line" x1="128" y1="61" x2="138" y2="83" /><line class="dg-line" x1="138" y1="61" x2="128" y2="83" />
+    <rect class="dg-hi c1" x="147" y="58" width="16" height="28" rx="4" />
+    <rect class="dg-hi c1" x="169" y="58" width="16" height="28" rx="4" />
+    <rect class="dg-box" x="200" y="54" width="36" height="36" rx="6" style="stroke: var(--ink)" />
+    <rect class="dg-box" x="256" y="58" width="16" height="28" rx="4" opacity="0.5" />
+    <rect class="dg-box" x="278" y="58" width="16" height="28" rx="4" opacity="0.5" />
+    <rect class="dg-box" x="300" y="58" width="16" height="28" rx="4" opacity="0.5" />
+    <text class="dg-m" x="141" y="44" text-anchor="end">skipped: a test game</text>
+    <text class="dg-t dg-b" x="200" y="40">the test game</text>
+    <path class="dg-line" d="M15 100 V106 H185 V100" />
+    <text class="dg-m" x="100" y="126" text-anchor="middle">Context: up to 40 earlier games,</text>
+    <text class="dg-m" x="100" y="144" text-anchor="middle">strictly before the test game</text>
+    <text class="dg-m" x="286" y="112" text-anchor="middle">later games: unused</text>
+    <text class="dg-m" x="10" y="190">Inside the test game</text>
+    <rect class="dg-box" x="10" y="200" width="70" height="32" rx="6" />
+    <rect class="dg-hi c1" x="80" y="200" width="240" height="32" rx="6" />
+    <rect class="dg-box" x="320" y="200" width="70" height="32" rx="6" />
+    <text class="dg-m" x="45" y="221" text-anchor="middle">ply 0–9</text>
+    <text class="dg-t dg-b" x="200" y="221" text-anchor="middle">scored</text>
+    <text class="dg-m" x="355" y="221" text-anchor="middle">dropped</text>
+    <text class="dg-m" x="80" y="254" text-anchor="middle">ply 10</text>
+    <text class="dg-m" x="390" y="254" text-anchor="end">mover under 30 s: stop</text>
+  </svg>
+</Figure>
+
 The Doppel reads those games and condenses them into a short description of the player. A small add-on uses it
 to adjust Maia-3's move probabilities. Maia-3 itself is frozen. The model was trained on 2026 games and applied to
 2022 unchanged, so it has never seen these players.
+
+<Figure title="How the Doppel makes a prediction" note="Blue parts are the Doppel; Maia-3 (orange) is never changed. The lookup is an optional switch on top.">
+  <svg viewBox="0 0 400 680" style="max-width: 460px; margin: 0 auto" role="img" aria-label="Diagram. The player's earlier games go through a set encoder into a player vector z. The current position goes through frozen Maia-3, giving move probabilities. A small add-on uses z to adjust those probabilities, giving the Doppel's prediction. Optional lookup: if the player has played this exact position before, use their most common earlier move; otherwise use the Doppel's prediction. Together that is Doppel plus lookup.">
+    <rect class="dg-hi c1" x="5" y="10" width="190" height="44" rx="10" />
+    <text class="dg-t" x="100" y="37" text-anchor="middle">Player's earlier games</text>
+    <rect class="dg-box" x="205" y="10" width="190" height="44" rx="10" />
+    <text class="dg-t" x="300" y="37" text-anchor="middle">Current position</text>
+    <path class="dg-arrow c1" d="M100 56 V86" />
+    <path class="dg-arrow c2" d="M300 56 V86" />
+    <rect class="dg-hi c1" x="5" y="90" width="190" height="44" rx="10" />
+    <text class="dg-t" x="100" y="117" text-anchor="middle">Set encoder</text>
+    <rect class="dg-hi c2" x="205" y="90" width="190" height="44" rx="10" />
+    <text class="dg-t" x="300" y="117" text-anchor="middle">Maia-3 (frozen)</text>
+    <path class="dg-arrow c1" d="M100 136 V166" />
+    <path class="dg-arrow c2" d="M300 136 V166" />
+    <rect class="dg-hi c1" x="5" y="170" width="190" height="44" rx="10" />
+    <text class="dg-t dg-b" x="100" y="197" text-anchor="middle">Player vector z</text>
+    <rect class="dg-hi c2" x="205" y="170" width="190" height="44" rx="10" />
+    <text class="dg-t" x="300" y="197" text-anchor="middle">Maia-3's probabilities</text>
+    <path class="dg-arrow c1" d="M100 216 L160 256" />
+    <path class="dg-arrow c2" d="M300 216 L240 256" />
+    <rect class="dg-hi c1" x="90" y="260" width="220" height="44" rx="10" />
+    <text class="dg-t" x="200" y="287" text-anchor="middle">Small add-on adjusts them</text>
+    <path class="dg-arrow c1" d="M200 306 V336" />
+    <rect class="dg-hi c1" x="90" y="340" width="220" height="44" rx="10" />
+    <text class="dg-t dg-b" x="200" y="367" text-anchor="middle">Doppel's prediction</text>
+    <line class="dg-line" x1="5" y1="410" x2="395" y2="410" stroke-dasharray="4 4" />
+    <text class="dg-m" x="200" y="432" text-anchor="middle">Optional: the exact-repeat lookup</text>
+    <rect class="dg-box" x="30" y="445" width="340" height="44" rx="10" />
+    <text class="dg-t dg-b" x="200" y="472" text-anchor="middle">Played this exact position before?</text>
+    <path class="dg-arrow c1" d="M140 491 L105 531" />
+    <path class="dg-arrow c1" d="M260 491 L295 531" />
+    <text class="dg-m" x="108" y="512" text-anchor="end">yes</text>
+    <text class="dg-m" x="292" y="512">no</text>
+    <rect class="dg-hi c1" x="5" y="535" width="190" height="44" rx="10" />
+    <text class="dg-t" x="100" y="562" text-anchor="middle">Most common earlier move</text>
+    <rect class="dg-hi c1" x="205" y="535" width="190" height="44" rx="10" />
+    <text class="dg-t" x="300" y="562" text-anchor="middle">Doppel's prediction</text>
+    <path class="dg-arrow c4" d="M100 581 L160 621" />
+    <path class="dg-arrow c4" d="M300 581 L240 621" />
+    <rect class="dg-hi c4" x="90" y="625" width="220" height="44" rx="10" />
+    <text class="dg-t dg-b" x="200" y="652" text-anchor="middle">Doppel + lookup</text>
+  </svg>
+</Figure>
 
 ## The result
 
@@ -51,6 +146,17 @@ move") brings the gain to **0.26 points** (0.16 to 0.37).
 
 The lookup alone, added to Maia-3, gains 0.10. So the player description adds 0.16 points (0.06 to 0.26) beyond
 exact repeats.
+
+<BarChart
+  title="Top-1 gain over Maia-3, 40 earlier games"
+  note="Points of top-1 accuracy, 1400–1600 bucket, 97,306 positions. 95% intervals from a bootstrap over games."
+  format="pts" max={0.4}
+  bars={[
+    { label: 'Maia-3 + lookup', value: pts(j.maia3_plus_memory), slot: 2 },
+    { label: 'Doppel', value: pts(j.doppel), slot: 1, note: '95% interval +0.08 to +0.29' },
+    { label: 'Doppel + lookup', value: pts(j.doppel_plus_memory), slot: 4, note: '95% interval +0.16 to +0.37' },
+  ]}
+/>
 
 ## How big is that?
 

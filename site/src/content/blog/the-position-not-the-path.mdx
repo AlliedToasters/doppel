@@ -5,10 +5,17 @@ date: 2026-11-08
 status: draft
 ---
 import LineChart from '../../components/LineChart.astro';
+import BarChart from '../../components/BarChart.astro';
+import Board from '../../components/Board.astro';
+import Figure from '../../components/Figure.astro';
 import r from '../../results/posbook_explore.json';
+import ceil from '../../results/ceiling.json';
+import ig from '../../results/ingame_state.json';
 
 export const c = r.charts;
 export const lows = ['0', '1', '2', '4', '16', '64', '256', '1k', '4k', '16k', '65k'];
+export const pm = r.personal_vs_band_modal_move.all;
+export const cm = ceil.full['1-39'];
 export const pop = (ch) => ({ label: 'Earlier games that reached this position (at least)', values: ch.x.values, labels: lows });
 
 Chess players talk about "being in book": still in the opening lines everyone knows. To a bot that imitates
@@ -24,7 +31,67 @@ There are two ways to say "this position has been seen before":
 - **By position.** The pieces are on squares where they have stood before, whatever the order of moves.
 
 The two differ when games **transpose**. 1.e4 e5 2.Nf3 Nc6 and 1.Nf3 Nc6 2.e4 e5 reach the same board. By move
-order they are two different lines; by position they are one. Counting by position keeps a typical 1500-rated
+order they are two different lines; by position they are one.
+
+<Figure title="Two routes, one board" note="Each column is a move order. Both end with the same pieces on the same squares, White to move.">
+  <div style="max-width:380px;margin:0 auto">
+  <svg viewBox="0 0 340 190" role="img" aria-label="Two move orders, 1.e4 e5 2.Nf3 Nc6 and 1.Nf3 Nc6 2.e4 e5, both lead to the same position.">
+    <g class="c2">
+      <rect class="dg-hi" x="25" y="8" width="120" height="32" rx="8" /><text class="dg-t" x="85" y="29" text-anchor="middle">1.e4 e5</text>
+      <rect class="dg-hi" x="25" y="64" width="120" height="32" rx="8" /><text class="dg-t" x="85" y="85" text-anchor="middle">2.Nf3 Nc6</text>
+      <rect class="dg-hi" x="195" y="8" width="120" height="32" rx="8" /><text class="dg-t" x="255" y="29" text-anchor="middle">1.Nf3 Nc6</text>
+      <rect class="dg-hi" x="195" y="64" width="120" height="32" rx="8" /><text class="dg-t" x="255" y="85" text-anchor="middle">2.e4 e5</text>
+      <path class="dg-arrow" d="M85 40 V 60" />
+      <path class="dg-arrow" d="M255 40 V 60" />
+      <path class="dg-arrow" d="M85 96 Q 85 152, 96 152" />
+      <path class="dg-arrow" d="M255 96 Q 255 152, 244 152" />
+    </g>
+    <g class="c1">
+      <rect class="dg-hi" x="100" y="126" width="140" height="52" rx="12" />
+      <text class="dg-t dg-b" x="170" y="148" text-anchor="middle">one position</text>
+      <text class="dg-m" x="170" y="167" text-anchor="middle">the board below</text>
+    </g>
+  </svg>
+  </div>
+  <div style="margin-top:20px"><Board fen="r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3" caption="After either order: pawns on e4 and e5, knights on f3 and c6." marks={[{ sq: 'e4', slot: 1 }, { sq: 'e5', slot: 1 }, { sq: 'f3', slot: 1 }, { sq: 'c6', slot: 1 }]} /></div>
+</Figure>
+
+Counting by move order keeps the two routes apart. Counting by position adds them up:
+
+<Figure title="Counting by move order vs by position" note="Each dot is one earlier game that took that route (an illustration, not data).">
+  <div class="dg-row">
+  <div><svg viewBox="0 0 250 216" role="img" aria-label="By move order: the two routes are separate nodes, each with its own count.">
+    <text class="dg-t dg-b" x="125" y="16" text-anchor="middle">By move order</text>
+    <rect class="dg-box" x="75" y="30" width="100" height="32" rx="8" /><text class="dg-t" x="125" y="51" text-anchor="middle">start</text>
+    <g class="c2">
+      <path class="dg-arrow" d="M113 62 L 69 116" />
+      <path class="dg-arrow" d="M137 62 L 181 116" />
+      <rect class="dg-hi" x="7" y="122" width="114" height="32" rx="8" /><text class="dg-t" x="64" y="143" text-anchor="middle">e4 e5 Nf3 Nc6</text>
+      <rect class="dg-hi" x="129" y="122" width="114" height="32" rx="8" /><text class="dg-t" x="186" y="143" text-anchor="middle">Nf3 Nc6 e4 e5</text>
+      <circle class="dg-fill" cx="52" cy="172" r="5" /><circle class="dg-fill" cx="64" cy="172" r="5" /><circle class="dg-fill" cx="76" cy="172" r="5" />
+      <circle class="dg-fill" cx="180" cy="172" r="5" /><circle class="dg-fill" cx="192" cy="172" r="5" />
+    </g>
+    <text class="dg-m" x="125" y="204" text-anchor="middle">two lines, counted apart</text>
+  </svg></div>
+  <div><svg viewBox="0 0 250 216" role="img" aria-label="By position: both routes lead into one node, whose count is the sum of both.">
+    <text class="dg-t dg-b" x="125" y="16" text-anchor="middle">By position</text>
+    <rect class="dg-box" x="75" y="30" width="100" height="32" rx="8" /><text class="dg-t" x="125" y="51" text-anchor="middle">start</text>
+    <g class="c2">
+      <path class="dg-arrow" d="M105 62 C 35 80, 35 110, 92 118" />
+      <path class="dg-arrow" d="M145 62 C 215 80, 215 110, 158 118" />
+      <text class="dg-m" x="94" y="100" text-anchor="middle">e4 first</text>
+      <text class="dg-m" x="158" y="100" text-anchor="middle">Nf3 first</text>
+    </g>
+    <g class="c1">
+      <rect class="dg-hi" x="60" y="122" width="130" height="32" rx="8" /><text class="dg-t" x="125" y="143" text-anchor="middle">same board</text>
+      <circle class="dg-fill" cx="101" cy="172" r="5" /><circle class="dg-fill" cx="113" cy="172" r="5" /><circle class="dg-fill" cx="125" cy="172" r="5" /><circle class="dg-fill" cx="137" cy="172" r="5" /><circle class="dg-fill" cx="149" cy="172" r="5" />
+    </g>
+    <text class="dg-m" x="125" y="204" text-anchor="middle">one board, the counts add up</text>
+  </svg></div>
+  </div>
+</Figure>
+
+So a position reached by an unusual order can still be well known. Counting by position keeps a typical 1500-rated
 game "in book" three plies longer: 15 instead of 12. At 2400 the gap is five plies.
 
 ## Rarer positions: slower and shakier
@@ -65,7 +132,7 @@ People react to the board, not to the route.
 ## Your openings give you away
 
 Counting positions works for a single player too. We built a personal book for each of 8,000 players from their
-earlier games, then tried to pick each player out of a pool of 1,000 from a handful of new games.
+earlier games, then tried to pick each player out of a pool of 1,000 from 40 new games.
 
 <LineChart
   title="Finding a player among 1,000"
@@ -82,15 +149,51 @@ earlier games, then tried to pick each player out of a pool of 1,000 from a hand
 Which positions you choose to reach, weighted towards the rare ones, finds you 80% of the time from 40 games.
 General style statistics manage 33%. And where you've been before, you repeat yourself: your own earlier move
 predicts your next one 82% of the time, while the most popular move among players at your level gets 47%.
+The same holds at scale. Across 881k players in a month of games, a player's own earlier move in a position is
+right 83% of the time; the crowd's most common move gets 50%. Nearly all of it is in the first ten plies: that is
+where people return to positions they have played before.
+
+<BarChart
+  title="Your own earlier move vs the crowd's"
+  note="Top-1: how often each guess matches the move actually played, in positions the player had reached before."
+  format="pct"
+  max={1}
+  bars={[
+    { label: 'Your own earlier move', note: '8,000 players, 40 games each', value: pm.own_modal_top1, slot: 1 },
+    { label: 'Most popular at your level', note: 'same positions', value: pm.band_modal_top1, slot: 3 },
+    { label: 'Your own earlier move', note: '881k players, one month', value: cm.own_top1, slot: 1 },
+    { label: "Crowd's most common move", note: 'same positions', value: cm.crowd_top1_same_visits, slot: 3 },
+  ]}
+/>
 
 ## What this means for Doppel
 
 1. **Doppel's sense of "book" should count positions, not move orders.** That's what people respond to.
-2. **A personal Doppel starts in your repertoire.** Where you've been before, play what you played. Elsewhere,
-   play what players like you play. That simple rule is now the baseline our learned models have to beat.
+2. **Your repertoire is the target, not the policy.** Where you've been before, your own earlier move is the
+   yardstick our models are scored against. Simply replaying it would copy your openings and model nothing
+   else.
 3. **Expect hesitation and errors where they belong.** A bot that thinks for the same time in a well-known
    position as in a strange one doesn't feel human. The count of the position is a cheap, strong signal for
-   when to slow down.
+   when to slow down. The last few moves of the current game tell how much. Think time and the size of errors
+   carry over within a game; move choice doesn't. The current game explains 9.1% of the variation in think time,
+   more than the player does (8.1%), and 3.4% in error size, but about none in move choice. Once we know the player, this game's earlier moves say nothing
+   more about which move comes next.
+
+<BarChart
+  title="What carries over within a game"
+  note="Share of the variation in one move explained by the player (their other games) and by the current game, after position, clock and rating."
+  format="pct"
+  min={-0.01}
+  max={0.1}
+  bars={[
+    { label: 'Think time', note: 'player', value: ig.think.components.player_share, slot: 1 },
+    { label: 'Think time', note: 'this game', value: ig.think.components.game_share, slot: 4 },
+    { label: 'Error size', note: 'player', value: ig.loss.components.player_share, slot: 1 },
+    { label: 'Error size', note: 'this game', value: ig.loss.components.game_share, slot: 4 },
+    { label: 'Move choice', note: 'player', value: ig.surprise.components.player_share, slot: 1 },
+    { label: 'Move choice', note: 'this game', value: ig.surprise.components.game_share, slot: 4 },
+  ]}
+/>
 
 *Data and code: `lab/poskey/` (a Rust position counter) and `lab/doppel_lab/posbook_*.py`, results in
-`lab/results/posbook_explore.json`, in the [repository](https://github.com/AlliedToasters/doppel).*
+`lab/results/posbook_explore.json`, `ceiling.json` and `ingame_state.json`, in the [repository](https://github.com/AlliedToasters/doppel).*

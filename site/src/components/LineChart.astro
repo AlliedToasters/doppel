@@ -158,9 +158,11 @@ const data = JSON.stringify({
   .tip :global(em) { font-style: normal; font-weight: 800; font-variant-numeric: tabular-nums; }
   .tip :global(i) { width: 12px; height: 4px; border-radius: 2px; background: var(--c); display: inline-block; }
   .tip :global(.c1) { --c: #3987e5; } .tip :global(.c2) { --c: #d95926; } .tip :global(.c3) { --c: #199e70; } .tip :global(.c4) { --c: #c98500; }
+  @media (max-width: 520px) { .tick { font-size: 17px; } .axis { font-size: 18px; } }
   details { margin-top: 12px; font-size: 0.85rem; color: var(--muted); }
   summary { cursor: pointer; font-weight: 700; }
   table { border-collapse: collapse; margin-top: 8px; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--line); }
   th:first-child, td:first-child { text-align: left; }
+  @media (max-width: 520px) { .lc { padding: 14px 12px; margin: 24px -4px; } }
 </style>

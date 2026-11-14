@@ -1,0 +1,63 @@
+---
+/**
+ * A small chess board from a FEN (only the piece-placement field is used), rendered to SVG at build time.
+ *
+ *   <Board fen="r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R" caption="After 2...Nc6"
+ *          marks={[{ sq: 'e5', slot: 2 }]} arrows={[{ from: 'g1', to: 'f3', slot: 1 }]} />
+ *
+ * marks: squares tinted with a slot colour. arrows: from -> to in a slot colour. flip: Black at the bottom.
+ * Put several boards side by side inside <div class="dg-row"> in a <Figure>.
+ */
+interface Mark { sq: string; slot?: number }
+interface Arrow { from: string; to: string; slot?: number }
+interface Props { fen: string; caption?: string; marks?: Mark[]; arrows?: Arrow[]; flip?: boolean }
+const { fen, caption, marks = [], arrows = [], flip = false } = Astro.props;
+const S = 40;
+const rows = fen.split(' ')[0].split('/');
+const pieces: { f: number; r: number; p: string }[] = [];
+rows.forEach((row, i) => {
+  let f = 0;
+  for (const ch of row) {
+    if (/\d/.test(ch)) { f += Number(ch); continue; }
+    const color = ch === ch.toUpperCase() ? 'w' : 'b';
+    pieces.push({ f, r: 7 - i, p: `${color}${ch.toUpperCase()}` });
+    f += 1;
+  }
+});
+const xy = (f: number, r: number) => (flip ? { x: (7 - f) * S, y: r * S } : { x: f * S, y: (7 - r) * S });
+const sq = (s: string) => xy(s.charCodeAt(0) - 97, Number(s[1]) - 1);
+const center = (s: string) => { const p = sq(s); return { x: p.x + S / 2, y: p.y + S / 2 }; };
+const colours = ['#3987e5', '#d95926', '#199e70', '#c98500'];
+const col = (slot = 1) => colours[(slot - 1) % 4];
+const label = caption ?? 'Chess position';
+---
+
+<div class="board">
+  <svg viewBox={`0 0 ${8 * S} ${8 * S}`} role="img" aria-label={label}>
+    {Array.from({ length: 64 }, (_, i) => {
+      const f = i % 8, r = Math.floor(i / 8), p = xy(f, r);
+      return <rect x={p.x} y={p.y} width={S} height={S} fill={(f + r) % 2 === 0 ? 'var(--sq-d)' : 'var(--sq-l)'} />;
+    })}
+    {marks.map((m) => { const p = sq(m.sq); return <rect x={p.x} y={p.y} width={S} height={S} fill={col(m.slot)} fill-opacity="0.55" />; })}
+    {pieces.map((pc) => { const p = xy(pc.f, pc.r); return <image href={`/pieces/${pc.p}.png`} x={p.x + 2} y={p.y + 2} width={S - 4} height={S - 4} />; })}
+    {arrows.map((a) => {
+      const s = center(a.from), e = center(a.to);
+      const dx = e.x - s.x, dy = e.y - s.y, len = Math.hypot(dx, dy) || 1;
+      const ex = e.x - (dx / len) * 10, ey = e.y - (dy / len) * 10;
+      const c = col(a.slot);
+      return (
+        <g opacity="0.85">
+          <line x1={s.x} y1={s.y} x2={ex} y2={ey} stroke={c} stroke-width="7" stroke-linecap="round" />
+          <polygon points={`${e.x},${e.y} ${ex - (dy / len) * 9},${ey + (dx / len) * 9} ${ex + (dy / len) * 9},${ey - (dx / len) * 9}`} fill={c} />
+        </g>
+      );
+    })}
+  </svg>
+  {caption && <div class="cap">{caption}</div>}
+</div>
+
+<style>
+  .board { margin: 0 auto; max-width: 320px; }
+  svg { width: 100%; height: auto; display: block; border-radius: 10px; overflow: hidden; }
+  .cap { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
+</style>
