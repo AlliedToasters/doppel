@@ -1,0 +1,79 @@
+---
+title: A small, real edge on the standard test
+description: The best models of human chess moves have all landed near 57% on the same benchmark. We gave one a player's earlier games and it gained a quarter of a point on that benchmark's own positions. Small, but outside the noise, and it grows with history.
+date: 2026-11-13
+status: draft
+---
+import LineChart from '../../components/LineChart.astro';
+import r from '../../results/allie_v0e_v0g_b.json';
+
+export const ks = [0, 1, 5, 10, 40];
+export const gain = ks.map((k) => 100 * (r.by_k[String(k)].top1_doppel - r.joined.maia3_top1py));
+
+Models that predict human chess moves are usually scored on one number: how often their top choice is the move
+the person actually played. On the standard test set, about 884,000 positions from Lichess blitz games in 2022
+(first used for the Allie model), the best recent models all land within about a point of each other: 56 to 57%.
+Maia-3 gets 57.1%.
+
+That looks like a wall. Our bet is that part of it is a wall only for models that don't know *who* is playing.
+
+## Why a general model stalls
+
+When a player reaches a position they've played before, they repeat their earlier move about 77% of the time.
+On the same positions Maia-3 gets 61%. A model that treats every 1500 player as the same person can't use that.
+
+The benchmark makes this hard to see: it starts scoring at move 10, after the stretch where people repeat
+themselves most. Over a whole game, that cut removes about 95% of what exact repeats are worth.
+
+## The test
+
+We took the test games where both players' ratings average 1400 to 1600 (2,021 games, 97,306 scored positions,
+about 11% of the benchmark). For each player we pulled up to 40 of their *earlier* 2022 games from the Lichess
+archive: strictly before the test game, never a test game.
+
+The Doppel reads those games and condenses them into a short description of the player. A small add-on uses it
+to adjust Maia-3's move probabilities. Maia-3 itself is frozen. The model was trained on 2026 games and applied to
+2022 unchanged, so it has never seen these players.
+
+## The result
+
+<LineChart
+  title="Top-1 gain over Maia-3, by earlier games read"
+  note="1400–1600 bucket of the Allie test set, 97,306 positions. Points of top-1 accuracy over Maia-3 (56.63% here)."
+  x={{ label: "Player's earlier games the Doppel reads", values: ks, labels: ks.map(String) }}
+  y={{ label: 'Gain (points)', min: -0.1, max: 0.3, format: 'num', ticks: [-0.1, 0, 0.1, 0.2, 0.3] }}
+  series={[{ name: 'Doppel', slot: 1, values: gain }]}
+/>
+
+With no earlier games, the Doppel is Maia-3 to within noise. With 40, it gains 0.18 points (95% interval 0.08 to
+0.29). Adding a lookup on top ("if you've played this exact position before, predict your most common earlier
+move") brings the gain to **0.26 points** (0.16 to 0.37).
+
+The lookup alone, added to Maia-3, gains 0.10. So the player description adds 0.16 points (0.06 to 0.26) beyond
+exact repeats.
+
+## How big is that?
+
+Small. A quarter of a point is about 250 more correct moves per 100,000. But the differences between the best
+published models on this test are about a point, and this gain comes from the player alone: same base model,
+same positions.
+
+Three caveats:
+
+1. **One rating bucket.** Models for other ratings are training now.
+2. **The intervals are wide.** They come from about 2,000 games; the whole test set would make them about three
+   times tighter.
+3. **The add-on is deliberately weak.** It can only nudge Maia-3's final answer, not change how Maia-3 reads the
+   board.
+
+## What's next
+
+The third caveat is the interesting one. The gain is concentrated in moves 10 to 19, where people play their
+repertoire. Later in the game, a nudge to the final answer does little.
+
+Next we'll try retrieval: the model looks up the positions from your earlier games that most resemble the one in
+front of you, and what you played there. After that, we'll put the player description inside the model, where it
+can change how a position is read, not only which move wins.
+
+*Data and code: `doppel_lab/allie_v0e.py`, `doppel_lab/allie_memory.py`, results in
+`lab/results/allie_v0e_v0g_b.json`, in the [repository](https://github.com/AlliedToasters/doppel).*
