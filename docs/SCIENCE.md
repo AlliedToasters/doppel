@@ -711,29 +711,280 @@ p = (n_prev(move) + α·p_Maia(move)) / (N_prev + α), with α = 0.5 best on the
 For scale: spread over all positions, 0.93 × 5.6% ≈ 0.052 nats per position, against v0f's whole
 personalization gain of 0.0005 nats (ce_post − ce_teacher) and its z-swap gain of 0.0012. A set-encoder z can't
 memorize "this player plays 3.Bb5 here", and this is where most of a player's predictable individuality lives at
-1500. Design implication: a Doppel should carry an explicit per-player repertoire memory, mixed with the model
-by the shrinkage above, with Maia + z for positions the player hasn't shown us. Open: score v0f itself on these
-visits (GPU), and check that the gain survives in held-out players with a context-games split.
+1500. Use (revised 2026-11-11, below): the player's own history at repeated positions is a sparse,
+player-level ground truth for evaluating a model, not a component to play from. Both checks are below
+(repertoire vs z).
 
-**Finding, v0 data scaling: more games help z's predictions, not its identity.** (`v0e_train --train-frac 0.5`,
-run v0f_half; `lab/results/v0_v0f_half.json`, `players_pool_v0f_half.json`.) The v0f recipe on a random half of
-the 700k train games (dropped games leave both the targets and the players' histories), at the same 32,808 steps,
-against v0f on the full set:
+**Finding, repertoire vs z: z holds about 1% of what a player's own history shows.** (`doppel_lab/repeat_v0f.py`,
+`lab/results/repeat_v0f.json`, 2026-11-10.) Same visits and protocol as player_markov, on the valrich split
+instead of train: 600 held-out players' first 48 band games, which no v0f run saw. That gives 66,675 repeat visits
+by 3,172 players (the 600 plus opponents met twice), 98% of them before ply 10. v0f's z is the posterior mean from
+the player's 40 most recent earlier games (all of them if fewer). Gains over Maia-3 at the real Elos (−1.451
+nats per visit), with player-bootstrap 95% CIs:
 
-| Metric (full val) | v0f, 700k games | v0f_half, 350k |
+| Model | Gain, nats per visit | Share of the history gain |
 |---|---|---|
-| ce_post − ce_teacher (nats) | −0.00128 | −0.00090 |
-| z-swap gain (nats) | 0.00115 [0.00090, 0.00143] | 0.00069 [0.00054, 0.00085] |
-| KL per half-game / active units | 0.86 / 28 | 0.69 / 23 |
-| re-ID top-1 at k = 5 / 10 / 20 / 40 | 0.46 / 0.67 / 0.93 / 0.97 | 0.43 / 0.56 / 0.92 / 0.97 |
-| rating R² at k = 40 | 0.74 | 0.74 |
-| top-1, think r | 0.556, 0.708 | 0.556, 0.706 |
+| v0f, prior z (no player) | +0.0027 [0.0015, 0.0038] | 0.3% |
+| v0f_quarter, posterior z | +0.0043 [0.0031, 0.0054] | 0.5% |
+| v0f_half, posterior z | +0.0066 [0.0053, 0.0081] | 0.7% |
+| v0f, posterior z | +0.0108 [0.0088, 0.0128] | 1.2% |
+| own history shrunk toward Maia (α 0.5) | +0.905 [0.872, 0.937] | 100% |
+| own history shrunk toward v0f | +0.906 [0.873, 0.946] | 100% |
 
-Halving the data costs 40% of the z-swap gain (the CIs don't overlap) and 30% of the gain over the teacher, and
-re-ID at 10 games drops 11 points; re-ID at 20+ games and rating don't move. So doubling the corpus should help
-z, roughly +0.0005 nats on z-swap if the curve is log-linear. That is two orders of magnitude below the
-repertoire signal above (0.05 nats per position). A bigger corpus still pays twice: more games per player
-for z, and more repeat visits for a repertoire memory, which is the larger prize.
+The history gain holds on held-out players (+0.905 vs +0.93 on train), so it's not an artefact of the train
+split. z captures 1.2% of it. Shrinking toward v0f instead of Maia adds +0.0009, so z and the history overlap
+almost completely, and the history is all of it. z's gain grows with every context-size and N_prev bin
+(+0.0075 at N_prev = 1, +0.017 at 9–16) but stays two orders of magnitude short. Across the three data-scaling
+runs it rises ×1.5 per doubling of games (about N^0.65). At that rate, closing the gap would need roughly 9
+more doublings, about 500M games. z does not hold the repertoire. Most of the gain is in the opening (ply 0–9: +0.91; 10–19: +0.36),
+which is why the history is used as an evaluation ceiling below rather than as a per-player book to play from.
+
+**Finding, v0f at 1100 and 1900: z helps less as rating rises; the repertoire gap holds at every band.**
+(`v0e_train --band 1100/1900`, runs v0f_1100 and v0f_1900; `lab/results/v0_v0f_{1100,1900}.json`,
+`repeat_v0f.json`; 2026-11-11.) Same recipe as v0f (`--w-con 0.1`, 32,808 steps, init from v0d) on 700k train
+games per band, with each band's own Maia-3 teacher, context vectors and 600 held-out valrich players:
+
+| Metric (own band's valrich) | 1100 | 1500 | 1900 |
+|---|---|---|---|
+| ce_teacher (nats) | 1.424 | 1.334 | 1.239 |
+| ce_post − ce_teacher | −0.0023 | −0.0013 | −0.0006 |
+| z-swap gain (nats) | 0.00118 [0.00097, 0.00139] | 0.00115 [0.00090, 0.00143] | 0.00062 [0.00040, 0.00084] |
+| KL per game / active units | 0.88 / 23 | 0.86 / 28 | 0.96 / 26 |
+| top-1 teacher → post | 0.537 → 0.538 | 0.556 → 0.556 | 0.583 → 0.584 |
+| think r, prior → post | 0.669 → 0.683 | 0.697 → 0.708 | 0.702 → 0.712 |
+| resign AUC (post) | 0.972 | 0.977 | 0.983 |
+| Repeat visits: history gain over Maia | +0.794 | +0.905 | +0.927 |
+| Repeat visits: v0f posterior gain | +0.0089 [0.0069, 0.0109] | +0.0108 [0.0088, 0.0128] | +0.0041 [0.0028, 0.0054] |
+| z's share of the history gain | 1.1% | 1.2% | 0.4% |
+
+Three patterns. First, the gain over the teacher halves with each 400 points (−0.0023, −0.0013, −0.0006), and
+at 1900 the z-swap gain is half of 1100's and 1500's, though z carries slightly more KL. Maia-3 already fits
+1900 players better (ce 1.24 vs 1.42), and what's left per player is harder for z to use. Second, the
+repertoire signal grows with rating (+0.79 → +0.91 → +0.93 nats per repeat visit): stronger players are more
+consistent at positions they've been to before, while z captures a smaller share. Third, the conclusion of
+"repertoire vs z" holds at every band: z gets about 1% of the history gain or less, and shrinking toward v0f
+instead of Maia adds ≤ 0.002. A per-player opening memory matters most for the strongest players. The think
+and resign heads work at every band with no tuning (think r gain +0.010 to +0.014).
+
+**Finding, repertoire memory: the best history estimate is a plain count table; use it as an evaluation
+ceiling, not at inference.** (`doppel_lab/repertoire_memory.py`, `lab/results/repertoire_memory.json`; per-visit
+log-probs from `repeat_v0f --dump`.) The history estimate is the player's earlier moves at the exact position
+(R0 poskey, plies 0–79), mixed into v0f's posterior as p = (n_prev(move) + a · p_v0f(move)) / (N_prev + a). It is
+scored online on the valrich repeat visits, with a and the variant fitted on half the players and reported on the
+other half. Gain over v0f, nats per repeat visit:
+
+| Variant | 1100 | 1500 | 1900 |
+|---|---|---|---|
+| count, a = 0.5 | +0.800 | +0.887 | +0.905 |
+| recency-weighted (best λ) | +0.801 (λ 0.9) | +0.887 (λ 1) | +0.905 (λ 1) |
+| last visit only | +0.742 | +0.836 | +0.858 |
+| a by player consistency × N_prev | +0.806 | +0.893 | +0.916 |
+
+The test-half 95% player-bootstrap CI at 1500 is ±0.05, so the variants don't separate except last-only, which is
+worse. Players don't drift over 48 games, so every earlier visit counts equally, and a = 0.5 fits every band. A
+player-consistency schedule for a adds less than 0.01. For the 600 target players (48 games each), repeat visits
+are 6% of their own moves, about 2.1 per game, and they sit mostly in the first 20 plies.
+
+Why not play from it. The coverage is sparse and opening-heavy. A Doppel reading a per-player book would copy the
+player's opening and then fall back to the model, which looks faithful while modelling nothing. It also does
+nothing for a player with few games, and it would hide whether z learned the player at all. Per-move averages
+(0.05 nats per move vs z's 0.0013) are dominated by those few opening moves and are not a fidelity comparison.
+
+How to use it. Repeat-visit fidelity: a model's gain over Maia at held-out repeat visits, as a share of this
+ceiling (count, a = 0.5), reported by ply (0–9, 10–19, 20+) and N_prev. It complements KL-to-Maia. KL says how far a
+model moved from Maia; repeat-visit fidelity says whether it moved toward what this player actually does. v0f
+scores about 1% (§8 repertoire vs z). Caveats: the ceiling is noisy at N_prev = 1–2. These are the positions where
+players are most consistent, so the metric says nothing about middlegame fidelity (style traits cover that).
+First readings (`repeat_v0f.fidelity`, now part of `v0e_train eval`; `lab/results/repeat_v0f.json` "fidelity"):
+
+| Run | share of ceiling | policy KL to Maia (nats) | gain per nat of KL |
+|---|---|---|---|
+| v0f_quarter (1500) | 0.47% | 0.0007 | 6.1 |
+| v0f_half (1500) | 0.73% | 0.0011 | 6.1 |
+| v0f (1500) | 1.19% | 0.0020 | 5.3 |
+| v0f_1100 | 1.12% | 0.0026 | 3.4 |
+| v0f_1900 | 0.44% | 0.0008 | 4.9 |
+
+Two readings. First, the opening bias is extreme: 98% of repeat visits (65k of 67k at 1500) are at plies 0–9,
+because with 48 games a player rarely reaches the same position after move 5. So as measured here this is a
+first-five-moves metric. Later plies need more games per player (backlog item 5) or backoff. Second, v0f moves in
+the right direction but barely moves: each nat of KL it spends at these positions buys 5–6 nats of the player's
+log-likelihood, and that efficiency stays flat across the data-scaling runs while the KL grows with data. The
+shortfall against the ceiling is magnitude, not direction. KL-to-Maia alone could not show this.
+
+Backing off to near positions is open. The plan is to pick candidates by pawn structure and setup, then keep a
+neighbour only where Maia's move distribution agrees, since one square for a rook or queen can change everything.
+A probe of how Maia's board embedding and policy respond to one-piece perturbations comes first (next finding).
+
+**Finding, one-piece perturbations: half of them change Maia's decision, and Maia's own features can tell which.**
+(`doppel_lab/probe_perturb.py`, `lab/results/probe_perturb.json` "main", pairs in `data/probe/perturb_pairs.parquet`.)
+Base positions: 4,000 v0 val positions (1500 band, plies 16–60). Each gets up to 8 perturbations, 32,000 pairs in
+all: one non-king piece of either side steps to an adjacent empty square, and the board stays valid. Every pair
+differs in exactly two squares, so surface distance is identical across all of them. Maia-3 79M at 1500/1500 runs
+with no move history on both boards. "Changed" means the policy Jensen-Shannon divergence is above 0.1 or the top
+move changes.
+
+- 53% of one-square perturbations change the decision (mean JS 0.19). Pawns are not safe: 43% for an opponent
+  pawn, 51% for one of the mover's own. The highest are the mover's knight (79%) and queen (75%). One square
+  matters about half the time, whatever the piece.
+- The heuristic does poorly. The number of squares the moved piece attacks differently separates changed from
+  unchanged at AUC 0.63 (ρ with JS 0.31). Piece type and owner alone give a range of 42–79%.
+- Maia's internal features do well. Cosine distance of the middle-layer features (layer 4 of 8, mean over squares)
+  gives AUC 0.84 (ρ 0.74), and it holds within every piece type (0.82–0.86). The final-layer pooled features give
+  AUC 0.88 (ρ 0.81), but they feed the policy directly, so that is partly circular. Max-over-squares at the middle
+  layer is worse (0.77).
+
+So the user's prior holds: a small difference on the board changes the decision half the time, and a surface or
+attack heuristic can't say when. Maia's middle-layer representation can, well enough to rank candidates. The
+backoff design follows from this: retrieve near positions from the player's own earlier games by middle-layer
+distance, then keep only those where Maia's move distributions agree (JS below a threshold, and the remembered
+move legal). The test after that is whether the kept neighbours' moves predict the player beyond Maia at plies 10+,
+where exact repeats are 2% of visits. Caveat: random one-step perturbations are not the near positions that real
+games produce, so the 53% is an upper-end figure.
+
+**Finding, policy-filtered backoff: near positions carry the player only through the opening; past ply 20 a
+neighbour's move is Maia's, not the player's.** (`doppel_lab/backoff.py`, `lab/results/backoff.json` "1500",
+neighbours in `data/v0e/backoff_1500.npz`; one 90 s GPU job.) Queries: 866k own decision positions (plies 0–79) of
+the 600 valrich target players, in every game after their first. Retrieval works in three steps:
+
+1. Take the 16 nearest positions from the player's strictly earlier games, by cosine distance of Maia-3's layer-4
+   features (with real move history and real Elos).
+2. Keep a neighbour only if its policy Jensen-Shannon divergence to the query is at most τ and its played move is
+   legal at the query. Exact repeats are excluded (backoff only).
+3. Mix the kept neighbours' moves with Maia as in the count table.
+
+The control runs the same retrieval over a partner target player's earlier games, from a fixed derangement with
+matched pool size. τ, a and k are fitted on half the players and reported on the other half, refitted per ply range.
+
+| Plies | own gain (nats/query) | own coverage | control gain | control coverage |
+|---|---|---|---|---|
+| 0–9 | +0.189 | 72% | −0.107 | 43% |
+| 10–19 (refit) | +0.028 | 35% | 0.000 | 0.4% |
+| 20+ (refit) | +0.0002 | 4.7% | 0.000 | 0.8% |
+| 40+ (refit) | 0.000 | 0.7% | 0.000 | 0.1% |
+
+The direct test is the neighbour's move matching the query's played move, at equal policy similarity:
+
+| JS bin | 0–9 own / control | 10–19 own / control | 20+ own / control |
+|---|---|---|---|
+| ≤ 0.01 | 0.84 / 0.49 | 0.89 / 0.95 | 0.96 / 0.97 |
+| 0.01–0.05 | 0.70 / 0.32 | 0.68 / 0.72 | 0.87 / 0.89 |
+| 0.05–0.1 | 0.51 / 0.29 | 0.56 / 0.56 | 0.76 / 0.77 |
+| 0.1–0.2 | 0.38 / 0.26 | 0.44 / 0.42 | 0.59 / 0.63 |
+
+In the opening, the player's own near positions predict them far better than another player's (0.84 vs 0.49).
+That is the repertoire again, reaching non-identical boards. From ply 10 on, the gap is gone: at a given policy
+similarity, another player's neighbour predicts the move as well as the player's own. The 10–19 gain comes from
+coverage, because the player's own lines produce more near positions, not from better matches. Past ply 20 the
+fitted shrinkage goes to the maximum (a = 16), which means "use Maia". So even with a representation that can tell
+which one-square differences matter, a player's move-level memory doesn't transfer to the middlegame. What a
+neighbour's move predicts there is what the position (and Maia) already says.
+
+Consequences:
+
+1. Repeat-visit fidelity is an opening metric by nature, not only because exact repeats are rare. Its ply 10–19
+   extension through backoff adds coverage but no new player signal.
+2. Player-level middlegame fidelity has to be measured through style (the §8 traits: steering, allocation,
+   think-time) and through how a model behaves across many positions, not through move recall.
+3. That is z's job. A memory can't take it over. Caveat: 48 games per player; a corpus with hundreds of games per
+   player (backlog item 5) could still find middlegame habits that transfer. Random one-step perturbations of
+   positions are not involved here: all neighbours are real positions from real games.
+
+**Finding, middlegame style fidelity: v0f's z gets the direction of a player's move-choice style roughly right,
+at about 3% of its size; time allocation is the one trait z really carries.** (`doppel_lab/style_fidelity.py`,
+`lab/results/style_fidelity.json` "v0f"; passes cached in `data/v0e/style_v0f_{A,B}.parquet`; one 13-minute GPU
+job; `v0e_train eval --style` runs it.)
+
+Setup:
+
+- Players: the 600 valrich target players at 1500, 48 games each. Half A is games 1–24, half B games 25–48.
+- Positions: up to 12 own positions per half-B game, plies ≥ 10, 170k in all.
+- Model: v0f runs with z = the posterior from the player's earlier games ("post") and with z = the prior mean
+  ("prior").
+- Children: every legal move's resulting position goes through the trunk with the opponent to move. That gives
+  steering (entropy handed to the opponent) and conformity (trunk log-prob of the move) as exact expectations under
+  the model's move distribution. 1.7M positions of pass A give the actual traits.
+
+The first reading was confounded by position. Scored at the player's own positions, the trait mean mostly
+reflects which positions the player reaches. At plies ≥ 10, the trunk alone predicts each player's actual half-B
+steering at ρ 0.72, above their own half A (0.58), and v0f post adds 0.001. So every comparison below is at the
+level of move choice: the played move's value minus Maia's expectation at that position (actual), against the
+model's expectation minus Maia's (post, prior).
+
+| Plies ≥ 10, across 600 players | reliability (half B) | post ρ | prior ρ | z adds | model SD / actual SD |
+|---|---|---|---|---|---|
+| steering, move-choice | 0.52 | +0.17 | +0.13 | +0.03 | 0.0009 / 0.034 (3%) |
+| conformity, move-choice | 0.55 | −0.11 | −0.01 | −0.10 | 0.0010 / 0.100 (1%) |
+| time allocation (think head) | 0.59 (A vs B) | +0.58 | +0.52 | +0.06 | — |
+
+Plies ≥ 20 read the same (steering +0.15 vs +0.13; conformity −0.13 vs −0.07; allocation +0.39 vs +0.34, history
+0.37).
+
+1. Move-choice steering is a real trait (split-half 0.35 within half B), and v0f ranks players on it a little
+   (ρ +0.17, the ceiling is 0.72). But it spreads players 38× less than they really differ. This is the same
+   pattern as the repeat-visit metric: right direction, far too little movement.
+2. Move-choice conformity (how far a player's moves fall below Maia's expectation) is just as reliable, and v0f
+   gets it wrong. z moves the ranking from −0.01 to −0.11 (about 2.6 standard errors from zero for 600 players; not yet bootstrapped). The model's deviations from
+   Maia are largest, or aimed at less likely moves, for the players who are actually more conventional. Its size
+   is 1% of the real spread, so this flags a direction error to check, not a measured harm.
+3. Time allocation is where z works. Post reaches the history ceiling (0.58 vs 0.59), and z adds +0.06 over the
+   prior. Part of the prior's 0.52 comes from the think head's in-game tempo features (the player's earlier think
+   fractions in the same game), so z's share is the +0.06.
+
+So in the middlegame, z carries the player's clock habits and almost none of their move-choice style. The
+move-level metrics to watch for v0g are the model-to-actual SD ratio (now 1–3%) and the sign of the conformity
+ρ. Raising the residual's reach (less KL pressure, larger z effect) should move the first, and the second needs a
+look at what z's residual does for unconventional players.
+
+*Follow-up: the conformity sign across five models* (2026-11-12; one 40-min job for the other four runs,
+`style_fidelity --runs`; bootstrap and mechanism in `conformity_check.py`, 2,000 player resamples, plies ≥ 10;
+`lab/results/style_fidelity.json` "conformity_check"):
+
+| Run | Conformity post / prior | z adds [95% CI] | Steering z adds | Allocation post / history |
+|---|---|---|---|---|
+| v0f_quarter (1500, 175k) | +0.02 / +0.03 | −0.016 [−0.042, +0.008] | +0.065 | 0.54 / 0.59 |
+| v0f_half (1500, 350k) | −0.06 / +0.00 | −0.066 [−0.112, −0.023] | +0.048 | 0.56 / 0.59 |
+| v0f (1500, 700k) | −0.11 / −0.01 | −0.096 [−0.154, −0.040] | +0.034 | 0.58 / 0.59 |
+| v0f_1100 | −0.01 / −0.01 | −0.001 [−0.073, +0.076] | +0.115 | 0.53 / 0.59 |
+| v0f_1900 | +0.03 / +0.04 | −0.009 [−0.070, +0.050] | +0.017 | 0.55 / 0.58 |
+
+The 1500 effect is real (bootstrap p < 0.001 for v0f and v0f_half) and grows with training data, but the 1100 and
+1900 models, scored on their own 600 players, show none. The three 1500 runs share their target players, so this
+is one player sample, not three replications. Steering and allocation gains replicate in every run.
+
+Mechanism: it is a direction, not a size artifact. The model's E[log p_maia] falls whenever z moves mass off
+Maia's likely moves, but z's push is negative for only 50–60% of players, and its size does not track actual
+conformity (ρ −0.04 to +0.06). What does stand out: z moves steering and conformity together along one axis
+(per-player ρ of the two z pushes −0.82 at 1500, −0.96 at 1100, +0.28 at 1900), while real players' steering and
+conformity are nearly independent (−0.10, −0.22, −0.00). At 1500, z's steering push tracks actual conformity
+(+0.17) better than actual steering (+0.12): z has learned who is conventional, and the decoder spends it as "steer
+sharper", which costs Maia-likeness. With a z effect only 1–3% of the real spread, the policy expresses roughly
+one style dimension. For v0g, the check is that the two z pushes decouple (|ρ| well below 0.8).
+
+**Finding, v0 data scaling: z's gain grows almost linearly with games and hasn't flattened.** (`v0e_train
+--train-frac 0.5` and `0.25`, runs v0f_half and v0f_quarter; `lab/results/v0_v0f_{half,quarter}.json`,
+`players_pool_v0f_{half,quarter}.json`.) The v0f recipe on a random half and a random quarter of the 700k train
+games (dropped games leave both the targets and the players' histories), at the same 32,808 steps, against v0f on
+the full set:
+
+| Metric (full val) | v0f_quarter, 175k | v0f_half, 350k | v0f, 700k games |
+|---|---|---|---|
+| ce_post − ce_teacher (nats) | −0.00062 | −0.00090 | −0.00128 |
+| z-swap gain (nats) | 0.00032 [0.00025, 0.00038] | 0.00069 [0.00054, 0.00085] | 0.00115 [0.00090, 0.00143] |
+| KL per half-game / active units | 0.47 / 16 | 0.69 / 23 | 0.86 / 28 |
+| re-ID top-1 at k = 5 / 10 / 20 / 40 | 0.19 / 0.34 / 0.87 / 0.97 | 0.43 / 0.56 / 0.92 / 0.97 | 0.46 / 0.67 / 0.93 / 0.97 |
+| rating R² at k = 40 | 0.77 | 0.74 | 0.74 |
+| top-1, think r | 0.557, 0.704 | 0.556, 0.706 | 0.556, 0.708 |
+
+The z-swap gain goes 0.00032 → 0.00069 → 0.00115 (CIs disjoint at every step). Each doubling adds more than the
+last (+0.00037, then +0.00046), so the curve is not log-linear and shows no sign of flattening: over 4× the data
+it rises 3.6×, a power law near N^0.9. KL and active units climb with it (16 → 23 → 28). Re-ID at 5–10 games
+carries the change (k = 10: 0.34 → 0.56 → 0.67); at 20+ games all three runs re-identify, and rating R² at 40
+games is flat (0.74–0.77, inside fold noise), so rating is learned from a quarter of the data. If the power law
+holds, doubling the corpus gives about +0.001 nats of z-swap, twice the +0.0005 a log-linear guess from two points
+gave. That is still well below the repertoire signal above (0.05 nats per position). A bigger corpus pays twice:
+more games per player for z, and more repeat visits for a repertoire memory, which is the larger prize. Backlog
+item 5 (a full month) is the test.
 
 **Book depth** (`doppel_lab/book.py`, `book_science.py`; 22.7 M train games). Of 1.10 B distinct move-order
 prefixes, 98.5% occur once. Median ply of the first never-seen prefix: 9 at 800, 12 at 1500, 13 at 2400.
@@ -921,6 +1172,31 @@ Depth does not saturate. Over the largest book's nested subsamples, 169k to 43 M
 per doubling in every range and R1 0.50–0.51. Across the three full books the gain is 0.76 and 0.58. That is
 slightly higher, because the heldout increment holds the probe players' own other games. At this rate, one more
 ply of R0 book costs about 2.6× the games.
+
+*Per-game uniqueness curves* (`uniqueness_curve.py`, `uniqueness_endgame.py`; `lab/results/uniqueness_curve.json`;
+same probe and book, the endgame half recounted with `poskey count --cap 255`, 70 s). Each game's count of train
+games sharing its exact position falls geometrically: the median count drops 2.7–2.9× per ply after ply 2
+(30,587 at ply 4, 396 at ply 8, 8 at ply 12, 0 at ply 16). That rate predicts 0.66 plies of depth per doubling
+of the corpus, close to the measured 0.71: the per-ply decay and the corpus multiple per ply (2.66×) are the same
+number. The first unique ply has mean 15.0, SD 4.8 (q10–q90 9–21), and the spread widens with the corpus (q90
+moves 0.88 plies per doubling, q10 0.50). The fall is almost monotone: 12% of in-book steps rise as a
+transposition merges routes, and 73% of games have at least one rise. Pushing the median exit from 15 to 20
+plies would take 2.66⁵ ≈ 130× the corpus (about 3 B games).
+
+After going unique, a game stays unique through the middlegame and comes back only in bare endgames. Share of
+post-exit positions that some train game also reached, by men left (kings included), 22.7 M book:
+
+| Men | 25–32 | 17–24 | 11–16 | 7–10 | 4–6 | 2–3 |
+|---|---|---|---|---|---|---|
+| Positions known | 2.5% | 0.08% | 0.03% | 0.8% | 19% | 94% (median count 68) |
+| Games reaching it that rejoin | 19% | 0.8% | 0.2% | 3.5% | 41% | 89% |
+
+The 25–32 rejoins are move-order merges 1–2 plies after exit; that share barely grows with the corpus (17.7% at
+89k games, 19.3% at 22.7 M). The endgame rejoins grow fast and saturate: 4–6 men known 0.8% → 2.2% → 5.3% →
+11% → 19% for each 4× of corpus, because the space of bare endgames is small. Only 9.6% of games reach ≤ 6 men,
+and 5.7% of games end in a known position (most end by resignation or flag at a median 16 men). So the curve is
+an L with a late hook: exact ground truth exists in the opening and in pawn-and-king endings, and almost nowhere
+between. Population counts there are not personal repeat visits, and ≤ 7 men is tablebase territory anyway.
 
 *Client lookups.* dartchess 0.14 (the client's chess library) has `Position.zobristHash()`, ported from shakmaty
 with Polyglot tables. It matches python-chess and poskey only with `mode: EnPassantMode.pseudoLegal`; the default
@@ -1363,6 +1639,296 @@ in the style-persistence study.
 BOT game in them is BOT vs BOT, so BOT-vs-human contrasts need another source. TWIC mixes online events
 (Titled Tuesday) with over-the-board ones, so an over-the-board vs online split needs an event/site classifier.
 
+*Exact-repeat memory on the benchmark's positions* (`doppel_lab/ceiling.py`, `lab/results/ceiling.json`,
+2026-11-12; 12.7 M held-out 2026-10 games, 881k players, R0 key over the first 40 plies). Each visit is predicted
+by the player's own modal move from their strictly earlier visits to the same position in the month, when there
+are any, else by the crowd's leave-one-out modal move (non-causal, which favours the crowd). Top-1 gain of that
+switch over the crowd, over all positions, with a 500-sample player bootstrap:
+
+| Positions | Share with own history | Own top-1 | Crowd top-1, same visits | Gain, points of top-1 [95% CI] |
+|---|---|---|---|---|
+| Full games (849 M plies) | 6.3% | 82.7% | 50.5% | **+2.02** [2.016, 2.034] |
+| Allie protocol (ply ≥ 10, 30 s cut; 630 M) | 0.68% | 74.6% | 60.1% | **+0.099** [0.097, 0.100] |
+
+By ply: 43% of visits at plies 1–9 have own history (own 83.4% vs crowd 49.6%, +14.5 points in that range);
+3.2% at plies 10–19 (+0.50); 0.15% at 20–29 (+0.005); nothing after. **The benchmark's ply ≥ 10 filter removes
+about 95% of the gain that exact-repeat memory gives over a game.** On the benchmark itself the repeat-memory share
+of per-player headroom is small but measurable: about +0.1 points against Maia-3's 57.1, so a personalized gain
+there must mostly come from generalisation (style on new positions). Lower bound in two ways: one month of history
+per player (Allie-track players can have more), and a crowd baseline that has seen the whole month.
+
+By rating (200-Elo bucket of the two players' mean; same run, 2026-11-12). The Allie test set is stratified flat,
+about 11% of positions per bucket from 800 to 2200 and 6.7% at 2400, while 2026-10 piles up at 1400–1800:
+
+| Bucket | 600 | 800 | 1000 | 1200 | 1400 | 1600 | 1800 | 2000 | 2200 | 2400 | 2600 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Allie gain (pts) | 0.007 | 0.015 | 0.033 | 0.046 | 0.062 | 0.088 | 0.133 | 0.208 | 0.329 | 0.429 | 0.367 |
+| Allie own-history share | 0.1% | 0.2% | 0.3% | 0.4% | 0.5% | 0.6% | 0.9% | 1.3% | 1.8% | 2.2% | 1.9% |
+| Full-game gain (pts) | 1.05 | 1.35 | 1.64 | 1.83 | 1.96 | 2.10 | 2.24 | 2.36 | 2.42 | 2.31 | 1.82 |
+
+**Memory gain on the benchmark grows about 60× from 600 to 2400:** strong players repeat deeper lines (own history
+past ply 10 is 20× as common) and repeat them more faithfully (own top-1 87% vs 57%). Reweighted to the test set's
+rating mix, the Allie-protocol gain is **+0.14 points** (vs +0.10 at 2026-10's mix); the full-game gain is flat
+(2.0 either way). The expert end of the test set is where repeat memory pays, and where Maia's population policy
+is least personal.
+
+*The same on the Allie test set itself* (`doppel_lab/allie_memory.py`, `lab/results/allie_memory.json`, 2026-11-12;
+first run, partial history). Each of the 884,049 protocol positions is matched by move prefix (transpositions not
+merged; plies ≥ 40 count as no history) against the test player's own games started strictly before the test game
+(data/allie/history, 2021-11 to 2022-05 so far, test games dropped by id). The crowd is the modal move in the 2022
+base sample of non-test players (12M+ games, all of 2022-01..05, non-causal), and it covers 88% of the positions that
+have own history. An uncovered position counts as a crowd miss, so that part favours the switch.
+
+| | Own-history share | Own top-1 | Crowd top-1, same | Gain (pts over all 884k) |
+|---|---|---|---|---|
+| All | 1.08% | 76.8% | 52.8% | **+0.26** |
+| plies 10–19 | 5.2% | 76.7% | 53.4% | +1.21 in range |
+| bucket 1000 / 1600 / 2200 / 2400 | 0.2% / 0.8% / 2.4% / 2.5% | 64 / 69 / 82 / 86% | 53 / 48 / 56 / 60% | +0.02 / +0.17 / +0.63 / +0.65 |
+| test game month 2022-01 / 05 / 12 | 1.1% / 1.5% / 0.8% | | | +0.31 / +0.33 / +0.17 |
+
+Rerun 2026-11-13 with history through 2022-11 (13 of 14 months) and base 2022-01..11: own-history share 1.35%, own
+top-1 76.8% vs crowd 54.2% (coverage 91%), **gain +0.31 points**. By bucket +0.05 (1000), +0.21 (1600), +0.75 (2200),
++0.74 (2400). Every test month from 2022-06 on now sits at +0.27 to +0.35, the same level as January with only 2
+months of history (+0.29). A few months of history capture most of the repeat memory; more history adds little.
+
+**Against Maia-3 itself** (2026-11-13, GPU job 29767bf207d9, `top1 --cut-clock 30 --save-positions`). Maia-3-79M on
+the exact protocol: **57.09% top-1 on 884,049 positions**, matching the published 57.1. On the 11,945 positions
+(1.35%) where the player has an earlier visit, Maia-3 gets 61.5% and the player's own modal earlier move gets 76.8%.
+Both are right on 6,547, only memory on 2,630, only Maia on 797. Switching to own memory whenever it exists:
+**57.30% (+0.21 points)**. Requiring ≥ 2 / 3 / 5 earlier visits makes memory more accurate (82 / 84 / 87%) but
+covers fewer positions, so the gain shrinks to +0.14 / +0.12 / +0.08. All 14 months (2026-11-13): 12,029 positions with history, **57.30% (+0.209)**, unchanged. One lookup table,
+no training: Maia-3 + exact-repeat memory reaches ChessMimic's 57.3. Learned per-player style on new positions
+has to add the rest.
+
+**On the real benchmark, with real histories, exact-repeat memory is worth about +0.3 points of top-1 over a
+population mode**: 2.6× the 2026-10 one-month estimate and 1.8× its test-mix reweighting. The test oversamples
+heavy, strong players. The figure is still a lower bound, because test games from June to December have no history
+after May yet (they show the lowest gains), and transpositions are not merged. The crowd is a weaker baseline than
+Maia-3. The real headline comparison is own-memory against Maia-3's own predictions on these positions, which needs
+the item 9a GPU run (`--save-positions`) joined to data/allie/memory_positions.parquet.
+
+*Opening play predicts middlegame style* (`doppel_lab/opening_link.py`, `lab/results/opening_link.json`,
+2026-11-12; 1500-band train table with net evals, 26,757 players with ≥ 16 games, odd / even game halves, rating
+regressed out). Opening features from one half (own moves at plies 0–9: Maia log-prob, share off Maia's top move
+and off its top 3, entropy faced, net win-chance loss, first-move choice; think time was missing at these plies and
+dropped) predict each middlegame trait (plies ≥ 10) in the *other* half by ridge, 5-fold CV over players:
+
+| Middlegame trait | Trait's own other half (ρ) | Opening, other half (ρ) | Ratio | Best single opening feature |
+|---|---|---|---|---|
+| time allocation | +0.51 | +0.32 | 63% | Maia log-prob +0.27 |
+| steering | +0.49 | +0.33 | 68% | off-top-move share +0.24 |
+| Maia log-prob | +0.45 | +0.26 | 57% | Maia log-prob +0.25 |
+| entropy faced | +0.33 | +0.20 | 60% | Maia log-prob −0.09 |
+| blunder rate | +0.24 | +0.15 | 62% | win-chance loss +0.12 |
+| opponents' blunder rate | +0.20 | +0.18 | 92% | win-chance loss +0.16 |
+| obvious misses | +0.13 | +0.12 | 95% | Maia log-prob −0.11 |
+
+The ratio compares with the trait's own other half, which is not a strict ceiling: averaged opening features can be
+less noisy than a middlegame trait, so ratios near or above 100% (sharp-minus-quiet loss, 145%, ρ only +0.09) mean
+the trait itself is noisy. **A player's ten opening plies carry about 60% of what their other games' middlegames
+say about their middlegame style.** Players who leave Maia's top moves early steer into sharper middlegames and
+spread their time differently. Caveat: within-band skill not captured by rating could drive part of the Maia
+log-prob and blunder links; steering and allocation are nearly rating-free (§8 sharpness). For the benchmark,
+plies 0–9 are scored out but stay legitimate context: the test game's own opening is a cheap per-game z input, and
+earlier games' openings already reach the set encoder through the per-game embedding.
+
+*In-game state: is there anything for a per-turn z update to track?* (`doppel_lab/ingame_state.py`,
+`lab/results/ingame_state.json`, 2026-11-12; same table, 35.4M non-forced own moves, 26,757 players.) The idea: update
+z every turn from the moves already played in this game, plies 0–9 included (the benchmark scores ply k given the
+prefix, so this is legal). It can only help if a player's deviation from Maia has a component shared within a game
+but varying between that player's games. Each signal was residualised on position, clock and rating covariates
+(Maia entropy and top-p, ply bin, clock fraction, legal-move count, both Elos). Variance shares of one move's
+residual come from pairwise covariances: two moves from different games of the same player give the player part;
+two moves from the same game, minus that, give the game part. "Prefix adds" is the R² gained at a scored move
+(ply ≥ 10) by adding the mean of this game's earlier own moves to the player's leave-this-game-out mean.
+
+| Signal (residual) | Player share | Game share | Same-game corr at lag 1 / 5 / 20 own moves | Prefix adds R² (3–7 prior moves / 25+) |
+|---|---|---|---|---|
+| move surprise (log p + Maia entropy) | 0.62% | −0.20% | −0.004 / +0.001 / −0.002 | +0.0016 / +0.0001 |
+| off Maia's top move | 0.29% | −0.13% | −0.002 / −0.001 / −0.002 | +0.0003 / +0.0000 |
+| think fraction | 8.1% | 9.1% | +0.26 / +0.13 / +0.03 | +0.056 / +0.081 (last 5 moves: +0.16 more) |
+| win-chance loss | 0.25% | 3.4% | +0.19 / +0.06 / +0.00 | +0.022 / +0.022 (last 5: +0.036 more) |
+
+**Move choice has no in-game state.** Once the player is known, this game's earlier deviations from Maia say
+nothing about the next one: the game share is slightly negative and every lag is zero. A per-turn z update cannot
+move top-1 through move choice, so the benchmark headline must come from per-player z and memory. **Think time and
+error size do have in-game state, and it is strong:** think time's game share exceeds its player share, and both
+signals decay over about 10–20 own moves, with the last five moves carrying the most (a tempo regime, time
+pressure, a lost or messy position). That suits a recurrent think head and blunder model, not the policy. Caveat:
+the residualisation is linear in a few covariates, so the loss signal's game part may be position state (a worse
+or sharper game) rather than the player's own state (tilt). Either way the prefix is legitimate input. The ±0.2%
+negative game shares are small and may be a residualisation artefact.
+
+*v0g_a: a per-player KL gives z reach* (`v0e_train --kl-per-player --w-con 0.1`, 32,808 steps, eval 2026-11-13 on
+1500 valrich: 600 held-out players, targets at their history positions 40–47, context = the k most recent earlier
+games, so context and target never share a game). The only change from v0f is that each sample's KL is weighted by
+1 / (its player's train games), so a player's z pays its KL once per epoch instead of once per game (backlog item 7).
+
+| | v0f | v0g_a |
+|---|---|---|
+| KL per target game (nats) | 0.86 | 31.8 (19.8 at k = 1 → 41.3 at k = 40) |
+| ce_post − ce_teacher (nats/move) | −0.0013 | **−0.049** (−0.063 at k = 40) |
+| top-1, posterior z / teacher | 55.61 / 55.65% | **57.18** / 55.65% (57.72% at k = 40) |
+| prior-z top-1 / ce − teacher | 55.59% / +0.000 | 55.59% / +0.0006 |
+| z-swap gain (nats) [95% CI] | 0.00115 [0.0009, 0.0014] | **0.108** [0.103, 0.114] |
+| repeat-visit fidelity, share of history ceiling | 1.2% | **65%** |
+| move-choice steering: ρ with held-out half / model SD ÷ real SD | +0.17 / 3% | **+0.47 / 20%** |
+| conformity ρ (z adds) | −0.11 (−0.096) | **+0.30 (+0.33)** |
+| time allocation, z adds (ply ≥ 10) | +0.06 | +0.125 |
+| think r (posterior z) / resign AP | 0.708 / 0.36 | 0.714 / 0.44 |
+
+Every gate in item 7 passes that this eval measures. The steering/conformity coupling and re-ID were not part of this
+run. The absolute top1_prior threshold (0.5615) came from a different eval set: v0f itself scores 0.5559 here, and
+v0g_a matches it. **One line of loss accounting moved z from 1 nat of style to 30–40 nats: +1.5 points of top-1 and
+0.05 nats/move on held-out players, two orders of magnitude over v0f.** Most of it is likely opening repertoire
+(repeat-visit share 65%). These targets include plies 0–9, so the benchmark-relevant number (ply ≥ 10, 30 s cut)
+is still to measure. The middlegame style metrics, however, all moved too (steering ρ 0.17 → 0.47, conformity flipped
+sign).
+
+By ply of the target position (same eval, 2026-11-13, `by_ply`; all k > 0 pooled):
+
+| Plies | Positions | Teacher top-1 | v0g_a top-1 | Δ top-1 | ce − teacher (nats) | z-swap gain (nats) |
+|---|---|---|---|---|---|---|
+| 0–9 | 40,974 | 51.6% | 59.6% | **+8.0** | −0.249 | 0.56 |
+| 10–19 | 40,890 | 53.1% | 53.6% | +0.45 | −0.017 | 0.032 |
+| 20+ | 148,920 | 57.4% | 57.5% | +0.03 | −0.0025 | 0.0041 |
+| **10+ (benchmark plies)** | 189,810 | 56.5% | 56.6% | **+0.13** | −0.0056 | 0.010 |
+
+**The z's reach is almost all opening repertoire.** Plies 0–9 gain 8 points, and on the plies the benchmark scores the
+gain is +0.13 points, most of it at plies 10–19 where repertoire still runs. Past ply 20 z adds 0.03 points and 0.0025
+nats. That is still 2–4× v0f's whole-game effect and significant (z-swap CI [0.0031, 0.0050]), but it is generalised
+style at the scale of the noise. On benchmark plies, v0g_a's +0.13 is the same order as exact-repeat memory's
++0.21 on the Allie test set.
+
+v0g_b (`--res-lr-mult 0.3`, eval 2026-11-13) is slightly ahead of v0g_a everywhere it was measured: top-1 post
+57.26 vs 57.17%, z-swap 0.114 [0.108, 0.120] vs 0.108, repeat share 68 vs 65%, conformity ρ +0.33 vs +0.30;
+benchmark plies (10+) +0.16 vs +0.13 points, −0.0063 vs −0.0056 nats. Prior unchanged (55.63%), think r 0.713.
+
+*The Doppel on the Allie test set* (`doppel_lab/allie_v0e.py`, `lab/results/allie_v0e_v0g_a.json`, 2026-11-13).
+First test on the benchmark itself, on the 1400–1600 bucket (mean Elo of the two players; 2,021 test games, 4,042
+sides, **97,306 protocol positions**, ~11% of the test set). z comes from each player's k most recent earlier 2022
+games from the Lichess dumps (game start before the test game, test games never used as context; median 40
+available, 60 sides with none). v0g_a was trained on 2026-10 1500-band games and is applied to 2022 unchanged. Every
+protocol position is scored. Game bootstrap, 2,000 draws:
+
+| | top-1 | vs Maia-3 (`top1`, 56.63%) [95% CI] |
+|---|---|---|
+| Maia-3 through the Doppel's trunk (teacher) | 56.55% | −0.07 [−0.14, +0.00] |
+| v0g_a, prior z (k = 0) | 56.58% | |
+| v0g_a, k = 1 / 5 / 10 / 40 | 56.64 / 56.73 / 56.71 / **56.75%** | **+0.12 [+0.01, +0.23]** (k = 40) |
+| Maia-3 + exact-repeat memory | 56.73% | +0.10 |
+| **v0g_a + exact-repeat memory** | **56.84%** | **+0.21 [+0.10, +0.31]** |
+
+Against its own teacher on identical inputs, v0g_a gains +0.20 [+0.09, +0.31] points and −0.006 nats/move (1.3171 →
+1.3111). The gain is +0.60 points at plies 10–19 and +0.09 from ply 20 on. Memory and z stack: v0g_a + memory beats
+Maia-3 + memory by +0.11 [+0.00, +0.22]. **The first per-player win on the benchmark's own positions: a Doppel
+trained on 2026 data, given a player's real earlier games, beats Maia-3 on the 2022 test games, and the gain grows
+with context (k = 1 → 40).** It is small, about the size of the memory switch. The teacher path reads Maia-3 slightly
+differently from `top1.py` (−0.07): same model and ratings, but a different board-history encoding, still to
+reconcile. Gains are against `top1.py` to stay conservative.
+
+v0g_b on the same bucket (`lab/results/allie_v0e_v0g_b.json`; same bootstrap, positions aligned with v0g_a):
+
+| | v0g_a | v0g_b | v0g_b [95% CI] |
+|---|---|---|---|
+| Doppel (k = 40) vs Maia-3 | +0.12 | +0.19 | [+0.08, +0.29] |
+| Doppel + memory vs Maia-3 | +0.21 | **+0.26** | [+0.16, +0.37] |
+| Doppel + memory vs Maia-3 + memory | +0.11 | +0.16 | [+0.06, +0.26] |
+| top-1, k = 0 / 1 / 5 / 10 / 40 | | 56.57 / 56.62 / 56.78 / 56.73 / 56.81% | |
+
+v0g_b minus v0g_a is +0.06 [−0.02, +0.14], so the two are not separable here. v0g_b is ahead on every measure,
+though, as it was on valrich. With v0g_b, z beats memory alone outright: the CI on "+ memory vs Maia-3 + memory"
+now excludes zero. Next: v0g-style arms at 1100 and 1900 (`--band`, v0g_b flags; training started 2026-11-13). They
+cover the 1000–2000 buckets, about 65% of the test set. The −0.07 teacher gap is precision, not encoding
+(CPU check on 4,609 positions from 80 games where the two disagree, 2026-11-13): both paths feed Maia-3 identical
+board tokens and Elo, but the teacher ran under bf16 autocast, which changes the argmax on ~2% of positions vs
+fp32. `top1.py`'s fp16 agrees with fp32 on 99.7%. The flips run both ways, so the net −0.07 is noise. `allie_v0e
+eval` now runs the trunk in fp16. The 1100/1900 evals use that; the 1500 numbers above are still bf16.
+
+**All three bands, fp16 (2026-11-14).** v0g_b flags per band; 1500 re-evaluated in fp16 (bf16 copy kept at
+`data/allie/v0e_positions_v0g_b.bf16.parquet`). Top-1 points vs Maia-3 run in the same pass, game bootstrap 95% CIs
+(`lab/results/allie_v0e_v0g_{1100,b,1900}.json`):
+
+| Band (bucket) | Positions | Maia-3 | Doppel vs Maia-3 | + memory vs Maia-3 | Beyond memory | Nats saved/move |
+|---|---|---|---|---|---|---|
+| 1100 (1000–1400) | 184,599 | 54.40% | **+0.26** [+0.18, +0.35] | +0.30 [+0.21, +0.38] | +0.25 [+0.16, +0.33] | 0.009 |
+| 1500 (1400–1600) | 97,306 | 56.63% | **+0.17** [+0.07, +0.27] | +0.25 [+0.15, +0.36] | +0.16 [+0.05, +0.26] | 0.007 |
+| 1900 (1600–2000) | 213,192 | 57.80% | **+0.10** [+0.05, +0.16] | +0.31 [+0.24, +0.37] | +0.09 [+0.03, +0.15] | 0.003 |
+
+Every band clears zero on every measure, on 495k positions (56% of the test set). The two levers move in opposite
+directions with rating: z's own gain falls from +0.26 (1100) to +0.10 (1900), while exact-repeat memory adds +0.03 at
+1100 and +0.20 at 1900 (repeat share 0.5% vs 1.3% of positions). Weaker players are less predictable from the
+population and more from their own past play in new positions; stronger players gain from repeating their book.
+
+**Where the gain lives: position difficulty (1500, fp16).** Quintiles of Maia-3's policy entropy over legal moves
+(q1 = one obvious move; a no-engine cousin of Lc0-policy "ease", jk_182 2026-11-12, §10). Points vs Maia-3, game
+bootstrap (`lab/results/allie_difficulty.json`):
+
+| Entropy quintile | Maia-3 top-1 | Doppel gain | Nats saved/move |
+|---|---|---|---|
+| q1 (0–0.69) | 91.3% | −0.01 [−0.03, +0.01] | 0.0002 |
+| q2 (0.69–1.18) | 67.2% | −0.04 [−0.21, +0.12] | 0.0015 |
+| q3 (1.18–1.57) | 53.7% | +0.19 [−0.05, +0.42] | 0.006 |
+| q4 (1.57–1.94) | 41.4% | +0.28 [+0.01, +0.55] | 0.013 |
+| q5 (1.94–3.26) | 29.6% | **+0.44** [+0.13, +0.73] | 0.013 |
+
+The whole gain is in positions where the population is split; where one move is obvious, a player's history adds
+nothing. Personalization is a tie-breaker among plausible moves, so a benchmark over hard positions would show it
+larger.
+
+**Retrieval step 0: kNN over a player's own positions, no training (2026-11-14, `lab/doppel_lab/allie_knn.py`,
+`lab/results/allie_knn.json`).** Keys are Maia-3's pooled final-layer state (mean over squares, PCA to 128, unit
+norm). The store is the mover's positions in their 40 most recent earlier games (median 1,298 positions). Up to 32
+neighbours vote for their played move with weight exp((cos−1)/τ), the vote is mixed into Maia-3, and the mix is used
+only when the best neighbour clears a threshold. n, τ, λ and the threshold are tuned on one game-hash half and
+scored on the other. 1500 bucket, 97,306 positions:
+
+| Store | Top-1 vs Maia-3 |
+|---|---|
+| The player's own games | **+0.11** [+0.07, +0.15] |
+| Shuffled players (control) | −0.00 [−0.003, 0.00] |
+| (trained v0g_b, same positions) | +0.17 |
+
+The signal is the player's: the control is flat. It is +3.5 on the 805 exact repeats and +0.08 elsewhere. By ply it
+is +0.55 at 10–19 and 0.00 from ply 20 on. By best-neighbour cosine it is 0.00 below 0.9 (98% of positions), then
++3.7 / +7.3 / +8.3 / +10.6 at 0.90 / 0.95 / 0.98 / 0.995. Frozen Maia-3 states find near-transpositions of the
+player's book and nothing more, a soft repertoire memory. Generalizing to new positions needs learned keys or a
+learned residual (step 1 of the retrieval plan), which v0g's z already partly does.
+
+**Full test set (2026-11-15).** The outer buckets have no in-band model, so they borrow the nearest one
+(`MODEL_BAND` in `allie_v0e.py`; out-of-band rows in `data/allie/v0e_positions_<run>_at<band>.parquet`):
+
+| Bucket | Model | Positions | Maia-3 | Doppel vs Maia-3 | Beyond memory |
+|---|---|---|---|---|---|
+| < 1000 | v0g_1100 | 108,121 | 50.53% | +0.23 [+0.12, +0.34] | +0.23 [+0.12, +0.34] |
+| ≥ 2000 | v0g_1900 | 280,831 | 61.01% | **−0.09** [−0.15, −0.04] | −0.10 [−0.15, −0.05] |
+
+All five buckets together are the whole test set (884,049 positions). Maia-3 gets 57.09% (published 57.1%).
+Doppel gets 57.19% (+0.10) and Doppel + memory gets **57.39% (+0.30)**; Maia-3 + memory gets 57.30%. The 1100 model
+carries down to < 1000 almost unchanged; the 1900 model hurts above 2000, where memory alone is worth +0.33
+(repeat share 2.6%). Dropping z above 2000 (Maia-3 + memory there) would give 57.42%, but that rule was chosen
+after seeing the result, so it is not a headline number. An in-band ≥ 2000 model is the fix.
+
+**Retrieval step 1: learned lookup keys (2026-11-15, `lab/doppel_lab/retr_train.py`, `lab/results/allie_retr1.json`).**
+Same inputs as step 0 (frozen Maia-3 pooled states, PCA-128; store = the mover's 40 most recent earlier games). A
+small head learns query and key projections (128 → 64), a temperature, and a gate on best similarity and ply; it
+turns the attention-weighted vote over stored played moves into a logit residual on Maia-3. Trained on 2,000 2026
+1500-band players (store 40 games, queries in their last 10), epoch chosen on valrich (+0.45 there); nothing tuned on
+Allie. 1500 bucket, 97,306 positions, game bootstrap:
+
+| | Top-1 vs Maia-3 |
+|---|---|
+| **Learned lookup, own store** | **+0.34** [+0.22, +0.45] |
+| Same, on exact repeats (805) / elsewhere | +8.1 / +0.27 |
+| Shuffled-player store (control) | −0.33 [−0.44, −0.23] |
+| (frozen kNN, step 0) | +0.11 |
+| (v0g_b z; v0g_b + memory) | +0.17; +0.25 |
+
+The learned lookup beats both the frozen kNN and v0g on the same positions, with no trunk or z. It still lives in the
+opening (+1.47 at plies 10–19, +0.28 at 20–29, −0.08 at 30–39, 0.00 after), but it now reaches further from exact
+matches: +1.12 at best cosine 0.8–0.9, where step 0 had nothing. The control is strongly negative: the head trusts
+the store, so a wrong or unrepresentative store hurts. Next: combine with z (and memory), and train a ≥ 2000 band.
+
 ## 9. Adding a capability
 
 1. Write its section here first: target definition, metrics, and which priors, heuristics and machines it is
@@ -1462,6 +2028,12 @@ read the source in full; "abstract" means only its abstract or a summary so far.
   [paper](https://ojs.aaai.org/index.php/AAAI/article/view/7951); Regan, [Intrinsic Ratings Compendium](https://cse.buffalo.edu/~regan/papers/pdf/Reg12IPRs.pdf).
   Two fitted parameters per player or event describe how move choice falls off with engine value; a
   hand-crafted ancestor of a per-game style latent. Abstract.
+- **Five position-complexity measures compared.** jk_182, *Different Ways to Measure the Complexity of Chess
+  Positions*, Lichess blog, 2026-11-12, [post](https://lichess.org/@/jk_182/blog/different-ways-to-measure-the-complexity-of-chess-positions/6wL7UC7Y).
+  On ~3,000 Olympiad positions (2500+, moves 20–40), "inverted ease" (Lc0 policy-weighted expected-score loss) best
+  predicts human mistakes; Biswas–Regan depth difficulty, Lc0 WDL sharpness, WDL sensitivity and Stockfish
+  depth-deviation do worse. Ease is move-based (0 with one legal move), so it misreads openings; the author prefers
+  WDL sensitivity as position complexity. Our entropy split in §8 is the no-engine analogue. Read in full.
 
 ### Clock and tilt
 
@@ -1470,3 +2042,131 @@ read the source in full; "abstract" means only its abstract or a summary so far.
 - **Mistake rate by clock.** jk_182, [How does the clock impact the rate of mistakes?](https://chessenginelab.substack.com/p/mistakes-clock);
   a 68M-game study of the Lichess low-time alarm ([forum post](https://lichess.org/forum/redirect/post/1SL2qHTI)).
   Community analyses, not peer-reviewed. Abstract.
+
+### Lit review 2026-11-12: personalization, ceilings, discriminators, benchmark tracks
+
+Four parallel searches; papers were read through a fetch summarizer, so "full" means the full text was summarized,
+not read line by line. Numbers marked (unverified) need a direct check before they go in a paper.
+
+**The Allie test-set protocol, reproduced exactly.** Of the 18,239 games (1,239,353 positions), keep plies ≥ 10 and
+cut the rest of the game at the first ply where the player to move has under 30 s before moving (clock rebuilt as
+base − think + increment): 884,049 positions, the published count (checked twice, independently). Sources: Allie
+(arXiv:2410.03893: "discard the first 5 moves … any moves made under time pressure"), Chessformer (arXiv:2605.19091:
+"positions that occur after the first time a player has fewer than 30 seconds"), and the y0mingzhang/allie repo
+(`src/allie/eval/maia3/aggregate.py`: `(ply >= 10) & (ply < pressure)`). Our earlier 56.65% top-1 for Maia-3-79M
+(`lab/results/top1_allie_maia3-79m.json`) is on all 1.24M positions, not this filter. Published top-1: Maia-2 52.0,
+Allie 55.7 / 55.9 (search), Maia-3 5M / 23M / 79M 55.4 / 56.6 / 57.1. ChessMimic (Johnson, arXiv:2606.04473) rebuilt
+the set from public games (849,730 positions) and gets 57.3 for Maia-3-79M. Nobody reports NLL or perplexity, or a
+personalized result, on this set. **The protocol drops plies 0–9, where 98% of our repeat visits (the repertoire
+signal) fall.**
+
+**Individual-player models.**
+- McIlroy-Young et al., KDD 2022, [arXiv:2008.10086](https://arxiv.org/abs/2008.10086): per-player fine-tunes of
+  Maia-1900; gain over Maia from −3.0 pt (1k games) to +5.2 pt (40k games). Opening perplexity 0.92 vs 2.40,
+  non-opening 1.95 vs 2.15: most of the personal signal is the opening. Random 80/10/10 within-player split plus a
+  "future month". Full.
+- Behavioral stylometry, NeurIPS 2021, [arXiv:2208.01366](https://arxiv.org/abs/2208.01366): 98% identification
+  among ~2,844 players from 100 games; 55% from moves at ply ≥ 30 only (unverified). A ready-made player-conditional
+  discriminator, never used as a training signal. Skimmed.
+- Maia4All (Tang et al. 2025, [arXiv:2507.21488](https://arxiv.org/abs/2507.21488)): Maia-2 player embeddings from
+  prototypes; unseen players, first 10 plies dropped: 0.5146 → 0.5322 at ~20 games, 0.5381 at ~2,500. Flat after
+  20 games. Full.
+- Sogliuzzo, Rautureau, Piette 2026 ([arXiv:2605.11893](https://arxiv.org/abs/2605.11893)): Maia-2 embeddings for 16
+  champions, +0.5 pt; argue top-1 is a poor style metric. Full.
+- Carlson 2026, *Matilda* ([arXiv:2606.25176](https://arxiv.org/abs/2606.25176)): a zero-initialised residual over
+  frozen Maia-3 plus Stockfish search features, 3000+ Elo games; top-1 60.1 → 66.1, of which player-style embeddings
+  add +0.2 pt. Abstract (one subagent misreported it as a 32-d z on ~500 decisions per player; corrected here).
+- **Gap:** no significant personalized gain over Maia-3 on held-out players; no phase breakdown on a strong base.
+
+**Ceilings.** No paper measures a noise ceiling for human move prediction in chess or Go (no same-player repeat
+agreement, no cross-player agreement at identical positions). Maia-2 and Chessformer call the noise "large" /
+"aleatoric" without a number. Framing tool: Fudenberg, Kleinberg, Liang, Mullainathan, *Measuring the Completeness of
+Economic Models*, JPE 2022 ([arXiv:1910.07022](https://arxiv.org/abs/1910.07022)): completeness = error reduction
+achieved / achievable. Abstract. Saturation evidence is ablation-level only: Allie 355M → 774M +0.3 pt; Maia-3 23M →
+79M +0.5 pt; ChessMimic finds the headroom grows with rating (0.3 pt below 1000, 2.2 pt above 2200).
+
+**Discriminators and adversarial imitation.**
+- Abramson et al. 2020, *Imitating Interactive Intelligence* ([arXiv:2012.05672](https://arxiv.org/abs/2012.05672)):
+  GAIL alone never left its initialisation; BC + GAIL summed worked ("better at reshaping a behavioural prior than
+  structuring it from scratch"), human-rated success 23.6% → 33.9%, **but BC validation log-prob got worse**.
+  Adversarial pressure can trade our metric for realism. Full.
+- InfoGAIL ([arXiv:1703.08840](https://arxiv.org/abs/1703.08840)) and VAE-GAIL (Wang et al. 2017,
+  [arXiv:1707.02747](https://arxiv.org/abs/1707.02747)): plain GAIL mode-collapses; a latent from an encoder (VAE-GAIL
+  is structurally our set encoder + D) or an MI term fixes it. Gains come from closed-loop compounding error. Full.
+- Lu et al. 2022, *Imitation Is Not Enough* ([arXiv:2212.11419](https://arxiv.org/abs/2212.11419)): MGAIL helps a
+  little; simple rewards plus a BC anchor help more. Full (table).
+- AlphaStar: KL to the supervised policy plus pseudo-rewards on distance to a human statistic z (build order) — the
+  precedent for matching style statistics without a discriminator. Secondary sources.
+- Devlin et al. 2021, Navigation Turing Test ([arXiv:2105.09637](https://arxiv.org/abs/2105.09637)): learned human-vs-
+  agent classifiers separate well but rank agents by human-likeness poorly. Abstract.
+- Chess: Chidambaram & Qi 2017 style-transfer WGAN ([arXiv:1702.06762](https://arxiv.org/abs/1702.06762)), no numbers
+  (abstract); Eisma et al. 2024, *Turing tests in chess* (doi:10.1016/j.chbr.2024.100496): Maia often judged human
+  (abstract). piKL (Jacob et al. 2022, [arXiv:2112.07544](https://arxiv.org/abs/2112.07544)): search anchored to
+  Maia, top-1 53.2 → ~54.3 at 1900 (approximate, parsed table).
+- **Gap:** no GAIL/AIRL on a Maia-class policy; no player-conditional discriminator as a training signal; no
+  statistic matching in chess.
+
+**Group latents and the KL charge (v0g).** Neural Statistician (Edwards & Storkey, ICLR 2017,
+[arXiv:1606.02185](https://arxiv.org/abs/1606.02185)) and ML-VAE (Bouchacourt et al., AAAI 2018,
+[arXiv:1705.08841](https://arxiv.org/abs/1705.08841)) charge the group latent's KL once per group. The Variational
+Homoencoder (Hewitt et al., UAI 2018, [arXiv:1807.08919](https://arxiv.org/abs/1807.08919)) trains per element with
+the shared-latent KL divided by the size of the full set and a context that excludes the target: with a strong
+PixelCNN decoder its context KL stays large where resampling alone collapses (numbers unverified; the abstract page
+does not show them). This is the published form of v0g's `--kl-per-player`.
+
+**Precedents for a personalized track.**
+- Dynamic evaluation (Krause et al., ICML 2018, [arXiv:1709.07432](https://arxiv.org/abs/1709.07432)): "+ dynamic
+  eval" rows beside the static model on fixed LM benchmarks, conditioning only on already-predicted elements. Full.
+- LaMP (Salemi et al., [arXiv:2304.11406](https://arxiv.org/abs/2304.11406)): user-split and time-split tracks
+  side by side, older items as the profile, random-profile and recency baselines. Full.
+- Speech: per-speaker i-vector adaptation reported against a speaker-independent baseline on Switchboard (Saon et
+  al., ASRU 2013); LibriSpeech's test sets are drawn by speaker so test-time adaptation is possible (Panayotov et
+  al., ICASSP 2015, full).
+- Recommendation leakage: Ji et al., TOIS 2023 ([arXiv:2010.11060](https://arxiv.org/abs/2010.11060)): context must
+  precede the test item on the global timeline, or rankings change. Abstract.
+- No precedent for adding recovered player identity or history to an existing chess test set.
+- Safeguards to adopt: global-timeline causality; same model in both rows; matched-information baselines (random /
+  wrong-player history, recency, repertoire table); coverage and history-size strata; validation-only tuning;
+  release game IDs and fetch cutoffs.
+
+### Registered: n = 1 coaching study (2026-11-15)
+
+`docs/PROTOCOL_N1.md`: does simulation-based coaching speed up one player's improvement? The primary outcomes are
+(1) the participant's blitz rating vs a synthetic control of look-alike Lichess players, with placebo inference, and
+(2) the miss rate per opportunity of a coin-flip-assigned coached weakness vs an uncoached one. Baseline is ≥ 40
+games per colour; coaching is gated on the simulation fidelity and forecast tests.
+
+### Hypotheses: what proper scoring misses (logged 2026-11-12, untested)
+
+Log-prob is a proper scoring rule: no model beats the true per-position distribution on top-1 or nats, so
+adversarial training cannot raise the predictive noise ceiling. It can target a second ceiling, realism of sampled
+play, where per-move log-prob is weak for two reasons. (1) Forward KL covers mass: it punishes missing a human move
+hard and spare mass on moves humans never play lightly. §7's blunder tail is this gap: sampled Maia blunders 7.6% vs
+humans 6.75%, and fixing it with temperature costs log-prob. (2) Evidence adds up: within-game structure worth
+~0.01 nats per move is lost next to a ~1.3 nat per-move loss, but is ~0.4 nats per 40-move game, which a game-level
+discriminator can detect. So part of the "aleatoric noise" seen by a history-limited model may be per-game or
+per-player state: which plausible alternative a player picks is correlated across the game. Baseline hint: the
+moves-only discriminator gets 0.53 for Maia vs human against 0.51 for human vs human (§8, Phase 0).
+
+- **H1 (precision).** Among models within ~0.005 nats/move of each other, a game-level discriminator still separates
+  them, ranked by blunder-tail excess. Cheap test, no training: self-play from Maia-3 at T = 1, T = 0.87 and rating
+  input 1700, scored by `metrics.discriminator`.
+- **H2 (hidden state).** D separates real games from Maia self-play better on whole games than on the same games
+  with moves shuffled across games at matched positions or phase; the drop is within-game structure that per-move
+  scoring underweights.
+- **H3 (the adversarial rung).** A BC-anchored adversarial or statistic-matching fine-tune (Abramson-style BC + D;
+  AlphaStar-style statistic rewards) lowers D accuracy and the blunder excess at a cost of ≤ 0.002 nats/move.
+- **H4 (diversity, logged 2026-11-13).** A discriminator that sees a *set* of a player's games (the minibatch-
+  discrimination / PacGAN idea) penalises a monolithic imitator even when each game is convincing on its own. A
+  collapsed policy is too predictable across games: it plays the same move on every repeat visit, the same
+  time-use regime every game, the same length of game. What D has to match is the *right* amount of predictability,
+  which we have measured: humans replay their own earlier move on 77% of repeat visits on the Allie test set
+  (mode-consistency), move choice carries no game-level state (§8 in-game state), while think time (9% game share)
+  and error size (3.4%) vary strongly game to game. Predictions: argmax Maia is too consistent on repeats (100%),
+  T = 1 sampling is too inconsistent, and both have too little game-to-game variance in time use. Cheap test inside
+  (d): self-play several games per synthetic player from shared openings, then compare repeat-consistency and the
+  game-share of think time and error size against the human values.
+
+If these hold, the paper has three tracks: population predictive (top-1 / nats on the Allie test set), personalized
+predictive (the same with prior history) and generative realism (generic and player-conditional D, blunder-tail
+excess).
