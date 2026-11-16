@@ -1,0 +1,409 @@
+{
+ "src": "heldout",
+ "limit": 200000,
+ "n_games": 200000,
+ "n_players": 131107,
+ "careers_ge2": 70791,
+ "career_len_p99": 21.0,
+ "rarity_q99": 12.206,
+ "all": {
+  "pairs": 8338,
+  "players": 2877,
+  "repeat_rate": 0.7547,
+  "pairs_per_1000_careers": 63.597,
+  "share_from_top1pct_careers": 0.3761
+ },
+ "different_opponent": {
+  "pairs": 3975,
+  "players": 1856,
+  "repeat_rate": 0.798,
+  "pairs_per_1000_careers": 30.319,
+  "share_from_top1pct_careers": 0.4513
+ },
+ "middlegame_ply30plus_diffopp": {
+  "pairs": 2,
+  "players": 2,
+  "repeat_rate": 1.0,
+  "pairs_per_1000_careers": 0.015,
+  "share_from_top1pct_careers": 1.0
+ },
+ "deep": {
+  "pairs": 2,
+  "players": 2,
+  "repeat_rate": 1.0,
+  "pairs_per_1000_careers": 0.015,
+  "share_from_top1pct_careers": 1.0
+ },
+ "deep_strict": {
+  "pairs": 1,
+  "players": 1,
+  "repeat_rate": 1.0,
+  "pairs_per_1000_careers": 0.008,
+  "share_from_top1pct_careers": 1.0
+ },
+ "by_ply": [
+  {
+   "plyb": "10-19",
+   "pairs": 7910,
+   "repeat_rate": 0.7559,
+   "players": 2869,
+   "median_rarity": 11.1075
+  },
+  {
+   "plyb": "20-29",
+   "pairs": 407,
+   "repeat_rate": 0.7322,
+   "players": 183,
+   "median_rarity": 12.2061
+  },
+  {
+   "plyb": "30-39",
+   "pairs": 18,
+   "repeat_rate": 0.7778,
+   "players": 9,
+   "median_rarity": 12.2061
+  },
+  {
+   "plyb": "40+",
+   "pairs": 3,
+   "repeat_rate": 0.6667,
+   "players": 3,
+   "median_rarity": 12.2061
+  }
+ ],
+ "by_career_len": [
+  {
+   "clb": "10-49",
+   "pairs": 5170,
+   "repeat_rate": 0.7596,
+   "players": 1670,
+   "median_rarity": 11.1075
+  },
+  {
+   "clb": "50-199",
+   "pairs": 758,
+   "repeat_rate": 0.7625,
+   "players": 86,
+   "median_rarity": 11.1075
+  },
+  {
+   "clb": "<10",
+   "pairs": 2410,
+   "repeat_rate": 0.7419,
+   "players": 1121,
+   "median_rarity": 11.1075
+  }
+ ],
+ "by_tc": [
+  {
+   "tc": "blitz",
+   "pairs": 8338,
+   "repeat_rate": 0.7547,
+   "players": 2877,
+   "median_rarity": 11.1075
+  }
+ ],
+ "by_same_opp": [
+  {
+   "same_opp": false,
+   "pairs": 3975,
+   "repeat_rate": 0.798,
+   "players": 1856,
+   "median_rarity": 10.1266
+  },
+  {
+   "same_opp": true,
+   "pairs": 4363,
+   "repeat_rate": 0.7153,
+   "players": 1188,
+   "median_rarity": 12.2061
+  }
+ ],
+ "by_path": [
+  {
+   "same_path": false,
+   "pairs": 3578,
+   "repeat_rate": 0.7342,
+   "players": 1608,
+   "median_rarity": 11.1075
+  },
+  {
+   "same_path": true,
+   "pairs": 4760,
+   "repeat_rate": 0.7702,
+   "players": 1745,
+   "median_rarity": 11.1075
+  }
+ ],
+ "deep_by_career_len": [
+  {
+   "clb": "10-49",
+   "pairs": 1,
+   "repeat_rate": 1.0
+  },
+  {
+   "clb": "50-199",
+   "pairs": 1,
+   "repeat_rate": 1.0
+  }
+ ],
+ "deep_examples": [
+  {
+   "player": "jegel1975",
+   "g1": 114989,
+   "g2": 150505,
+   "ply1": 31,
+   "ply2": 31,
+   "div_ply": 0,
+   "rarity": 12.206072645530174,
+   "repeat": true,
+   "games_between": 9,
+   "days_between": 5.50498
+  }
+ ],
+ "rarity_quantiles_seen_elsewhere": {
+  "0.5": 9.808,
+  "0.9": 11.513,
+  "0.99": 11.513
+ },
+ "rarity_q90_all": 12.206,
+ "share_unseen_elsewhere": 0.3789,
+ "career_freq_quartiles": [
+  0.0769,
+  0.1333,
+  0.25
+ ],
+ "k_x_rarity": [
+  {
+   "ktier": "k=2",
+   "rtier": "r<q50",
+   "pairs": 2086,
+   "repeat_rate": 0.7828,
+   "players": 1450
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "r>=q99",
+   "pairs": 623,
+   "repeat_rate": 0.7432,
+   "players": 501
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "r_q50-90",
+   "pairs": 1594,
+   "repeat_rate": 0.7516,
+   "players": 1133
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "unseen_elsewhere",
+   "pairs": 2761,
+   "repeat_rate": 0.7345,
+   "players": 1174
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r<q50",
+   "pairs": 404,
+   "repeat_rate": 0.7921,
+   "players": 140
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r>=q99",
+   "pairs": 103,
+   "repeat_rate": 0.7961,
+   "players": 36
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r_q50-90",
+   "pairs": 279,
+   "repeat_rate": 0.7455,
+   "players": 98
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "unseen_elsewhere",
+   "pairs": 383,
+   "repeat_rate": 0.7572,
+   "players": 97
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r<q50",
+   "pairs": 54,
+   "repeat_rate": 0.6481,
+   "players": 7
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r>=q99",
+   "pairs": 5,
+   "repeat_rate": 0.6,
+   "players": 1
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r_q50-90",
+   "pairs": 31,
+   "repeat_rate": 0.7419,
+   "players": 4
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "unseen_elsewhere",
+   "pairs": 15,
+   "repeat_rate": 0.6667,
+   "players": 3
+  }
+ ],
+ "careerfreq_x_rarity": [
+  {
+   "cfq": "cf_q1",
+   "rtier": "r<q50",
+   "pairs": 599,
+   "repeat_rate": 0.7997,
+   "players": 299
+  },
+  {
+   "cfq": "cf_q1",
+   "rtier": "r>=q99",
+   "pairs": 217,
+   "repeat_rate": 0.7972,
+   "players": 129
+  },
+  {
+   "cfq": "cf_q1",
+   "rtier": "r_q50-90",
+   "pairs": 556,
+   "repeat_rate": 0.7698,
+   "players": 283
+  },
+  {
+   "cfq": "cf_q1",
+   "rtier": "unseen_elsewhere",
+   "pairs": 844,
+   "repeat_rate": 0.7547,
+   "players": 266
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "r<q50",
+   "pairs": 622,
+   "repeat_rate": 0.7958,
+   "players": 376
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "r>=q99",
+   "pairs": 170,
+   "repeat_rate": 0.7235,
+   "players": 135
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "r_q50-90",
+   "pairs": 498,
+   "repeat_rate": 0.739,
+   "players": 336
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "unseen_elsewhere",
+   "pairs": 755,
+   "repeat_rate": 0.7139,
+   "players": 305
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "r<q50",
+   "pairs": 674,
+   "repeat_rate": 0.7789,
+   "players": 456
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "r>=q99",
+   "pairs": 177,
+   "repeat_rate": 0.7062,
+   "players": 141
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "r_q50-90",
+   "pairs": 451,
+   "repeat_rate": 0.7251,
+   "players": 306
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "unseen_elsewhere",
+   "pairs": 823,
+   "repeat_rate": 0.7521,
+   "players": 345
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "r<q50",
+   "pairs": 649,
+   "repeat_rate": 0.7535,
+   "players": 436
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "r>=q99",
+   "pairs": 167,
+   "repeat_rate": 0.7605,
+   "players": 128
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "r_q50-90",
+   "pairs": 399,
+   "repeat_rate": 0.7669,
+   "players": 293
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "unseen_elsewhere",
+   "pairs": 737,
+   "repeat_rate": 0.7232,
+   "players": 330
+  }
+ ],
+ "pmi_quantiles": {
+  "0.1": 6.012,
+  "0.5": 8.929,
+  "0.9": 10.82,
+  "0.99": 11.801
+ },
+ "deep_corner_k2_N20_rarity_top10_ply30_diffopp": {
+  "pairs": 1,
+  "players": 1,
+  "repeat_rate": 1.0,
+  "pairs_per_1000_careers": 0.008,
+  "share_from_top1pct_careers": 1.0
+ },
+ "deep_corner_examples": [
+  {
+   "player": "jegel1975",
+   "g1": 114989,
+   "g2": 150505,
+   "ply1": 31,
+   "ply2": 31,
+   "same_path": false,
+   "div_ply": 0,
+   "k": 2,
+   "clen": 29,
+   "n_pop": 0,
+   "rarity": 12.206072645530174,
+   "pmi": 9.531923996103645,
+   "repeat": true,
+   "games_between": 9,
+   "days_between": 5.50498
+  }
+ ],
+ "notes": "rarity/corpus_p use (n_pop+1)/N_games; n_pop excludes all of the player's games (either colour). Keys: two independent 64-bit Zobrist hashes (128 bits). Within-game repeats dropped (first visit kept)."
+}

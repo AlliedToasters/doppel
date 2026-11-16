@@ -53,22 +53,22 @@ class FakeVecs:
         self.sweep = rng.standard_normal((G, 2, 3)).astype(np.float32)
 
 
-def load_split(name: str, fake_vecs: bool, frac: float = 1.0) -> Split:
+def load_split(name: str, fake_vecs: bool, frac: float = 1.0, band: int = 1500) -> Split:
     if fake_vecs:
         from doppel_lab.v0_data import Index
-        ix = Index(V0 / f"index_1500_{name}.npz" if name in ("train", "val") else V0E / f"index_1500_{name}.npz")
-        return Split(name, vec=FakeVecs(ix.game_id), frac=frac)
-    return Split(name, frac=frac)
+        ix = Index(V0 / f"index_{band}_{name}.npz" if name in ("train", "val") else V0E / f"index_{band}_{name}.npz")
+        return Split(name, band, vec=FakeVecs(ix.game_id), frac=frac)
+    return Split(name, band, frac=frac)
 
 
-def build(fake: bool, device: str, norm: bool = True) -> DoppelV0e:
+def build(fake: bool, device: str, norm: bool = True, band: int = 1500) -> DoppelV0e:
     if fake:
         trunk = FakeTrunk()
     else:
         from doppel_lab.engines import Maia3
         trunk = Trunk(Maia3("79m", device).model)
     m = DoppelV0e(trunk)
-    nf = V0E / "norm_1500.npz"
+    nf = V0E / f"norm_{band}.npz"
     if norm and nf.exists():
         m.encoder.set_norm(nf)
     return m.to(device)
@@ -106,7 +106,7 @@ def same_k_swap(nctx: torch.Tensor) -> torch.Tensor:
 def evaluate(model: DoppelV0e, ld, device: str, max_batches: int | None = None) -> dict:
     from sklearn.metrics import average_precision_score, roc_auc_score
     model.eval()
-    acc = {k: [] for k in ("ce_t", "ce_q", "ce_p", "ce_s", "swap_ok", "tgt", "pos_k", "top_t", "top_q", "top_p",
+    acc = {k: [] for k in ("ce_t", "ce_q", "ce_p", "ce_s", "swap_ok", "tgt", "pos_k", "pos_ply", "top_t", "top_q", "top_p",
                            "kl", "k", "mu_q", "think_true", "think_k", "think_q", "think_p", "res_y", "res_w",
                            "res_q", "res_p")}
     for i, b in enumerate(ld):
@@ -142,6 +142,7 @@ def evaluate(model: DoppelV0e, ld, device: str, max_batches: int | None = None) 
         acc["swap_ok"].append((b["pid"][swap] != b["pid"])[sid][has].cpu())
         acc["tgt"].append((b["game"] * 2 + (b["ply"] % 2))[has].cpu())
         acc["pos_k"].append(k[sid][has].cpu())
+        acc["pos_ply"].append(b["ply"][has].cpu())
         kl_d = 0.5 * (lv_p - lv_q + ((lv_q.exp() + (mu_q - mu_p) ** 2) / lv_p.exp()) - 1)
         acc["kl"].append(kl_d.float().sum(-1).cpu())
         acc["k"].append(k.cpu())
@@ -197,6 +198,17 @@ def evaluate(model: DoppelV0e, ld, device: str, max_batches: int | None = None) 
             e["z_swap_gain_nats"], e["z_swap_gain_ci"] = gain(m & (c["swap_ok"] > 0.5))
         by[str(kk)] = e
     r["by_k"] = by
+    # by ply of the target position (the Allie / Maia-3 benchmark scores ply >= 10 only)
+    bp = {}
+    for name, lo, hi in (("0-9", 0, 9), ("10-19", 10, 19), ("20+", 20, 10**6), ("10+", 10, 10**6)):
+        m = pos & (c["pos_ply"] >= lo) & (c["pos_ply"] <= hi)
+        if m.any():
+            e = {"positions": int(m.sum()), "top1_teacher": float(c["top_t"][m].mean()),
+                 "top1_post": float(c["top_q"][m].mean()),
+                 "ce_post_minus_teacher": float((c["ce_q"] - c["ce_t"])[m].mean())}
+            e["z_swap_gain_nats"], e["z_swap_gain_ci"] = gain(m & (c["swap_ok"] > 0.5))
+            bp[name] = e
+    r["by_ply"] = bp
     y, w = c["res_y"], c["res_w"]
     if 0 < y.sum() < len(y):
         for tag, key in (("post", "res_q"), ("prior", "res_p")):
@@ -207,7 +219,7 @@ def evaluate(model: DoppelV0e, ld, device: str, max_batches: int | None = None) 
 
 
 def val_loader(args, workers, full: bool = False):
-    sp = load_split("valrich", args.fake_vecs)
+    sp = load_split("valrich", args.fake_vecs, band=args.band)
     ds = EvalSamples(sp, ks=KS_EVAL if full else (0, 2, 10, 40), K=args.K,
                      max_players=None if full else args.val_players)
     return loader(ds, args.batch, workers, shuffle=False)
@@ -218,10 +230,10 @@ def train(args):
     run = V0 / "runs" / args.run
     run.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(args.seed)
-    if not args.fake_vecs and not (V0E / "norm_1500.npz").exists():
+    if not args.fake_vecs and not (V0E / f"norm_{args.band}.npz").exists():
         from doppel_lab.v0e_data import norm
-        norm()                               # context-feature standardisation from the train vectors
-    model = build(args.fake_trunk, device)
+        norm(args.band)                      # context-feature standardisation from the train vectors
+    model = build(args.fake_trunk, device, band=args.band)
     named = [(n, p) for n, p in model.named_parameters() if not n.startswith("trunk.") and p.requires_grad]
     res_p = [p for n, p in named if n.startswith("residual.")]
     oth_p = [p for n, p in named if not n.startswith("residual.")]
@@ -241,7 +253,14 @@ def train(args):
         msg = {"init": args.init, "copied": len(rep["copied"]), "partial": rep["partial"], "skipped": rep["skipped"]}
         log.write(json.dumps(msg) + "\n")
         print(json.dumps(msg), flush=True)
-    ds = TrainSamples(load_split(args.train_split, args.fake_vecs, args.train_frac), K=args.K, seed=args.seed)
+    ds = TrainSamples(load_split(args.train_split, args.fake_vecs, args.train_frac, args.band), K=args.K,
+                      seed=args.seed)
+    kl_games = None
+    if args.kl_per_player:                   # v0g: charge a player's KL once per epoch, not once per sample
+        sp_ = ds.sp
+        g_ = np.bincount(sp_.pid[sp_.kept].ravel(), minlength=int(sp_.pid.max()) + 1)
+        kl_games = torch.from_numpy(np.maximum(g_, 1)).float().to(device)
+        print(f"kl-per-player: median sample's player has {np.median(g_[sp_.pid[sp_.kept].ravel()]):.0f} games", flush=True)
     steps_per_epoch = len(ds) // args.batch
     total = args.max_steps or steps_per_epoch * args.epochs
     vl = val_loader(args, min(args.workers, 8))
@@ -273,7 +292,8 @@ def train(args):
             for gp in opt.param_groups:
                 gp["lr"] = lr_at(step) * gp["scale"]
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda"):
-                loss, parts = losses(model, b, beta=beta, free_bits=args.free_bits, alpha=args.alpha)
+                kl_w = None if kl_games is None else 1.0 / kl_games[b["pid"].long()]
+                loss, parts = losses(model, b, beta=beta, free_bits=args.free_bits, alpha=args.alpha, kl_w=kl_w)
                 if args.w_con > 0:                   # v0f: identity loss on the set encoder (v0e_model.contrastive)
                     L_con, con_acc, n_con = contrastive(model, b, tau=args.tau)
                     loss = loss + args.w_con * L_con
@@ -340,10 +360,16 @@ def train(args):
 def eval_cmd(args):
     device = "cuda" if args.gpu_ok else "cpu"
     run = V0 / "runs" / args.run
-    model = build(args.fake_trunk, device)
+    model = build(args.fake_trunk, device, band=args.band)
     s = torch.load(run / "ckpt.pt", map_location=device, weights_only=False)
     model.load_state_dict(s["model"], strict=False)
     r = {"run": args.run, "step": s["step"], **evaluate(model, val_loader(args, args.workers, full=True), device)}
+    if not args.fake_trunk and not args.no_repeat:     # repeat-visit fidelity on valrich (SCIENCE.md §8)
+        from doppel_lab.repeat_v0f import fidelity, score
+        r["repeat_fidelity"] = fidelity(score(model, args.band, device, args.workers))
+    if not args.fake_trunk and args.style:             # middlegame style fidelity (~15 min GPU; SCIENCE.md §8)
+        from doppel_lab import style_fidelity
+        r["style_fidelity"] = style_fidelity.main(args.run, args.band, device, args.workers, 0)
     (run / "eval.json").write_text(json.dumps(r, indent=2) + "\n")
     if not args.fake_trunk:
         RESULTS.mkdir(parents=True, exist_ok=True)
@@ -365,6 +391,9 @@ if __name__ == "__main__":
         p.add_argument("--workers", type=int, default=int(os.environ.get("V0_WORKERS", 20)))
         p.add_argument("--val-players", type=int, default=150)
         p.add_argument("--seed", type=int, default=0)
+        p.add_argument("--band", type=int, default=1500, help="rating band of the v0 data (data/v0/*_<band>_*)")
+        p.add_argument("--no-repeat", action="store_true", help="eval: skip repeat-visit fidelity")
+        p.add_argument("--style", action="store_true", help="eval: also run middlegame style fidelity (~15 min GPU)")
     t = sub.choices["train"]
     t.add_argument("--train-split", default="train")
     t.add_argument("--train-frac", type=float, default=1.0,
@@ -389,6 +418,8 @@ if __name__ == "__main__":
     t.add_argument("--val-batches", type=int, default=0)
     t.add_argument("--w-con", type=float, default=0.0, help="v0f: weight of the contrastive identity loss (0 = v0e)")
     t.add_argument("--tau", type=float, default=0.1, help="v0f: InfoNCE temperature")
+    t.add_argument("--kl-per-player", action="store_true",
+                   help="v0g: weight each sample's KL by 1 / its player's train games (a per-player ELBO)")
     a = ap.parse_args()
     if a.cmd == "train":
         a.val_batches = a.val_batches or None

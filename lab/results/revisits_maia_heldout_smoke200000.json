@@ -1,0 +1,308 @@
+{
+ "src": "heldout",
+ "limit": 200000,
+ "pairs": 300,
+ "overall": {
+  "pairs": 300,
+  "observed": 0.7567,
+  "chance1": 0.4346,
+  "chance_mean": 0.4328,
+  "chance_cross": 0.4318,
+  "personal": 0.3221,
+  "personal_mean": 0.3239,
+  "maia_top1": 0.55
+ },
+ "personal_ci95_player_bootstrap": [
+  0.2726,
+  0.3716
+ ],
+ "by_ply": [
+  {
+   "plyb": "10-19",
+   "pairs": 278,
+   "observed": 0.7518,
+   "chance1": 0.4276,
+   "chance_mean": 0.4261,
+   "chance_cross": 0.4251,
+   "personal": 0.3242,
+   "personal_mean": 0.3257,
+   "maia_top1": 0.5432
+  },
+  {
+   "plyb": "20-29",
+   "pairs": 21,
+   "observed": 0.8095,
+   "chance1": 0.5371,
+   "chance_mean": 0.5312,
+   "chance_cross": 0.5305,
+   "personal": 0.2724,
+   "personal_mean": 0.2783,
+   "maia_top1": 0.619
+  },
+  {
+   "plyb": "30-39",
+   "pairs": 1,
+   "observed": 1.0,
+   "chance1": 0.2265,
+   "chance_mean": 0.2278,
+   "chance_cross": 0.2278,
+   "personal": 0.7735,
+   "personal_mean": 0.7722,
+   "maia_top1": 1.0
+  }
+ ],
+ "k_x_rarity": [
+  {
+   "ktier": "k=2",
+   "rtier": "r<q50",
+   "pairs": 80,
+   "observed": 0.825,
+   "chance1": 0.3815,
+   "chance_mean": 0.3799,
+   "chance_cross": 0.3791,
+   "personal": 0.4435,
+   "personal_mean": 0.4451,
+   "maia_top1": 0.4875
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "r>=q99",
+   "pairs": 26,
+   "observed": 0.8077,
+   "chance1": 0.4303,
+   "chance_mean": 0.4242,
+   "chance_cross": 0.4237,
+   "personal": 0.3774,
+   "personal_mean": 0.3835,
+   "maia_top1": 0.5769
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "r_q50-90",
+   "pairs": 61,
+   "observed": 0.7377,
+   "chance1": 0.4707,
+   "chance_mean": 0.4705,
+   "chance_cross": 0.4695,
+   "personal": 0.2671,
+   "personal_mean": 0.2672,
+   "maia_top1": 0.5902
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "unseen_elsewhere",
+   "pairs": 93,
+   "observed": 0.6989,
+   "chance1": 0.4387,
+   "chance_mean": 0.4378,
+   "chance_cross": 0.4368,
+   "personal": 0.2602,
+   "personal_mean": 0.2612,
+   "maia_top1": 0.5161
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r<q50",
+   "pairs": 12,
+   "observed": 0.8333,
+   "chance1": 0.4895,
+   "chance_mean": 0.4824,
+   "chance_cross": 0.4813,
+   "personal": 0.3438,
+   "personal_mean": 0.3509,
+   "maia_top1": 0.75
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r>=q99",
+   "pairs": 4,
+   "observed": 1.0,
+   "chance1": 0.4498,
+   "chance_mean": 0.4517,
+   "chance_cross": 0.4517,
+   "personal": 0.5502,
+   "personal_mean": 0.5483,
+   "maia_top1": 0.5
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r_q50-90",
+   "pairs": 6,
+   "observed": 0.5,
+   "chance1": 0.4557,
+   "chance_mean": 0.4557,
+   "chance_cross": 0.4551,
+   "personal": 0.0443,
+   "personal_mean": 0.0443,
+   "maia_top1": 0.3333
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "unseen_elsewhere",
+   "pairs": 15,
+   "observed": 0.7333,
+   "chance1": 0.4841,
+   "chance_mean": 0.4838,
+   "chance_cross": 0.4837,
+   "personal": 0.2492,
+   "personal_mean": 0.2495,
+   "maia_top1": 0.8
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r<q50",
+   "pairs": 2,
+   "observed": 0.5,
+   "chance1": 0.3412,
+   "chance_mean": 0.3004,
+   "chance_cross": 0.2803,
+   "personal": 0.1588,
+   "personal_mean": 0.1996,
+   "maia_top1": 0.5
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r_q50-90",
+   "pairs": 1,
+   "observed": 1.0,
+   "chance1": 0.8099,
+   "chance_mean": 0.8114,
+   "chance_cross": 0.8114,
+   "personal": 0.1901,
+   "personal_mean": 0.1886,
+   "maia_top1": 1.0
+  }
+ ],
+ "by_same_opp": [
+  {
+   "same_opp": false,
+   "pairs": 149,
+   "observed": 0.7919,
+   "chance1": 0.4395,
+   "chance_mean": 0.4377,
+   "chance_cross": 0.4367,
+   "personal": 0.3524,
+   "personal_mean": 0.3542,
+   "maia_top1": 0.5705
+  },
+  {
+   "same_opp": true,
+   "pairs": 151,
+   "observed": 0.7219,
+   "chance1": 0.4298,
+   "chance_mean": 0.4279,
+   "chance_cross": 0.427,
+   "personal": 0.2921,
+   "personal_mean": 0.2939,
+   "maia_top1": 0.5298
+  }
+ ],
+ "by_path": [
+  {
+   "same_path": false,
+   "pairs": 141,
+   "observed": 0.766,
+   "chance1": 0.4277,
+   "chance_mean": 0.4239,
+   "chance_cross": 0.4219,
+   "personal": 0.3382,
+   "personal_mean": 0.3421,
+   "maia_top1": 0.5674
+  },
+  {
+   "same_path": true,
+   "pairs": 159,
+   "observed": 0.7484,
+   "chance1": 0.4407,
+   "chance_mean": 0.4407,
+   "chance_cross": 0.4407,
+   "personal": 0.3077,
+   "personal_mean": 0.3078,
+   "maia_top1": 0.5346
+  }
+ ],
+ "by_gap_games": [
+  {
+   "gapb": "0",
+   "pairs": 20,
+   "observed": 0.85,
+   "chance1": 0.4836,
+   "chance_mean": 0.4831,
+   "chance_cross": 0.4826,
+   "personal": 0.3664,
+   "personal_mean": 0.3669,
+   "maia_top1": 0.65
+  },
+  {
+   "gapb": "1-5",
+   "pairs": 199,
+   "observed": 0.7136,
+   "chance1": 0.4243,
+   "chance_mean": 0.4222,
+   "chance_cross": 0.4212,
+   "personal": 0.2892,
+   "personal_mean": 0.2914,
+   "maia_top1": 0.5377
+  },
+  {
+   "gapb": "51+",
+   "pairs": 2,
+   "observed": 1.0,
+   "chance1": 0.5858,
+   "chance_mean": 0.5594,
+   "chance_cross": 0.5582,
+   "personal": 0.4142,
+   "personal_mean": 0.4406,
+   "maia_top1": 1.0
+  },
+  {
+   "gapb": "6-50",
+   "pairs": 79,
+   "observed": 0.8354,
+   "chance1": 0.4442,
+   "chance_mean": 0.4435,
+   "chance_cross": 0.4427,
+   "personal": 0.3912,
+   "personal_mean": 0.3919,
+   "maia_top1": 0.5443
+  }
+ ],
+ "surprisal": {
+  "median_surp1": 5.5196497440338135,
+  "median_surp2": 5.687885999679565,
+  "median_per_opp_move": 1.0284517923990886
+ },
+ "deep_corner": {
+  "pairs": 1,
+  "observed": 1.0,
+  "chance1": 0.2265,
+  "chance_mean": 0.2278,
+  "chance_cross": 0.2278,
+  "personal": 0.7735,
+  "personal_mean": 0.7722,
+  "maia_top1": 1.0
+ },
+ "deep_corner_top": [
+  {
+   "player": "jegel1975",
+   "g1": 114989,
+   "g2": 150505,
+   "ply1": 31,
+   "ply2": 31,
+   "same_path": false,
+   "div_ply": 0,
+   "k": 2,
+   "clen": 29,
+   "n_pop": 0,
+   "rarity": 12.206072645530174,
+   "surp1": 9.114266395568848,
+   "surp2": 10.60204792022705,
+   "repeat": true,
+   "chance1": 0.22652842104434967,
+   "p1_mv1": 0.3980908691883087,
+   "games_between": 9,
+   "score": 1.0
+  }
+ ],
+ "notes": "chance1 = sum p^2 under Maia-3 at visit 1 (real Elos, fp16); chance_mean uses the mean of both visits' distributions; personal = observed repeat - chance. Surprisal = -sum log p(opponent move) over the opponent's moves from the divergence ply (transpositions) or the last 20 plies (same path)."
+}

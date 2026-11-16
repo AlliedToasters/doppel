@@ -219,8 +219,10 @@ def legal_mask(legal: torch.Tensor) -> torch.Tensor:
 
 
 def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha: float = 0.5,
-           w_think: float = 1.0, w_resign: float = 1.0, sample_post: bool = True) -> tuple[torch.Tensor, dict]:
-    """One batch -> total loss and logged parts. Per-position scale: per-sample terms are divided by n_cand."""
+           w_think: float = 1.0, w_resign: float = 1.0, sample_post: bool = True,
+           kl_w: torch.Tensor | None = None) -> tuple[torch.Tensor, dict]:
+    """One batch -> total loss and logged parts. Per-position scale: per-sample terms are divided by n_cand.
+    kl_w: optional per-sample KL multiplier (v0g --kl-per-player: 1 / the player's train games)."""
     tok = b["tok"].float()
     t_logits, value, pooled = model.trunk(tok, b["elo_self"], b["elo_opp"])
     mask = legal_mask(b["legal"])
@@ -266,7 +268,7 @@ def losses(model: DoppelV0, b: dict, beta: float, free_bits: float = 3.0, alpha:
     L_res = (w * F.binary_cross_entropy_with_logits(r_logit, b["resign"], reduction="none")).sum() / w.sum()
 
     n_pos = b["ncand"].sum()
-    L_kl = kl_fb.sum() / n_pos
+    L_kl = (kl_fb if kl_w is None else kl_fb * kl_w).sum() / n_pos
     total = L_pol + alpha * L_marg + beta * L_kl + w_think * L_think + w_resign * L_res
     with torch.no_grad():
         top1 = (s_logp.argmax(-1) == pl_idx)[has_move].float().mean()

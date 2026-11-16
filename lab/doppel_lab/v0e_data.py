@@ -64,7 +64,8 @@ def corpus_order(src: str) -> pl.DataFrame:
 def select_valrich(band: int = 1500, n_players: int = VAL_PLAYERS, per: int = VAL_PER, seed: int = 0):
     files = sorted((CORPUS / "heldout").glob("part-*.parquet"))
     g = pl.concat([pl.read_parquet(f) for f in files]).with_row_index("t")
-    g = g.filter((c("band") == band) & (c("moves").list.len() >= 20))
+    from doppel_lab.teacher import band_expr
+    g = g.filter(band_expr(band) & (c("moves").list.len() >= 20))
     names = pl.concat([g["white"], g["black"]]).str.to_lowercase().value_counts().filter(c("count") >= per)
     names = sorted(n for n in names["white"].to_list() if held_out(n))
     rng = np.random.default_rng(seed)
@@ -129,7 +130,7 @@ def surface(g: pl.DataFrame, end: np.ndarray, resigner: np.ndarray) -> np.ndarra
 # ------------------------------------------------------------------ prep
 def prep(split: str, band: int = 1500, workers: int = 16):
     g = pl.read_parquet(games_path(split, band))
-    if split == "valrich":
+    if split not in ("train", "val"):                 # valrich, allie1500, ...: games parquet carries t
         end, res, onm = end_labels(g, workers)
         n = g["moves"].list.len().to_numpy()
         off = np.r_[0, np.cumsum(n)].astype(np.int64)
@@ -301,15 +302,17 @@ class EvalSamples:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("select-valrich")
+    sv = sub.add_parser("select-valrich")
     p = sub.add_parser("prep")
     p.add_argument("--split", default="valrich")
     p.add_argument("--workers", type=int, default=16)
-    sub.add_parser("norm")
+    nm = sub.add_parser("norm")
+    for q in (sv, p, nm):
+        q.add_argument("--band", type=int, default=1500)
     a = ap.parse_args()
     if a.cmd == "select-valrich":
-        select_valrich()
+        select_valrich(a.band)
     elif a.cmd == "prep":
-        prep(a.split, workers=a.workers)
+        prep(a.split, a.band, workers=a.workers)
     else:
-        norm()
+        norm(a.band)

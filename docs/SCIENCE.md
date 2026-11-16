@@ -1909,6 +1909,22 @@ carries down to < 1000 almost unchanged; the 1900 model hurts above 2000, where 
 (repeat share 2.6%). Dropping z above 2000 (Maia-3 + memory there) would give 57.42%, but that rule was chosen
 after seeing the result, so it is not a headline number. An in-band ≥ 2000 model is the fix.
 
+Paired tests on the same 884,049 positions (18,138 games), against Maia-3 run in the same pass (McNemar with
+continuity correction; game-cluster bootstrap, which respects within-game correlation and is the one to quote):
+
+| Comparison | Gain | Discordant (win / loss) | McNemar p | Game bootstrap 95% |
+|---|---|---|---|---|
+| Doppel vs Maia-3 | +0.10 | 11,260 / 10,401 | 6e-9 | [+0.06, +0.13] |
+| Doppel + memory vs Maia-3 | +0.30 | 13,600 / 10,979 | 1e-62 | [+0.26, +0.33] |
+| Doppel + memory vs Maia-3 + memory | +0.09 | 10,954 / 10,176 | 9e-8 | [+0.06, +0.12] |
+
+Leakage audit (2026-11-15): context and memory use only games with start time strictly before the test game's
+`created_at` (`allie_v0e.select`, `allie_memory`), and every Allie test game is excluded from all history, not just
+the same game. The models were trained on 2026 games and the test is 2022. Recipe choices were made on 2026 valrich
+data; MODEL_BAND was set before the outer buckets were scored. This is a separate protocol, **Allie test with prior
+player history**: Maia-3 and Allie never see the player's earlier games, so it is not a like-for-like leaderboard
+entry. Two-thirds of the +0.30 is exact-repeat memory, which needs no model.
+
 **Retrieval step 1: learned lookup keys (2026-11-15, `lab/doppel_lab/retr_train.py`, `lab/results/allie_retr1.json`).**
 Same inputs as step 0 (frozen Maia-3 pooled states, PCA-128; store = the mover's 40 most recent earlier games). A
 small head learns query and key projections (128 → 64), a temperature, and a gate on best similarity and ply; it

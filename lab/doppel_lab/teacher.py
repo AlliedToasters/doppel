@@ -34,13 +34,33 @@ V0 = ROOT / "data/v0"
 HIST, TOPK, BLOCK = 8, 16, 20_000
 
 
+# Pooled band keys: several 100-Elo corpus bands under one key, sampled to a target rating mix. 2300 = the Allie
+# >= 2000 test bucket (mean Elo 2000+; its games per 100-Elo band, 2000..2700+, from data/allie/test.parquet). The
+# 2026-10 corpus thins out fast above 2200, so the top bands are capped at what exists.
+POOLS = {2300: {2000: 980, 2100: 946, 2200: 1005, 2300: 1015, 2400: 746, 2500: 367, 2600: 148, 2700: 50}}
+
+
+def band_expr(band: int) -> pl.Expr:
+    """Filter on the corpus band column for a band key (a single 100-Elo band, or a pool)."""
+    return pl.col("band").is_in(list(POOLS[band])) if band in POOLS else pl.col("band") == band
+
+
+def pool_sample(d: pl.DataFrame, band: int, n: int, seed: int) -> pl.DataFrame:
+    w = POOLS[band]; tot = sum(w.values())
+    parts = []
+    for b, k in w.items():
+        x = d.filter(pl.col("band") == b)
+        parts.append(x.sample(min(round(n * k / tot), x.height), seed=seed))
+    return pl.concat(parts).sample(fraction=1.0, seed=seed, shuffle=True)
+
+
 def select(band: int, n_games: int, n_val: int, seed: int = 0):
     V0.mkdir(parents=True, exist_ok=True)
     for split, src, n in (("train", "train", n_games), ("val", "heldout", n_val)):
         files = sorted((CORPUS / src).glob("part-*.parquet"))
-        d = pl.concat([pl.read_parquet(f).filter((pl.col("band") == band) & (pl.col("moves").list.len() >= 20))
+        d = pl.concat([pl.read_parquet(f).filter(band_expr(band) & (pl.col("moves").list.len() >= 20))
                        for f in files])
-        d = d.sample(min(n, d.height), seed=seed, shuffle=True)
+        d = pool_sample(d, band, n, seed) if band in POOLS else d.sample(min(n, d.height), seed=seed, shuffle=True)
         out = V0 / f"games_{band}_{split}.parquet"
         d.write_parquet(out)
         print(f"{split}: {d.height:,} games, {d['moves'].list.len().sum():,} positions -> {out}")

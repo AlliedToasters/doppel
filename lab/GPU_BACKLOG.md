@@ -2,26 +2,26 @@
 
 Standing rule: the card should never sit idle while this list has a ready item. Every item is real chess research.
 Submit through the warden only (`warden run ... --label doppel:<what> -- uv run --project <repo> python -m
-doppel_lab.<module> ... --gpu-ok`), one or two queued at a time, and write each result into docs/SCIENCE.md before
+doppel_lab.<module> ... --gpu-ok`). Tenants have equal priority: every job is self-contained and 1-2 h
+(longer runs go in resumable segments, e.g. `v0e_train --max-minutes 100`), and at most one or two Doppel entries sit
+in the queue at a time, and write each result into docs/SCIENCE.md before
 the item leaves this file. New training runs that change the shipped Doppel model still need the user's go-ahead;
 everything here is lab research.
 
 ## Running / queued
 
-| Job | What it answers | Approx. GPU time |
+2026-11-13 evening: 59b0b0d91955 `doppel:v0g_1100-seg1` running, 912de0bbdcf7 `doppel:v0g_1900-seg1` queued (`v0e_train train --run v0g_<band> --band <band> --w-con 0.1 --kl-per-player --res-lr-mult 0.3 --max-minutes 90`; seg2 each after, then eval). Done: v0g_b seg1+2, allie_v0e eval of v0g_a and v0g_b on the 1400–1600 bucket (v0g_b + memory +0.26 over Maia-3). Earlier commands, for reference:
+
+| Command | What it answers | Approx. GPU time |
 |---|---|---|
-| `v0e_train train --run v0f_quarter ... --train-frac 0.25` + eval | third data-scaling point (full / half / quarter) | 3 h |
+| `v0e_train train --run v0g_a --w-con 0.1 --kl-per-player --max-minutes 15` (segment 3; segment 2 stopped at step 32,707 of 32,808, train KL 27 nats), then `v0e_train eval --run v0g_a --style` | v0g_a: does a per-player KL give z reach? (item 7) | ~5 min + ~25 min |
+| `top1 --engine maia3 --human data/allie/test.parquet --bands -1 --games-per-band 100000 --skip-plies 10 --cut-clock 30 --device cuda --gpu-ok --save-positions data/allie/top1_positions_maia3-79m.parquet --out lab/results/top1_allie_protocol_maia3-79m.json` (`--vram 8000`) | Maia-3-79M on the exact Allie protocol (target 57.1%; item 9a) | ~15 min |
 
 ## Ready (code exists; just submit)
 
-1. **Fixed-1500 Maia teacher over v0 val + a fresh month.** `teacher.py --games <parquet> --out <dir> --fixed-elo
-   1500`: T1 features for any new corpus build (see item 5).
+1. **Fixed-1500 teacher over a fresh month** once item 5's corpus exists (`--games <parquet> --fixed-elo 1500`).
 
 ## Needs a little code first
-
-0. **v0f at repeated positions (player_markov step 2).** Score v0f, with each player's z from their earlier games,
-   on the 2.39M repeat visits; compare with Maia (−1.47 nats) and the shrunk personal history (−0.55). Then the
-   mixture: personal history shrunk toward v0f rather than Maia. About 30–60 min GPU.
 
 4. **Eval-net distillation sweep.** Fine-tune the 23M Maia-3 trunk (if available) on the same labels: is a 3×
    cheaper net good enough for screening? About 40 min.
@@ -29,11 +29,85 @@ everything here is lab research.
    3 games, only 8,621 players have 40+. A full month, filtered to the 1500 band, gives the z encoder many more
    context games per player. CPU: download + parse. GPU: the Maia-3 teacher pass (about 3–4 h per 50M positions)
    and net evals (about 70 min per 50M).
-6. **Other bands.** The same v0 pipeline at 1100 and 1900, so the Doppel is not 1500-only. GPU: a teacher pass and a
-   training run per band.
+6. **Other bands.** The same v0 pipeline at 1100 and 1900, so the Doppel is not 1500-only. Done: game selection,
+   Maia-3 teacher (train + val), net evals, resign labels, v0 index, valrich (600 held-out players each), v0e meta.
+   v0f_1100 and v0f_1900 trained and written up. Left: v0e_suite per band (players suite is 1500-centred).
+
+7. **v0g: give z reach (draft 2026-11-12; training needs the user's go-ahead).** Diagnosis from v0f's checkpoint
+   and log: the encoder knows the player (re-ID 0.97 at k = 40), but the posterior barely leaves the prior. Per-dim
+   variance of mu over players is ~0.01 against a prior SD of ~1, KL is 0.76–1.03 nats even at k = 20–40, and the
+   decoder trains on z sampled with that noise, so it learns ~1 nat of style: one axis, which is why steering and
+   conformity move together (ρ −0.82). Cause: the KL is charged per training sample (β 0.25 · KL / positions in
+   the sample, K = 8), and a player with G train games is sampled ~G times an epoch, so their z pays the KL G
+   times. Over training samples the median player has 31 games (q10 5, q90 95). An honest per-player ELBO charges
+   it once. Change (one flag, `--kl-per-player`): weight each sample's KL by 1 / (its player's train games), with
+   β and free bits as v0f. Arms, each the v0f recipe at 32.8k steps (≈ 2.9 h, so two resumable 90-min segments):
+   - v0g_a: `--kl-per-player`
+   - v0g_b: `--kl-per-player --res-lr-mult 0.3` (the residual also learns at 1/10 LR in v0f)
+   Gate against v0f (1500 valrich, `v0e_train eval --style`): z-swap gain above 0.00115 with disjoint CIs; repeat
+   fidelity share above 1.19%; style SD ratio above 3%; conformity z_adds CI covering or above 0; coupling |ρ| of the
+   steering and conformity pushes below 0.8. Must not regress: top1_prior ≥ 0.5615, ce_prior − ce_teacher ≤
+   +0.001, think r ≥ 0.70, re-ID k = 10 ≥ 0.67. Risk: z noise leaks into the prior-z policy; the marginal loss
+   and the teacher-abort tripwire guard it. Code: ~40 min plus a CPU smoke.
+
+8. **Future (not urgent): rework how z reaches the move policy.** Today z enters only the small residual
+   (`v0_model.py` Residual: ctx Linear on the bare current board, ~2M params, additive Δ capped at ±10). The residual
+   never sees Maia-3's logits or features, so it cannot express "sharpen or flatten Maia for this player"
+   (conformity) without re-deriving Maia's preferences from the board; one suspect for z's backwards conformity
+   and the steering/conformity coupling (hypothesis, unmeasured). Options, cheapest first:
+   (a) z → per-player temperature on Maia's log-probs before Δ (checkable offline on the cached style passes);
+   (b) feed Maia's pooled features or top-k logits into the residual;
+   (c) FiLM/adapters inside the frozen trunk (gradient flows through frozen Maia to z; the trunk forward is
+   `no_grad` today, so this changes it);
+   (d) z next to Maia's rating embeddings, full fine-tune (the original brief's design).
+   Trigger: when the cheap tricks (v0g KL, data) stop moving z-swap / repeat fidelity / conformity.
+
+9. **Step-3 candidates (2026-11-12; not yet chosen, see SCIENCE.md §10 "Hypotheses" and "Lit review").**
+   (a) Maia-3-79M top-1 / nats on the Allie test set under the exact 884,049 filter (short GPU job, or CPU if the
+   per-position predictions were saved). (b) Noise-ceiling estimate from repeat visits and crowd agreement (CPU).
+   (c) Player and history recovery for the Allie test set. IDs done 2026-11-12 (`allie_players.py`: 18,239 / 18,239
+   games, 34,247 players, all sides named, data/allie/players.parquet). History running (`allie_history.py run`,
+   14 months streamed one at a time at ~11 MB/s, ~12 h, resumable per month, log data/allie/history/run.log). From 2022-01 the same pass also writes data/allie/base/<month>.parquet: a rating-stratified sample of
+   non-test players' rated blitz (BASE_RATE per 200-Elo bucket, hashed on game id), the base corpus matched to the
+   test set's flat 800-2200 rating mix (2026-10 and v0 are not: 2026-10 q10/q90 1100/2044 vs test 908/2355).
+   Memory ceiling on the test set itself (`allie_memory.py`, CPU): +0.26 pts over a population mode with history
+   through 2022-05; rerun when all months land, then join to 9a's saved Maia-3 positions for the gain over Maia-3. (d) H1: self-play from Maia-3 at T = 1 / 0.87 / rating 1700, scored by the game-level discriminator
+   (GPU for self-play, ~1 h). Also H4: several self-play games per synthetic player from shared openings,
+   scored on repeat-consistency (human 77%) and game-share of think time / error size (human 9% / 3.4%). (e) H2: whole vs shuffled games through the same discriminator (CPU after d).
+   (f) H3: BC-anchored adversarial / statistic-matching fine-tune (needs code; after v0g and d).
 
 ## Done
 
+- 2026-11-12: style_fidelity on v0f_1100/1900/half/quarter (one 40-min job): z's backwards conformity is real at 1500
+  (z adds −0.096 [−0.154, −0.040]) and grows with data, absent at 1100/1900; z couples steering and conformity on one
+  axis (ρ −0.82). Steering and allocation gains replicate. SCIENCE.md §8.
+
+- 2026-11-11: style_fidelity for v0f (one 13-min job): move-choice steering ρ +0.17 at 3% of the real spread; conformity
+  ρ −0.11 (z makes it worse); allocation post 0.58 = history ceiling, z +0.06. `v0e_train eval --style`. SCIENCE.md §8.
+
+- 2026-11-11: policy-filtered backoff (one 90 s job, 866k queries): own near positions beat another player's only in the
+  opening (match 0.84 vs 0.49 at JS<=0.01, plies 0-9); from ply 10 own = control; gain past ply 20 is 0.0002. SCIENCE.md §8.
+
+- 2026-11-11: probe_perturb (one 3-min job, 32k pairs): 53% of one-square perturbations change Maia's decision; attack
+  heuristic AUC 0.63, Maia mid-layer cosine AUC 0.84, final layer 0.88. Basis for policy-filtered backoff. SCIENCE.md §8.
+
+- 2026-11-11: repeat-visit fidelity metric (one 1-min job over 5 runs), now part of `v0e_train eval`: v0f at 1.2% of ceiling
+  with 0.002 nats KL; 98% of repeat visits at plies 0-9; v0f moves the right way but too little. SCIENCE.md §8.
+
+- 2026-11-11: repertoire memory (3 one-minute dump jobs + CPU): a count table, a = 0.5, over v0f gains +0.80 / +0.89 /
+  +0.91 nats per repeat visit at 1100 / 1500 / 1900; recency and an adaptive a add nothing. Used as an eval ceiling
+  (repeat-visit fidelity), not at inference. SCIENCE.md §8.
+
+- 2026-11-11: v0f at 1100 and 1900 (item 6): gain over teacher −0.0023 / −0.0013 / −0.0006 at 1100 / 1500 / 1900;
+  z-swap halves at 1900; repertoire gap holds at every band (z ≤ 1.2% of history gain). SCIENCE.md §8.
+- 2026-11-10: evalnet labels for bands 1100 and 1900 train (65 + 75 min) -> `data/evals/v0_{1100,1900}_train_evalnet_ft*.parquet`.
+- 2026-11-10: repeat_v0f: on 66,675 held-out repeat visits, v0f's z recovers 1.2% of the personal-history gain
+  (+0.011 vs +0.905 nats); ×1.5 per data doubling. Repertoire needs an explicit per-player memory. SCIENCE.md §8.
+- 2026-11-10: Maia-3 teacher for bands 1100 and 1900, train (45M + 52M positions, 65 + 73 min) and val ->
+  `data/v0/teacher_{1100,1900}_{train,val}`.
+- 2026-11-10: fixed-1500 Maia teacher over v0 val (1.39M positions, 2 min) -> `data/v0/teacher_1500_val_e1500`.
+- 2026-11-10: v0f_quarter data scaling: z-swap 0.00032 / 0.00069 / 0.00115 at 1/4, 1/2, full; power law near
+  N^0.9, not flattening; rating R² flat. SCIENCE.md §8.
 - 2026-11-09: v0f_half data scaling: half the games costs 40% of z-swap gain and 30% of the teacher gain;
   re-ID at 20+ games and rating unchanged. Bigger corpus helps z a little. SCIENCE.md §8.
 - 2026-11-09: player_markov (CPU): personal history at repeated positions beats Maia by 0.93 nats per visit;

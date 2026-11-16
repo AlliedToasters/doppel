@@ -1,0 +1,220 @@
+{
+ "n_players": 3,
+ "ref_games_median": 60.0,
+ "sources": {
+  "first40": {
+   "b2_per_move": {
+    "pearson": -0.8045289387862092,
+    "spearman": -1.0,
+    "bias_mean": 0.010708737329880392,
+    "sim_mean": 0.1301064247609847,
+    "real_mean": 0.11939768743110431,
+    "calib_slope_real_on_pred": -0.5761927655358958
+   },
+   "b3_per_move": {
+    "pearson": -0.7285419816844231,
+    "spearman": -0.5,
+    "bias_mean": 0.0074586797668651506,
+    "sim_mean": 0.08021050122197315,
+    "real_mean": 0.072751821455108,
+    "calib_slope_real_on_pred": -0.579817622299086
+   },
+   "b2_per_game": {
+    "pearson": 0.9903874150789198,
+    "spearman": 1.0,
+    "bias_mean": 0.11111111111111101,
+    "sim_mean": 3.5749999999999997,
+    "real_mean": 3.463888888888889,
+    "calib_slope_real_on_pred": 0.3995433789954336
+   },
+   "length": {
+    "pearson": 0.05278378832548159,
+    "spearman": -0.5,
+    "bias_mean": -3.5222222222222186,
+    "sim_mean": 64.80833333333334,
+    "real_mean": 68.33055555555555,
+    "calib_slope_real_on_pred": 0.05844243754554064
+   },
+   "score": {
+    "pearson": 0.8542506285982784,
+    "spearman": 0.5,
+    "bias_mean": -0.04999999999999999,
+    "sim_mean": 0.5166666666666667,
+    "real_mean": 0.5666666666666665,
+    "calib_slope_real_on_pred": 0.5522388059701482
+   }
+  },
+  "rating_avg": {
+   "b2_per_move": {
+    "pearson": -0.9999999999999999,
+    "spearman": -1.0,
+    "bias_mean": -4.625929269271485e-18,
+    "sim_mean": 0.11939768743110431,
+    "real_mean": 0.11939768743110431,
+    "calib_slope_real_on_pred": -2.0000000000000044
+   },
+   "b3_per_move": {
+    "pearson": -0.9999999999999999,
+    "spearman": -1.0,
+    "bias_mean": 0.0,
+    "sim_mean": 0.07275182145510802,
+    "real_mean": 0.072751821455108,
+    "calib_slope_real_on_pred": -2.0000000000000013
+   },
+   "b2_per_game": {
+    "pearson": -1.0,
+    "spearman": -1.0,
+    "bias_mean": 0.0,
+    "sim_mean": 3.463888888888889,
+    "real_mean": 3.463888888888889,
+    "calib_slope_real_on_pred": -2.0000000000000004
+   },
+   "length": {
+    "pearson": -1.0,
+    "spearman": -1.0,
+    "bias_mean": 0.0,
+    "sim_mean": 68.33055555555556,
+    "real_mean": 68.33055555555555,
+    "calib_slope_real_on_pred": -1.9999999999999947
+   },
+   "score": {
+    "pearson": -1.0,
+    "spearman": -1.0,
+    "bias_mean": 0.0,
+    "sim_mean": 0.5666666666666667,
+    "real_mean": 0.5666666666666665,
+    "calib_slope_real_on_pred": -2.000000000000008
+   }
+  },
+  "doppel_t1": {
+   "b2_per_move": {
+    "pearson": 0.997914836410105,
+    "spearman": 1.0,
+    "bias_mean": 0.03947987769038223,
+    "sim_mean": 0.15887756512148654,
+    "real_mean": 0.11939768743110431,
+    "calib_slope_real_on_pred": 2.797912777481127
+   },
+   "b3_per_move": {
+    "pearson": 0.37277049304144017,
+    "spearman": 0.5,
+    "bias_mean": 0.02614547020623734,
+    "sim_mean": 0.09889729166134535,
+    "real_mean": 0.072751821455108,
+    "calib_slope_real_on_pred": 0.18074409240627354
+   },
+   "b2_per_game": {
+    "pearson": 0.46741778995950406,
+    "spearman": 0.5,
+    "bias_mean": 0.536111111111111,
+    "sim_mean": 4.0,
+    "real_mean": 3.463888888888889,
+    "calib_slope_real_on_pred": 0.4833333333333336
+   },
+   "length": {
+    "pearson": 0.013288675147166553,
+    "spearman": -0.5,
+    "bias_mean": -8.163888888888886,
+    "sim_mean": 60.166666666666664,
+    "real_mean": 68.33055555555555,
+    "calib_slope_real_on_pred": 0.04775641025641347
+   },
+   "score": {
+    "pearson": 0.1889822365046131,
+    "spearman": -0.5,
+    "bias_mean": 0.01666666666666668,
+    "sim_mean": 0.5833333333333334,
+    "real_mean": 0.5666666666666665,
+    "calib_slope_real_on_pred": 0.04999999999999963
+   }
+  },
+  "doppel_t08": {
+   "b2_per_move": {
+    "pearson": -0.8834302587384084,
+    "spearman": -0.5,
+    "bias_mean": -0.018564976851409638,
+    "sim_mean": 0.10083271057969467,
+    "real_mean": 0.11939768743110431,
+    "calib_slope_real_on_pred": -0.15239172627458417
+   },
+   "b3_per_move": {
+    "pearson": -0.7021353886839465,
+    "spearman": -0.5,
+    "bias_mean": -0.010896371471121671,
+    "sim_mean": 0.06185544998398634,
+    "real_mean": 0.072751821455108,
+    "calib_slope_real_on_pred": -0.11278990946596001
+   },
+   "b2_per_game": {
+    "pearson": -0.05365233229602852,
+    "spearman": -0.5,
+    "bias_mean": -1.0472222222222223,
+    "sim_mean": 2.4166666666666665,
+    "real_mean": 3.463888888888889,
+    "calib_slope_real_on_pred": -0.010073260073260199
+   },
+   "length": {
+    "pearson": 0.5355056456740509,
+    "spearman": 0.5,
+    "bias_mean": -8.913888888888886,
+    "sim_mean": 59.416666666666664,
+    "real_mean": 68.33055555555555,
+    "calib_slope_real_on_pred": 0.5133709659026104
+   },
+   "score": {
+    "pearson": 0.1889822365046131,
+    "spearman": -0.5,
+    "bias_mean": -0.2333333333333333,
+    "sim_mean": 0.3333333333333333,
+    "real_mean": 0.5666666666666665,
+    "calib_slope_real_on_pred": 0.04999999999999921
+   }
+  },
+  "maia_t1": {
+   "b2_per_move": {
+    "pearson": 0.8823185377005797,
+    "spearman": 0.5,
+    "bias_mean": 0.015471210149657669,
+    "sim_mean": 0.13486889758076195,
+    "real_mean": 0.11939768743110431,
+    "calib_slope_real_on_pred": 0.1066364882617595
+   },
+   "b3_per_move": {
+    "pearson": 0.5688304465233506,
+    "spearman": 0.5,
+    "bias_mean": -0.0032168366658859257,
+    "sim_mean": 0.06953498478922208,
+    "real_mean": 0.072751821455108,
+    "calib_slope_real_on_pred": 0.06970688583314939
+   },
+   "b2_per_game": {
+    "pearson": -0.19220452409051925,
+    "spearman": -0.5,
+    "bias_mean": -0.463888888888889,
+    "sim_mean": 3.0,
+    "real_mean": 3.463888888888889,
+    "calib_slope_real_on_pred": -0.020609318996415556
+   },
+   "length": {
+    "pearson": -0.9457121000333861,
+    "spearman": -1.0,
+    "bias_mean": -21.330555555555552,
+    "sim_mean": 47.0,
+    "real_mean": 68.33055555555555,
+    "calib_slope_real_on_pred": -0.30673558897243064
+   },
+   "score": {
+    "pearson": -0.9449111825230679,
+    "spearman": -0.5,
+    "bias_mean": 0.01666666666666668,
+    "sim_mean": 0.5833333333333334,
+    "real_mean": 0.5666666666666665,
+    "calib_slope_real_on_pred": -0.25
+   }
+  }
+ },
+ "elo_range": [
+  1539.5,
+  1562.5
+ ]
+}

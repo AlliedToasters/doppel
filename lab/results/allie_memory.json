@@ -1,0 +1,284 @@
+{
+ "months_history": [
+  "2021-11",
+  "2021-12",
+  "2022-01",
+  "2022-02",
+  "2022-03",
+  "2022-04",
+  "2022-05",
+  "2022-06",
+  "2022-07",
+  "2022-08",
+  "2022-09",
+  "2022-10",
+  "2022-11",
+  "2022-12"
+ ],
+ "months_base": [
+  "2022-01",
+  "2022-02",
+  "2022-03",
+  "2022-04",
+  "2022-05",
+  "2022-06",
+  "2022-07",
+  "2022-08",
+  "2022-09",
+  "2022-10",
+  "2022-11",
+  "2022-12"
+ ],
+ "cap": 40,
+ "overall": {
+  "positions": 884049,
+  "keyed": 499389,
+  "own_history_share": 0.013606711845157904,
+  "own_top1": 0.7685593149887772,
+  "crowd_top1_same": 0.5443511513841549,
+  "crowd_coverage_same": 0.9081386648931749,
+  "gain_pts": 0.30507358755001135
+ },
+ "by_ply": {
+  "10-19": {
+   "positions": 178354,
+   "keyed": 178354,
+   "own_history_share": 0.06491023470177287,
+   "own_top1": 0.7679018744061501,
+   "crowd_top1_same": 0.5497106331519392,
+   "crowd_coverage_same": 0.920704845814978,
+   "gain_pts": 1.416284467968198
+  },
+  "20-29": {
+   "positions": 168434,
+   "keyed": 168434,
+   "own_history_share": 0.002606362135910802,
+   "own_top1": 0.7835990888382688,
+   "crowd_top1_same": 0.4123006833712984,
+   "crowd_coverage_same": 0.5945330296127562,
+   "gain_pts": 0.0967738105133168
+  },
+  "30-39": {
+   "positions": 152601,
+   "keyed": 152601,
+   "own_history_share": 8.518948106499958e-05,
+   "own_top1": 0.8461538461538461,
+   "crowd_top1_same": 0.23076923076923078,
+   "crowd_coverage_same": 0.3076923076923077,
+   "gain_pts": 0.005242429603999974
+  },
+  "40-9999": null
+ },
+ "by_bucket": {
+  "600": {
+   "positions": 26225,
+   "keyed": 16720,
+   "own_history_share": 0.00030505243088655863,
+   "own_top1": 0.5,
+   "crowd_top1_same": 0.25,
+   "crowd_coverage_same": 0.625,
+   "gain_pts": 0.0076263107721639654
+  },
+  "800": {
+   "positions": 81896,
+   "keyed": 51177,
+   "own_history_share": 0.0014286412034775814,
+   "own_top1": 0.5811965811965812,
+   "crowd_top1_same": 0.5042735042735043,
+   "crowd_coverage_same": 0.9401709401709402,
+   "gain_pts": 0.010989547719058319
+  },
+  "1000": {
+   "positions": 92284,
+   "keyed": 55129,
+   "own_history_share": 0.0035217372458931128,
+   "own_top1": 0.6553846153846153,
+   "crowd_top1_same": 0.5261538461538462,
+   "crowd_coverage_same": 0.9384615384615385,
+   "gain_pts": 0.045511681331541765
+  },
+  "1200": {
+   "positions": 92315,
+   "keyed": 52655,
+   "own_history_share": 0.005957861669284515,
+   "own_top1": 0.6127272727272727,
+   "crowd_top1_same": 0.5036363636363637,
+   "crowd_coverage_same": 0.9418181818181818,
+   "gain_pts": 0.0649948545740129
+  },
+  "1400": {
+   "positions": 97306,
+   "keyed": 54685,
+   "own_history_share": 0.008272871148747252,
+   "own_top1": 0.6708074534161491,
+   "crowd_top1_same": 0.5118012422360249,
+   "crowd_coverage_same": 0.9341614906832298,
+   "gain_pts": 0.13154378969436623
+  },
+  "1600": {
+   "positions": 106773,
+   "keyed": 59005,
+   "own_history_share": 0.010049357047193579,
+   "own_top1": 0.6868592730661697,
+   "crowd_top1_same": 0.4902143522833178,
+   "crowd_coverage_same": 0.9151910531220876,
+   "gain_pts": 0.1976155020463975
+  },
+  "1800": {
+   "positions": 106419,
+   "keyed": 57869,
+   "own_history_share": 0.016331670096505324,
+   "own_top1": 0.742807825086306,
+   "crowd_top1_same": 0.4902186421173763,
+   "crowd_coverage_same": 0.8958573072497124,
+   "gain_pts": 0.4125203206194383
+  },
+  "2000": {
+   "positions": 102550,
+   "keyed": 55315,
+   "own_history_share": 0.02105314480741102,
+   "own_top1": 0.7651690597498843,
+   "crowd_top1_same": 0.5372857804539138,
+   "crowd_coverage_same": 0.904122278832793,
+   "gain_pts": 0.47976596782057535
+  },
+  "2200": {
+   "positions": 107599,
+   "keyed": 58703,
+   "own_history_share": 0.029990985046329428,
+   "own_top1": 0.8218159281066005,
+   "crowd_top1_same": 0.5745274248528045,
+   "crowd_coverage_same": 0.89587852494577,
+   "gain_pts": 0.7416425803213784
+  },
+  "2400": {
+   "positions": 59507,
+   "keyed": 32272,
+   "own_history_share": 0.030433394390575897,
+   "own_top1": 0.8625069022639426,
+   "crowd_top1_same": 0.6167863059083379,
+   "crowd_coverage_same": 0.9221424627277747,
+   "gain_pts": 0.7478111818777623
+  },
+  "2600": {
+   "positions": 11175,
+   "keyed": 5859,
+   "own_history_share": 0.019328859060402683,
+   "own_top1": 0.875,
+   "crowd_top1_same": 0.5462962962962963,
+   "crowd_coverage_same": 0.8425925925925926,
+   "gain_pts": 0.6353467561521253
+  }
+ },
+ "by_month": {
+  "2022-01": {
+   "positions": 84456,
+   "keyed": 47802,
+   "own_history_share": 0.01092876764232263,
+   "own_top1": 0.819068255687974,
+   "crowd_top1_same": 0.5612134344528711,
+   "crowd_coverage_same": 0.9068255687973997,
+   "gain_pts": 0.28180354267310787
+  },
+  "2022-02": {
+   "positions": 70227,
+   "keyed": 39919,
+   "own_history_share": 0.010693892662366327,
+   "own_top1": 0.7603195739014648,
+   "crowd_top1_same": 0.5486018641810919,
+   "crowd_coverage_same": 0.9307589880159787,
+   "gain_pts": 0.2264086462471699
+  },
+  "2022-03": {
+   "positions": 72589,
+   "keyed": 41061,
+   "own_history_share": 0.012329691826585295,
+   "own_top1": 0.7575418994413408,
+   "crowd_top1_same": 0.5575418994413408,
+   "crowd_coverage_same": 0.9217877094972067,
+   "gain_pts": 0.2465938365317059
+  },
+  "2022-04": {
+   "positions": 72726,
+   "keyed": 40610,
+   "own_history_share": 0.014781508676401838,
+   "own_top1": 0.7879069767441861,
+   "crowd_top1_same": 0.5051162790697674,
+   "crowd_coverage_same": 0.8772093023255814,
+   "gain_pts": 0.41800731512801476
+  },
+  "2022-05": {
+   "positions": 72369,
+   "keyed": 40395,
+   "own_history_share": 0.014536610979839434,
+   "own_top1": 0.7785171102661597,
+   "crowd_top1_same": 0.5712927756653993,
+   "crowd_coverage_same": 0.9153992395437263,
+   "gain_pts": 0.3012339537647335
+  },
+  "2022-06": {
+   "positions": 71738,
+   "keyed": 40432,
+   "own_history_share": 0.013828096685159887,
+   "own_top1": 0.7661290322580645,
+   "crowd_top1_same": 0.5735887096774194,
+   "crowd_coverage_same": 0.9193548387096774,
+   "gain_pts": 0.2662466196437035
+  },
+  "2022-07": {
+   "positions": 73597,
+   "keyed": 41687,
+   "own_history_share": 0.014878323844721932,
+   "own_top1": 0.7497716894977169,
+   "crowd_top1_same": 0.5305936073059361,
+   "crowd_coverage_same": 0.8986301369863013,
+   "gain_pts": 0.3261002486514396
+  },
+  "2022-08": {
+   "positions": 72334,
+   "keyed": 41072,
+   "own_history_share": 0.01396300494926314,
+   "own_top1": 0.7524752475247525,
+   "crowd_top1_same": 0.5534653465346535,
+   "crowd_coverage_same": 0.9158415841584159,
+   "gain_pts": 0.277877623247712
+  },
+  "2022-09": {
+   "positions": 73627,
+   "keyed": 40858,
+   "own_history_share": 0.013310334524019722,
+   "own_top1": 0.7540816326530613,
+   "crowd_top1_same": 0.536734693877551,
+   "crowd_coverage_same": 0.9112244897959184,
+   "gain_pts": 0.2892960462873674
+  },
+  "2022-10": {
+   "positions": 74008,
+   "keyed": 42388,
+   "own_history_share": 0.014052534861096097,
+   "own_top1": 0.7644230769230769,
+   "crowd_top1_same": 0.5298076923076923,
+   "crowd_coverage_same": 0.9009615384615385,
+   "gain_pts": 0.32969408712571613
+  },
+  "2022-11": {
+   "positions": 70502,
+   "keyed": 40162,
+   "own_history_share": 0.015389634336614564,
+   "own_top1": 0.7631336405529954,
+   "crowd_top1_same": 0.5345622119815668,
+   "crowd_coverage_same": 0.9124423963133641,
+   "gain_pts": 0.35176307055119005
+  },
+  "2022-12": {
+   "positions": 75876,
+   "keyed": 43003,
+   "own_history_share": 0.01490589909852918,
+   "own_top1": 0.7701149425287356,
+   "crowd_top1_same": 0.5384615384615384,
+   "crowd_coverage_same": 0.8983200707338639,
+   "gain_pts": 0.345300226685645
+  }
+ },
+ "note": "by_ply shares are over keyed positions in that range (all are keyed below CAP)"
+}

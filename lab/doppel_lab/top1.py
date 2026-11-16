@@ -1,7 +1,10 @@
 """Teacher-forced move prediction on human games: top-1 accuracy and perplexity per band.
 
 Uses the move model only (no lookup table, no sampling), both players' real Elo, and for ChessMimic the
-real clock before each move. Plies before --skip-plies are excluded.
+real clock before each move. Plies before --skip-plies are excluded. --cut-clock S ends each game at the first ply
+where the player to move has under S seconds before moving (the Allie / Maia-3 test protocol is --skip-plies 10
+--cut-clock 30: 884,049 positions on the Allie 2022 test set). --save-positions writes one row per scored position
+(game_id, ply, hit, logp of the played move) for paired comparisons.
 
 Usage: python -m doppel_lab.top1 --engine {chessmimic,maia3} --human games.parquet [--bands 1500 ...]
         [--games-per-band 200] [--device cuda --gpu-ok]
@@ -54,16 +57,19 @@ def logprobs(eng, states):
     return out
 
 
-def positions(row, skip, with_maia_hist):
+def positions(row, skip, with_maia_hist, cut_clock=None):
     b = chess.Board()
     s = GameState(b.copy(), row["white_elo"], row["black_elo"], row["base"], row["inc"], row["base"], row["base"])
     if with_maia_hist:
         s.maia_hist = [Maia3.board_tokens(s.board)]
     for ply, (mv, clk) in enumerate(zip(row["moves"], row["clocks"])):
+        before = s.clock_white if s.board.turn == chess.WHITE else s.clock_black
+        if cut_clock is not None and before < cut_clock:
+            return
         if ply >= skip:
             snap = GameState(s.board.copy(stack=False), s.elo_white, s.elo_black, s.base, s.inc,
                              s.clock_white, s.clock_black, list(s.moves), list(s.maia_hist))
-            yield snap, mv
+            yield snap, mv, (row["game_id"], ply)
         if s.board.turn == chess.WHITE:
             s.clock_white = clk
         else:
@@ -85,6 +91,8 @@ def main():
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--gpu-ok", action="store_true")
+    ap.add_argument("--cut-clock", type=float, default=None)
+    ap.add_argument("--save-positions")
     ap.add_argument("--out")
     args = ap.parse_args()
     if args.device.startswith("cuda") and not args.gpu_ok:
@@ -93,6 +101,7 @@ def main():
     df = pl.read_parquet(args.human)
     maia = Maia3(args.maia_size, args.device) if args.engine == "maia3" else None
     results = {}
+    saved = []
     for band in args.bands:
         eng = maia or ChessMimic(band, args.device)
         rows = df.filter(pl.col("band") == band).head(args.games_per_band).iter_rows(named=True)
@@ -102,13 +111,16 @@ def main():
 
         def flush():
             nonlocal hits, n, nll
-            for (s, mv), lp in zip(buf, logprobs(eng, [s for s, _ in buf])):
-                hits += max(lp, key=lp.get) == mv
+            for (s, mv, key), lp in zip(buf, logprobs(eng, [s for s, _, _ in buf])):
+                h = max(lp, key=lp.get) == mv
+                hits += h
                 nll -= lp[mv]
                 n += 1
+                if args.save_positions:
+                    saved.append((band, key[0], key[1], bool(h), lp[mv]))
             buf.clear()
         for row in rows:
-            for item in positions(row, args.skip_plies, maia is not None):
+            for item in positions(row, args.skip_plies, maia is not None, args.cut_clock):
                 buf.append(item)
                 if len(buf) >= args.batch:
                     flush()
@@ -116,6 +128,8 @@ def main():
             flush()
         results[band] = {"positions": n, "top1": hits / n, "perplexity": math.exp(nll / n)}
         print(band, results[band], file=sys.stderr, flush=True)
+    if args.save_positions:
+        pl.DataFrame(saved, schema=["band", "game_id", "ply", "hit", "logp"], orient="row").write_parquet(args.save_positions)
     if args.out:
         json.dump({"engine": args.engine if not maia else f"maia3-{args.maia_size}", "bands": results},
                   open(args.out, "w"), indent=1)
