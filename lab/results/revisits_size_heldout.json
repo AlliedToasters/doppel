@@ -1,0 +1,728 @@
+{
+ "src": "heldout",
+ "limit": 0,
+ "n_games": 12727529,
+ "n_players": 881846,
+ "careers_ge2": 701343,
+ "career_len_p99": 341.0,
+ "rarity_q99": 16.359,
+ "all": {
+  "pairs": 4146344,
+  "players": 199719,
+  "repeat_rate": 0.7507,
+  "pairs_per_1000_careers": 4701.891,
+  "share_from_top1pct_careers": 0.467
+ },
+ "different_opponent": {
+  "pairs": 3731055,
+  "players": 188025,
+  "repeat_rate": 0.7551,
+  "pairs_per_1000_careers": 4230.96,
+  "share_from_top1pct_careers": 0.4827
+ },
+ "middlegame_ply30plus_diffopp": {
+  "pairs": 5560,
+  "players": 2180,
+  "repeat_rate": 0.759,
+  "pairs_per_1000_careers": 6.305,
+  "share_from_top1pct_careers": 0.5853
+ },
+ "deep": {
+  "pairs": 5258,
+  "players": 2113,
+  "repeat_rate": 0.7539,
+  "pairs_per_1000_careers": 5.962,
+  "share_from_top1pct_careers": 0.5827
+ },
+ "deep_strict": {
+  "pairs": 1282,
+  "players": 658,
+  "repeat_rate": 0.7285,
+  "pairs_per_1000_careers": 1.454,
+  "share_from_top1pct_careers": 0.6006
+ },
+ "by_ply": [
+  {
+   "plyb": "10-19",
+   "pairs": 4003687,
+   "repeat_rate": 0.7509,
+   "players": 199584,
+   "median_rarity": 10.6998
+  },
+  {
+   "plyb": "20-29",
+   "pairs": 134473,
+   "repeat_rate": 0.7436,
+   "players": 26228,
+   "median_rarity": 14.973
+  },
+  {
+   "plyb": "30-39",
+   "pairs": 4659,
+   "repeat_rate": 0.7414,
+   "players": 1733,
+   "median_rarity": 16.3593
+  },
+  {
+   "plyb": "40+",
+   "pairs": 3525,
+   "repeat_rate": 0.7518,
+   "players": 1335,
+   "median_rarity": 11.539
+  }
+ ],
+ "by_career_len": [
+  {
+   "clb": "10-49",
+   "pairs": 236744,
+   "repeat_rate": 0.7522,
+   "players": 80310,
+   "median_rarity": 10.1772
+  },
+  {
+   "clb": "1000+",
+   "pairs": 330676,
+   "repeat_rate": 0.7504,
+   "players": 404,
+   "median_rarity": 11.6679
+  },
+  {
+   "clb": "200-999",
+   "pairs": 2414930,
+   "repeat_rate": 0.7488,
+   "players": 22050,
+   "median_rarity": 10.9256
+  },
+  {
+   "clb": "50-199",
+   "pairs": 1153484,
+   "repeat_rate": 0.7544,
+   "players": 91299,
+   "median_rarity": 10.4431
+  },
+  {
+   "clb": "<10",
+   "pairs": 10510,
+   "repeat_rate": 0.7395,
+   "players": 5656,
+   "median_rarity": 10.3214
+  }
+ ],
+ "by_tc": [
+  {
+   "tc": "blitz",
+   "pairs": 4146344,
+   "repeat_rate": 0.7507,
+   "players": 199719,
+   "median_rarity": 10.8024
+  }
+ ],
+ "by_same_opp": [
+  {
+   "same_opp": false,
+   "pairs": 3731055,
+   "repeat_rate": 0.7551,
+   "players": 188025,
+   "median_rarity": 10.6423
+  },
+  {
+   "same_opp": true,
+   "pairs": 415289,
+   "repeat_rate": 0.7107,
+   "players": 56479,
+   "median_rarity": 12.7758
+  }
+ ],
+ "by_path": [
+  {
+   "same_path": false,
+   "pairs": 2231236,
+   "repeat_rate": 0.7254,
+   "players": 155354,
+   "median_rarity": 11.1775
+  },
+  {
+   "same_path": true,
+   "pairs": 1915108,
+   "repeat_rate": 0.7801,
+   "players": 148914,
+   "median_rarity": 10.388
+  }
+ ],
+ "deep_by_career_len": [
+  {
+   "clb": "10-49",
+   "pairs": 167,
+   "repeat_rate": 0.7305389221556886
+  },
+  {
+   "clb": "1000+",
+   "pairs": 746,
+   "repeat_rate": 0.7680965147453083
+  },
+  {
+   "clb": "200-999",
+   "pairs": 3294,
+   "repeat_rate": 0.7534911961141469
+  },
+  {
+   "clb": "50-199",
+   "pairs": 1050,
+   "repeat_rate": 0.7495238095238095
+  },
+  {
+   "clb": "<10",
+   "pairs": 1,
+   "repeat_rate": 0.0
+  }
+ ],
+ "deep_examples": [
+  {
+   "g1": 121585,
+   "g2": 6554411,
+   "ply1": 33,
+   "ply2": 33,
+   "div_ply": 0,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 238,
+   "days_between": 15.668210695100361
+  },
+  {
+   "g1": 7909500,
+   "g2": 12227875,
+   "ply1": 30,
+   "ply2": 30,
+   "div_ply": 9,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 105,
+   "days_between": 10.518115888795066
+  },
+  {
+   "g1": 2862906,
+   "g2": 6996466,
+   "ply1": 33,
+   "ply2": 33,
+   "div_ply": 12,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 367,
+   "days_between": 10.067968417121659
+  },
+  {
+   "g1": 1117948,
+   "g2": 7280183,
+   "ply1": 39,
+   "ply2": 39,
+   "div_ply": 10,
+   "rarity": 16.359277843286772,
+   "repeat": false,
+   "games_between": 196,
+   "days_between": 15.009141601641607
+  },
+  {
+   "g1": 4248384,
+   "g2": 9672851,
+   "ply1": 30,
+   "ply2": 30,
+   "div_ply": 3,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 393,
+   "days_between": 13.212185727488816
+  },
+  {
+   "g1": 3379137,
+   "g2": 5569534,
+   "ply1": 30,
+   "ply2": 30,
+   "div_ply": 3,
+   "rarity": 16.359277843286772,
+   "repeat": false,
+   "games_between": 234,
+   "days_between": 5.335073838763204
+  },
+  {
+   "g1": 5883426,
+   "g2": 7948384,
+   "ply1": 35,
+   "ply2": 35,
+   "div_ply": 20,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 52,
+   "days_between": 5.029546426490171
+  },
+  {
+   "g1": 7122563,
+   "g2": 8944610,
+   "ply1": 35,
+   "ply2": 35,
+   "div_ply": 4,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 167,
+   "days_between": 4.437896546925959
+  },
+  {
+   "g1": 2862906,
+   "g2": 4143098,
+   "ply1": 31,
+   "ply2": 31,
+   "div_ply": 10,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 151,
+   "days_between": 3.118119157300682
+  },
+  {
+   "g1": 4143098,
+   "g2": 6996466,
+   "ply1": 31,
+   "ply2": 31,
+   "div_ply": 10,
+   "rarity": 16.359277843286772,
+   "repeat": true,
+   "games_between": 215,
+   "days_between": 6.949849259820976
+  }
+ ],
+ "rarity_quantiles_seen_elsewhere": {
+  "0.5": 10.629,
+  "0.9": 14.162,
+  "0.99": 15.666
+ },
+ "rarity_q90_all": 14.973,
+ "share_unseen_elsewhere": 0.0521,
+ "career_freq_quartiles": [
+  0.0055,
+  0.0106,
+  0.0213
+ ],
+ "k_x_rarity": [
+  {
+   "ktier": "k=2",
+   "rtier": "r<q50",
+   "pairs": 765090,
+   "repeat_rate": 0.7083,
+   "players": 160001
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "r>=q99",
+   "pairs": 67024,
+   "repeat_rate": 0.7018,
+   "players": 27526
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "r_q50-90",
+   "pairs": 895137,
+   "repeat_rate": 0.71,
+   "players": 131700
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "r_q90-99",
+   "pairs": 204767,
+   "repeat_rate": 0.7057,
+   "players": 55976
+  },
+  {
+   "ktier": "k=2",
+   "rtier": "unseen_elsewhere",
+   "pairs": 162386,
+   "repeat_rate": 0.6963,
+   "players": 35996
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r<q50",
+   "pairs": 770048,
+   "repeat_rate": 0.7731,
+   "players": 69649
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r>=q99",
+   "pairs": 21282,
+   "repeat_rate": 0.7652,
+   "players": 4586
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r_q50-90",
+   "pairs": 516930,
+   "repeat_rate": 0.7756,
+   "players": 41008
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "r_q90-99",
+   "pairs": 76875,
+   "repeat_rate": 0.7699,
+   "players": 11228
+  },
+  {
+   "ktier": "k=3-5",
+   "rtier": "unseen_elsewhere",
+   "pairs": 42678,
+   "repeat_rate": 0.7619,
+   "players": 5510
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r<q50",
+   "pairs": 429240,
+   "repeat_rate": 0.8459,
+   "players": 15890
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r>=q99",
+   "pairs": 5139,
+   "repeat_rate": 0.812,
+   "players": 404
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r_q50-90",
+   "pairs": 159433,
+   "repeat_rate": 0.8403,
+   "players": 6381
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "r_q90-99",
+   "pairs": 19313,
+   "repeat_rate": 0.8325,
+   "players": 1195
+  },
+  {
+   "ktier": "k=6+",
+   "rtier": "unseen_elsewhere",
+   "pairs": 11002,
+   "repeat_rate": 0.7957,
+   "players": 471
+  }
+ ],
+ "careerfreq_x_rarity": [
+  {
+   "cfq": "cf_q1",
+   "rtier": "r<q50",
+   "pairs": 286244,
+   "repeat_rate": 0.6842,
+   "players": 7531
+  },
+  {
+   "cfq": "cf_q1",
+   "rtier": "r>=q99",
+   "pairs": 40726,
+   "repeat_rate": 0.7166,
+   "players": 5832
+  },
+  {
+   "cfq": "cf_q1",
+   "rtier": "r_q50-90",
+   "pairs": 491449,
+   "repeat_rate": 0.7134,
+   "players": 7740
+  },
+  {
+   "cfq": "cf_q1",
+   "rtier": "r_q90-99",
+   "pairs": 122773,
+   "repeat_rate": 0.7167,
+   "players": 7289
+  },
+  {
+   "cfq": "cf_q1",
+   "rtier": "unseen_elsewhere",
+   "pairs": 97018,
+   "repeat_rate": 0.7118,
+   "players": 6219
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "r<q50",
+   "pairs": 455809,
+   "repeat_rate": 0.7318,
+   "players": 23054
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "r>=q99",
+   "pairs": 22749,
+   "repeat_rate": 0.7342,
+   "players": 8198
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "r_q50-90",
+   "pairs": 435011,
+   "repeat_rate": 0.7461,
+   "players": 23142
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "r_q90-99",
+   "pairs": 76894,
+   "repeat_rate": 0.7388,
+   "players": 14910
+  },
+  {
+   "cfq": "cf_q2",
+   "rtier": "unseen_elsewhere",
+   "pairs": 49272,
+   "repeat_rate": 0.7214,
+   "players": 9663
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "r<q50",
+   "pairs": 576570,
+   "repeat_rate": 0.776,
+   "players": 51323
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "r>=q99",
+   "pairs": 15764,
+   "repeat_rate": 0.7225,
+   "players": 8106
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "r_q50-90",
+   "pairs": 352217,
+   "repeat_rate": 0.7678,
+   "players": 44868
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "r_q90-99",
+   "pairs": 54672,
+   "repeat_rate": 0.7434,
+   "players": 18547
+  },
+  {
+   "cfq": "cf_q3",
+   "rtier": "unseen_elsewhere",
+   "pairs": 35424,
+   "repeat_rate": 0.7149,
+   "players": 10604
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "r<q50",
+   "pairs": 645755,
+   "repeat_rate": 0.8108,
+   "players": 137261
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "r>=q99",
+   "pairs": 14206,
+   "repeat_rate": 0.7197,
+   "players": 8773
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "r_q50-90",
+   "pairs": 292823,
+   "repeat_rate": 0.7681,
+   "players": 89601
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "r_q90-99",
+   "pairs": 46616,
+   "repeat_rate": 0.7362,
+   "players": 23788
+  },
+  {
+   "cfq": "cf_q4",
+   "rtier": "unseen_elsewhere",
+   "pairs": 34352,
+   "repeat_rate": 0.7108,
+   "players": 13209
+  }
+ ],
+ "pmi_quantiles": {
+  "0.1": 3.628,
+  "0.5": 6.288,
+  "0.9": 10.135,
+  "0.99": 12.564
+ },
+ "deep_corner_k2_N20_rarity_top10_ply30_diffopp": {
+  "pairs": 1772,
+  "players": 895,
+  "repeat_rate": 0.7359,
+  "pairs_per_1000_careers": 2.009,
+  "share_from_top1pct_careers": 0.5965
+ },
+ "deep_corner_examples": [
+  {
+   "g1": 2027255,
+   "g2": 6131225,
+   "ply1": 30,
+   "ply2": 30,
+   "same_path": false,
+   "div_ply": 1,
+   "k": 2,
+   "clen": 22,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.961382570488402,
+   "repeat": true,
+   "games_between": 8,
+   "days_between": 9.995897082615173
+  },
+  {
+   "g1": 174802,
+   "g2": 9855236,
+   "ply1": 36,
+   "ply2": 34,
+   "same_path": false,
+   "div_ply": 9,
+   "k": 2,
+   "clen": 23,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.916930807917568,
+   "repeat": true,
+   "games_between": 13,
+   "days_between": 23.578296619870205
+  },
+  {
+   "g1": 174802,
+   "g2": 9855236,
+   "ply1": 34,
+   "ply2": 32,
+   "same_path": false,
+   "div_ply": 9,
+   "k": 2,
+   "clen": 23,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.916930807917568,
+   "repeat": true,
+   "games_between": 13,
+   "days_between": 23.578296619870205
+  },
+  {
+   "g1": 612807,
+   "g2": 1407710,
+   "ply1": 30,
+   "ply2": 30,
+   "same_path": false,
+   "div_ply": 1,
+   "k": 2,
+   "clen": 24,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.874371193498773,
+   "repeat": false,
+   "games_between": 2,
+   "days_between": 1.9361176077461701
+  },
+  {
+   "g1": 4023691,
+   "g2": 8158592,
+   "ply1": 31,
+   "ply2": 31,
+   "same_path": false,
+   "div_ply": 0,
+   "k": 2,
+   "clen": 25,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.833549198978517,
+   "repeat": false,
+   "games_between": 4,
+   "days_between": 10.071234644210987
+  },
+  {
+   "g1": 1371862,
+   "g2": 11378138,
+   "ply1": 33,
+   "ply2": 33,
+   "same_path": false,
+   "div_ply": 26,
+   "k": 2,
+   "clen": 26,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.794328485825236,
+   "repeat": true,
+   "games_between": 20,
+   "days_between": 24.371938653606684
+  },
+  {
+   "g1": 5901924,
+   "g2": 7571959,
+   "ply1": 30,
+   "ply2": 30,
+   "same_path": false,
+   "div_ply": 9,
+   "k": 2,
+   "clen": 27,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.756588157842389,
+   "repeat": true,
+   "games_between": 7,
+   "days_between": 4.067646202181114
+  },
+  {
+   "g1": 5901924,
+   "g2": 7571959,
+   "ply1": 32,
+   "ply2": 32,
+   "same_path": false,
+   "div_ply": 9,
+   "k": 2,
+   "clen": 27,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.756588157842389,
+   "repeat": true,
+   "games_between": 7,
+   "days_between": 4.067646202181114
+  },
+  {
+   "g1": 5901924,
+   "g2": 7571959,
+   "ply1": 34,
+   "ply2": 34,
+   "same_path": false,
+   "div_ply": 9,
+   "k": 2,
+   "clen": 27,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.756588157842389,
+   "repeat": true,
+   "games_between": 7,
+   "days_between": 4.067646202181114
+  },
+  {
+   "g1": 7900519,
+   "g2": 8228656,
+   "ply1": 35,
+   "ply2": 35,
+   "same_path": true,
+   "div_ply": null,
+   "k": 2,
+   "clen": 28,
+   "n_pop": 0,
+   "rarity": 16.359277843286772,
+   "pmi": 13.720220513671514,
+   "repeat": true,
+   "games_between": 2,
+   "days_between": 0.7992318854665328
+  }
+ ],
+ "notes": "rarity/corpus_p use (n_pop+1)/N_games; n_pop excludes all of the player's games (either colour). Keys: two independent 64-bit Zobrist hashes (128 bits). Within-game repeats dropped (first visit kept)."
+}

@@ -571,6 +571,23 @@ raises that to 38.3%, and 25.4% of positions are won on time outright. Trailing 
 head should see the clock difference, not only the eval. v0's does: `clock_feats` gives it both clocks. Policy-implied machine
 scores (item 5) and blunder potential (item 4) need the MultiPV pass, not run yet.
 
+**Verbatim blunders (2026-11-16, `doppel_lab/verbatim_blunders.py`, `lab/results/verbatim_blunders.json`).** Rates
+ask how often a player blunders; this asks whether a model names the exact blunder. Every Allie test position in
+the 1100, 1500 and 1900 buckets (k = 40 context games), each played move graded by Stockfish (20k nodes, loss ≥ 0.2).
+Top-1 on the played move, game bootstrap:
+
+| Bucket | Blunders | Maia-3 | Doppel (v0g) | Doppel − Maia-3 | Learned lookup − Maia-3 |
+|---|---|---|---|---|---|
+| 1100 | 12,044 | 22.2% | 22.6% | +0.45 [+0.17, +0.75] | — |
+| 1500 | 5,143 | 22.2% | 22.2% | +0.04 [−0.33, +0.38] | +0.60 [+0.23, +1.00] |
+| 1900 | 8,901 | 22.9% | 22.9% | +0.07 [−0.19, +0.28] | — |
+
+A population model already puts its top move on more than one blunder in five: most blunders are the natural
+human move. Personal gains are larger on errors than on good moves (1100 Doppel: +0.19 on moves losing < 0.05,
++0.45–0.50 on mistakes and blunders; 1500 lookup: +0.27 vs +0.60), so what is personal about a player shows up more in
+their errors. The lookup's edge fits the revisit result in §8 (habitual blunders persist): it gets 68 blunders right
+that Maia-3 misses and misses 37 that Maia-3 gets.
+
 ## 8. Game-level, book, population and era baselines
 
 **Why.** These are the surface-feature scores a learned match encoder (Maia embeddings, the Doppel z) has to
@@ -1945,6 +1962,94 @@ opening (+1.47 at plies 10–19, +0.28 at 20–29, −0.08 at 30–39, 0.00 afte
 matches: +1.12 at best cosine 0.8–0.9, where step 0 had nothing. The control is strongly negative: the head trusts
 the store, so a wrong or unrepresentative store hurts. Next: combine with z (and memory), and train a ≥ 2000 band.
 
+**Learned lookup in every bucket (2026-11-16, `lab/results/allie_retr1_<band>.json`).** Same recipe, one head per
+training band (the < 1000 bucket borrows the 1100 head); epoch chosen on valrich; game bootstrap; shuffled-player
+store as the control.
+
+| Bucket | Positions | Lookup − Maia-3 | Shuffled store | Doppel (v0g) − Maia-3 |
+|---|---|---|---|---|
+| < 1000 (1100 head) | 108,121 | +0.23 [+0.14, +0.33] | −0.24 | +0.23 (1100 model) |
+| 1000–1400 | 184,599 | +0.28 [+0.21, +0.36] | −0.25 | +0.26 |
+| 1400–1600 | 97,306 | +0.34 [+0.22, +0.45] | −0.33 | +0.17 |
+| 1600–2000 | 213,192 | +0.46 [+0.39, +0.53] | −0.16 | +0.10 |
+| 2000+ | 280,831 | +0.38 [+0.32, +0.43] | −0.11 | +0.00 (in-band 2300 model) |
+| **All (884,049)** | | **+0.36 [+0.32, +0.39]** | −0.19 | +0.10 |
+
+On the whole test set the lookup gets **57.44% top-1 against Maia-3's 57.08%** (McNemar χ² = 419; 13,341 vs
+10,200 discordant), above Doppel + memory (57.39%) with no trunk change and no z. Up to 2000 the lookup grows with
+rating while the z model shrinks: stronger players repeat their own lines more (exact-repeat positions: 125, 875,
+805, 2,811 and 7,413 across the buckets; gain on them +2.4 to +8.1). Both halves of each bucket agree within 0.12.
+The in-band 2000+ z model (v0g recipe on a 2000+ pool, `allie_v0e_v0g_2300.json`) removes the −0.09 the 1900 model
+cost there but adds nothing (+0.00; + memory +0.42, the same as Maia-3 + memory).
+The gain is in the opening at every band (plies 10–19: +0.8, +1.2, +1.5, +2.1) and rises with best cosine (1900: +1.2 at 0.8–0.9, +5.6 at 0.9–0.95, +16 above 0.995).
+
+**Revisits: the same player at the same board (2026-11-15/16, `doppel_lab/revisits.py`,
+`doppel_lab/revisit_model.py`, `lab/results/revisits_*.json`, `revisit_model.json`, `revisit_learn.json`,
+`revisit_triples.json`).** Held-out games (12.7M); a pair = two consecutive visits by one player to one board
+(128-bit Zobrist, either path), scored at ply ≥ 10. Chance = Σp² agreement of Maia-3 at the two visits (real Elos);
+personal repetition = observed repeat − chance.
+
+| Ply | Pairs | Repeat | Chance | Personal |
+|---|---|---|---|---|
+| 10–19 | 1,448,308 | 75.1% | 43.6% | +31.5 |
+| 20–29 | 48,734 | 74.4% | 46.9% | +27.5 |
+| 30–39 | 1,648 | 75.5% | 48.7% | +26.8 |
+| 40+ | 1,310 | 75.9% | 66.3% | +9.6 |
+
+Repetition stays at 75% to ply 39 while chance rises; ply 40+ is mostly endgames reached by other routes, where
+the population catches up. Rarity of the board elsewhere in the corpus barely matters (−0.1 to −1.0 pts); the
+number of earlier visits in the career does (k = 6+: +9.7 pts vs k = 2). Deep middlegame coincidences are rare:
+about 1 in 1,000 pairs are at plies 30–39.
+
+Mixed-effects logistic, logit(chance) offset, random intercept per player (1.32M different-opponent pairs at plies
+10–29, 139k players, σ = 0.54): a clock that differs from the first visit costs 2–4 pts; a gap of 100+ games 4.9
+pts; a different route 1.7; losing the first game 1.6; the player's own rating change between visits 0. Habits
+fade with time, not with improvement. Power: 2-pt effects need about 14k pairs; the deep bins can only resolve
+about 5 pts.
+
+Move quality (Stockfish 20k nodes). In 50k pairs, a first-visit blunder is repeated 35.5% of the time against 37.1%
+chance: the personal component vanishes (−1.6 [−6.4, +3.2]; good moves +34.0, mistakes +21.7). Inside bins of
+Maia-3's probability for the move, blunders still lose 14–36 pts against equally unlikely good moves. Triples
+(1.38M chains of three visits, 81k players) split slip from learning:
+
+| Middle visit's move | Also played at the first visit | Kept at the third visit |
+|---|---|---|
+| Good | yes (1,009,299) | 90.6% |
+| Mistake | yes (20,505) | 80.4% |
+| Blunder | yes (3,868) | 75.8% [74.1, 77.3] |
+| Good | no (220,059) | 44.4% |
+| Blunder | no (4,334) | 21.3% [20.1, 22.5] |
+
+Mostly slips: a one-off blunder is dropped four times in five. Blunder habits stick (76% per visit), with some
+learning that scales with the error (habitual moves kept at 91% good, 83% inaccuracy, 80% mistake, 76% blunder;
+adjusted −13.7 pts for a habitual blunder vs a habitual good move) and a small punishment effect (a lost game B
+lowers keeping a habitual blunder by 5.7 pts [3.0, 8.5], a habitual good move by 1.2). Two visits with the same
+blunder can coincide without a habit, so the learning share is an upper bound. When a move is changed, the new
+move is better and worse equally often (27% each); after a recent blunder it leans worse (worse − better +6.8
+[+0.7, +12.9], vs −0.5 otherwise), suggestive tilt from one of five subgroups looked at.
+
+**Coaching gates: simulation fidelity and forecast (2026-11-15/16, `doppel_lab/sim_fidelity.py`,
+`lab/results/sim_fidelity.json`, `sim_forecast.json`).** 200 held-out 1500-band players; 40 simulated games each
+against pool Doppels (no clock; resignation from the eval); target = their real games 41–100. Per-player correlation
+with the real blunder rate (≥ 0.2 per move): first 40 real games 0.56, Doppel at T = 0.8 0.25, Doppel at T = 1 0.14,
+plain Maia-3 at T = 1 0.17. Simulated games are 14–18 plies short. (The rating-average baseline reads −0.42: the
+players span only 1481–1632, so the leave-one-out ±100 Elo mean is nearly "everyone but you". It is dropped.)
+
+Forecast, out of fold, MSE weighted by moves, as a share of the variance not due to binomial noise:
+
+| Predictor | Share captured | vs shrink-to-mean |
+|---|---|---|
+| First 40 games, raw | 11% | worse |
+| Pooled mean | −2% | worse |
+| **First 40 shrunk to the mean (empirical Bayes)** | **36%** | — |
+| Shrunk to a Doppel-sim prior (T = 0.8) | 37% | [−0.08, +0.04] ×10⁻⁴ |
+| Shrunk to a Maia-sim prior | 36% | tie |
+| Linear blend of first 40 and Doppel sim | 37% | tie |
+
+The prior is worth about 670 moves (≈ 20 games). Simulation adds nothing measurable, and Maia does as well as the
+Doppel, so even the sliver is not personal. The same holds at ≥ 0.3. For the n = 1 study, weaknesses are ranked from
+real-game counts shrunk toward the crowd (PROTOCOL_N1 deviation log, 2026-11-16).
+
 ## 9. Adding a capability
 
 1. Write its section here first: target definition, metrics, and which priors, heuristics and machines it is
@@ -2150,7 +2255,8 @@ does not show them). This is the published form of v0g's `--kl-per-player`.
 `docs/PROTOCOL_N1.md`: does simulation-based coaching speed up one player's improvement? The primary outcomes are
 (1) the participant's blitz rating vs a synthetic control of look-alike Lichess players, with placebo inference, and
 (2) the miss rate per opportunity of a coin-flip-assigned coached weakness vs an uncoached one. Baseline is ≥ 40
-games per colour; coaching is gated on the simulation fidelity and forecast tests.
+games per colour; coaching is gated on the simulation fidelity and forecast tests. Both gates reported 2026-11-16 (§8): simulation does not beat
+shrunk real-game counts, so weaknesses are ranked from real games.
 
 ### Hypotheses: what proper scoring misses (logged 2026-11-12, untested)
 

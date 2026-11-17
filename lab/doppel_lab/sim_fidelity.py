@@ -270,7 +270,8 @@ def side_metrics(moves: list, evals: list, col: int, recorded: tuple | None):
             score_w if col == 0 else 1.0 - score_w)
 
 
-def report(tag: str = ""):
+def side_rows(tag: str = "") -> pl.DataFrame:
+    """One row per (player, source, game side): blunder counts, own moves scored, length, score."""
     sims = pl.read_parquet(OUT / f"sim_games{tag}.parquet").join(
         pl.read_parquet(OUT / f"sim_evals{tag}.parquet"), on="game_id")
     real = pl.read_parquet(OUT / "real_sides.parquet").join(pl.read_parquet(OUT / "real_evals.parquet"), on="game_id")
@@ -281,7 +282,11 @@ def report(tag: str = ""):
     for r in real.iter_rows(named=True):
         b2, b3, nm, L, s = side_metrics(r["moves"], r["evals"], r["col"], (r["result"], len(r["moves"])))
         rows.append((r["player"], r["part"], b2, b3, nm, L, s))
-    d = pl.DataFrame(rows, schema=["player", "src", "b2", "b3", "nmov", "len", "score"], orient="row")
+    return pl.DataFrame(rows, schema=["player", "src", "b2", "b3", "nmov", "len", "score"], orient="row")
+
+
+def report(tag: str = ""):
+    d = side_rows(tag)
     per = d.group_by("player", "src").agg(
         games=pl.len(), b2_per_move=c("b2").sum() / c("nmov").sum(), b3_per_move=c("b3").sum() / c("nmov").sum(),
         b2_per_game=c("b2").mean(), length=c("len").mean(), score=c("score").mean())
@@ -321,6 +326,90 @@ def report(tag: str = ""):
     print(json.dumps(res, indent=1))
 
 
+def forecast(tag: str = "", folds: int = 10, reps: int = 2000):
+    """Coaching plan step 2 on blunder rates: predict each focal player's real per-move blunder rate in games 41-100
+    from (a) their first 40 games alone, (b) the pooled mean, (c) the first 40 shrunk toward the pooled mean
+    (empirical-Bayes beta-binomial), (d) the first 40 shrunk toward a simulation-based prior (prior mean = a + b * sim
+    rate, fit out of fold), (e) a linear blend of first-40 and sim rates (out of fold). Same for plain Maia-3 sims as
+    the control: if Maia adds as much as the Doppel, the gain is not personal. Score: out-of-fold mean squared error
+    weighted by moves in games 41-100, with a paired player bootstrap for differences."""
+    d = side_rows(tag)
+    agg = d.group_by("player", "src").agg(k2=c("b2").sum(), k3=c("b3").sum(), n=c("nmov").sum())
+    wide = None
+    for src in ["first40", "ref", *CONDS]:
+        t = agg.filter(c("src") == src).select("player", *(pl.col(x).alias(f"{x}_{src}") for x in ("k2", "k3", "n")))
+        wide = t if wide is None else wide.join(t, on="player", how="inner")
+    wide = wide.sort("player")
+    rng = np.random.default_rng(0)
+    fold = rng.permutation(np.arange(wide.height) % folds)
+    res = {"n_players": wide.height, "folds": folds, "metrics": {}}
+    for kk in ("k2", "k3"):
+        kf, nf = wide[f"{kk}_first40"].to_numpy().astype(float), wide["n_first40"].to_numpy().astype(float)
+        kr, nr = wide[f"{kk}_ref"].to_numpy().astype(float), wide["n_ref"].to_numpy().astype(float)
+        yr, xf = kr / nr, kf / nf
+        sim = {cnd: wide[f"{kk}_{cnd}"].to_numpy() / wide[f"n_{cnd}"].to_numpy() for cnd in CONDS}
+        preds = {name: np.full(len(yr), np.nan) for name in
+                 ["first40", "pooled_mean", "shrink_to_mean", *(f"sim_{c_}" for c_ in CONDS),
+                  *(f"shrink_to_sim_{c_}" for c_ in CONDS), *(f"blend_{c_}" for c_ in CONDS)]}
+        shrink_info = {}
+
+        def tau_fit(k, n, mu):
+            """Beta prior strength (pseudo-moves) by method of moments around prior means mu."""
+            r = k / n
+            v = np.average((r - mu) ** 2, weights=n) - np.average(mu * (1 - mu) / n, weights=n)
+            return float(np.clip(np.mean(mu * (1 - mu)) / max(v, 1e-9) - 1, 1, 1e6))
+
+        for f in range(folds):
+            tr, te = fold != f, fold == f
+            # targets for fitting priors use the first-40 data of training players (never games 41+ of test players);
+            # the sim -> rate calibration is fit on training players' games 41+.
+            preds["first40"][te] = xf[te]
+            mu0 = np.average(xf[tr], weights=nf[tr])
+            preds["pooled_mean"][te] = mu0
+            tau0 = tau_fit(kf[tr], nf[tr], np.full(tr.sum(), mu0))
+            preds["shrink_to_mean"][te] = (kf[te] + tau0 * mu0) / (nf[te] + tau0)
+            shrink_info.setdefault("tau_mean", []).append(tau0)
+            for cnd, xs in sim.items():
+                b, a = np.polyfit(xs[tr], yr[tr], 1, w=np.sqrt(nr[tr]))
+                preds[f"sim_{cnd}"][te] = a + b * xs[te]
+                mu_tr = np.clip(a + b * xs[tr], 1e-4, 0.999)
+                tau = tau_fit(kf[tr], nf[tr], mu_tr)
+                mu_te = np.clip(a + b * xs[te], 1e-4, 0.999)
+                preds[f"shrink_to_sim_{cnd}"][te] = (kf[te] + tau * mu_te) / (nf[te] + tau)
+                shrink_info.setdefault(f"tau_{cnd}", []).append(tau)
+                A = np.column_stack([np.ones(tr.sum()), xf[tr], xs[tr]])
+                coef = np.linalg.lstsq(A * np.sqrt(nr[tr])[:, None], yr[tr] * np.sqrt(nr[tr]), rcond=None)[0]
+                preds[f"blend_{cnd}"][te] = coef[0] + coef[1] * xf[te] + coef[2] * xs[te]
+                shrink_info.setdefault(f"blend_{cnd}", []).append([round(float(x), 4) for x in coef])
+        w = nr / nr.sum()
+        err = {k: (p - yr) ** 2 for k, p in preds.items()}
+        mse = {k: float((w * e).sum()) for k, e in err.items()}
+        # noise floor: binomial sampling variance of games 41+ (no forecast can beat this)
+        floor = float((w * (yr * (1 - yr) / nr)).sum())
+        base = "shrink_to_mean"
+        B = rng.integers(0, len(yr), (reps, len(yr)))
+        boot = {}
+        for k, e in err.items():
+            diff = np.array([(w[b] * (e[b] - err[base][b])).sum() / w[b].sum() for b in B])
+            boot[k] = [float(np.percentile(diff, 2.5)), float(np.percentile(diff, 97.5))]
+        tot = float((w * (yr - np.average(yr, weights=nr)) ** 2).sum())
+        res["metrics"]["blunder2_per_move" if kk == "k2" else "blunder3_per_move"] = {
+            "mse_x1e4": {k: round(1e4 * v, 4) for k, v in mse.items()},
+            "noise_floor_x1e4": round(1e4 * floor, 4), "total_var_x1e4": round(1e4 * tot, 4),
+            "explainable_share_captured": {k: round((tot - v) / (tot - floor), 3) for k, v in mse.items()},
+            "diff_vs_shrink_to_mean_x1e4_ci": {k: [round(1e4 * x, 4) for x in v] for k, v in boot.items()},
+            "pearson": {k: round(float(np.corrcoef(p, yr)[0, 1]), 3) if np.std(p) > 0 else None for k, p in preds.items()},
+            "prior_strength_and_blend": {k: (np.round(np.mean(v, axis=0), 4).tolist() if isinstance(v[0], list)
+                                             else round(float(np.mean(v)), 1)) for k, v in shrink_info.items()},
+        }
+    res["note"] = ("Out-of-fold (10 folds). MSE weighted by moves in games 41-100; x1e4. explainable share = "
+                   "(total variance - MSE) / (total variance - binomial noise floor). Differences vs shrink_to_mean: "
+                   "negative = better; paired player bootstrap 95%. blend coefficients = [intercept, first40, sim].")
+    path = ROOT / "lab/results" / f"sim_forecast{tag}.json"
+    path.write_text(json.dumps(res, indent=1))
+    print(json.dumps(res["metrics"], indent=1))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -330,11 +419,15 @@ def main():
     s.add_argument("--limit", type=int, default=0)
     r = sub.add_parser("report")
     r.add_argument("--tag", default="")
+    fcp = sub.add_parser("forecast")
+    fcp.add_argument("--tag", default="")
     a = ap.parse_args()
     if a.cmd == "select":
         select()
     elif a.cmd == "sim":
         sim("cuda" if a.gpu_ok else "cpu", a.limit)
+    elif a.cmd == "forecast":
+        forecast(a.tag)
     else:
         report(a.tag)
 

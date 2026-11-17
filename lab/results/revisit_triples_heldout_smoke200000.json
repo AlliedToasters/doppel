@@ -1,0 +1,266 @@
+{
+ "src": "heldout_smoke200000",
+ "written": "2026-11-16 01:36",
+ "triples": {
+  "chains": 725,
+  "players": 291,
+  "evals": 884,
+  "seconds": 7,
+  "quality_mix": {
+   "good": 594,
+   "inaccuracy": 90,
+   "mistake": 33,
+   "blunder": 8
+  },
+  "cells": {
+   "habitual good": {
+    "n": 457,
+    "players": 212,
+    "repeat_at_C": 0.8775,
+    "ci": [
+     0.846,
+     0.9079
+    ]
+   },
+   "habitual inaccuracy": {
+    "n": 70,
+    "players": 38,
+    "repeat_at_C": 0.8143,
+    "ci": [
+     0.7166,
+     0.8857
+    ]
+   },
+   "habitual mistake": {
+    "n": 22,
+    "players": 17,
+    "repeat_at_C": 0.7273,
+    "ci": [
+     0.5414,
+     0.8847
+    ]
+   },
+   "habitual blunder": {
+    "n": 1,
+    "players": 1,
+    "repeat_at_C": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ]
+   },
+   "one-off good": {
+    "n": 137,
+    "players": 103,
+    "repeat_at_C": 0.4234,
+    "ci": [
+     0.3469,
+     0.4967
+    ]
+   },
+   "one-off inaccuracy": {
+    "n": 20,
+    "players": 17,
+    "repeat_at_C": 0.55,
+    "ci": [
+     0.3499,
+     0.7895
+    ]
+   },
+   "one-off mistake": {
+    "n": 11,
+    "players": 9,
+    "repeat_at_C": 0.1818,
+    "ci": [
+     0.0,
+     0.4545
+    ]
+   },
+   "one-off blunder": {
+    "n": 7,
+    "players": 5,
+    "repeat_at_C": 0.2857,
+    "ci": [
+     0.0,
+     0.6667
+    ]
+   }
+  },
+  "by_result_of_B": {
+   "habitual blunder, game B win": {
+    "n": 1,
+    "players": 1,
+    "repeat_at_C": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ]
+   },
+   "habitual blunder, game B draw": {
+    "n": 0
+   },
+   "habitual blunder, game B loss": {
+    "n": 0
+   },
+   "habitual good, game B win": {
+    "n": 233,
+    "players": 125,
+    "repeat_at_C": 0.8927,
+    "ci": [
+     0.8512,
+     0.928
+    ]
+   },
+   "habitual good, game B draw": {
+    "n": 20,
+    "players": 13,
+    "repeat_at_C": 0.95,
+    "ci": [
+     0.8233,
+     1.0
+    ]
+   },
+   "habitual good, game B loss": {
+    "n": 204,
+    "players": 109,
+    "repeat_at_C": 0.8529,
+    "ci": [
+     0.7984,
+     0.8995
+    ]
+   }
+  },
+  "contrasts": {
+   "habitual: blunder - good": {
+    "value": -0.8775,
+    "ci": [
+     -0.904,
+     -0.8449
+    ]
+   },
+   "one-off: blunder - good": {
+    "value": -0.1376,
+    "ci": [
+     -0.4661,
+     0.3296
+    ]
+   },
+   "blunder: habitual - one-off": {
+    "value": -0.2857,
+    "ci": [
+     -0.625,
+     0.0
+    ]
+   },
+   "habitual blunder: lost B - won B": {
+    "value": NaN,
+    "ci": [
+     NaN,
+     NaN
+    ]
+   },
+   "habitual good: lost B - won B": {
+    "value": -0.0398,
+    "ci": [
+     -0.0978,
+     0.0235
+    ]
+   }
+  },
+  "fit": {
+   "n": 725,
+   "n_players": 291,
+   "sigma": 0.33,
+   "converged": true,
+   "effects": {
+    "intercept": {
+     "coef": 2.4559,
+     "se": 0.3053,
+     "ci": [
+      1.8575,
+      3.0543
+     ]
+    },
+    "cell=habitual inaccuracy": {
+     "coef": 0.2107,
+     "se": 0.362,
+     "ci": [
+      -0.4988,
+      0.9202
+     ],
+     "ame_pts": 2.75,
+     "n_rows": 70
+    },
+    "cell=one-off good": {
+     "coef": -1.8565,
+     "se": 0.2239,
+     "ci": [
+      -2.2954,
+      -1.4176
+     ],
+     "ame_pts": -37.13,
+     "n_rows": 137
+    },
+    "f_k=6-11": {
+     "coef": -0.3959,
+     "se": 0.301,
+     "ci": [
+      -0.9858,
+      0.194
+     ],
+     "ame_pts": -6.41,
+     "n_rows": 88
+    },
+    "f_gap=1-2": {
+     "coef": 0.254,
+     "se": 0.2128,
+     "ci": [
+      -0.1632,
+      0.6712
+     ],
+     "ame_pts": 3.84,
+     "n_rows": 400
+    },
+    "f_gap=10-29": {
+     "coef": -0.3805,
+     "se": 0.4031,
+     "ci": [
+      -1.1706,
+      0.4095
+     ],
+     "ame_pts": -6.43,
+     "n_rows": 64
+    },
+    "f_resultB=draw": {
+     "coef": -0.2455,
+     "se": 0.4591,
+     "ci": [
+      -1.1454,
+      0.6544
+     ],
+     "ame_pts": -3.65,
+     "n_rows": 38
+    },
+    "f_resultB=loss": {
+     "coef": -0.3716,
+     "se": 0.2095,
+     "ci": [
+      -0.7822,
+      0.039
+     ],
+     "ame_pts": -5.67,
+     "n_rows": 344
+    },
+    "same_opp_f": {
+     "coef": -0.9951,
+     "se": 0.2715,
+     "ci": [
+      -1.5272,
+      -0.463
+     ]
+    }
+   }
+  },
+  "note": "A->B->C = three consecutive visits by one player to one board (ply 10+ pairs). Quality of the B move: Stockfish 20k nodes, expected-score loss; blunder >= 0.2, mistake 0.1-0.2, inaccuracy 0.05-0.1, good < 0.05. Habitual = B's move also played at A. Outcome: B's move played again at C. CIs: player-cluster bootstrap, 1000 reps. No Maia chance offset."
+ }
+}

@@ -404,7 +404,7 @@ def maia_report(src: str, limit: int):
            "deep_corner": {"pairs": cr.height, **({k: (round(v_, 4) if isinstance(v_, float) else v_) for k, v_ in
                                                    agg(cr.group_by(pl.lit(1).alias("a"))).drop("a").to_dicts()[0].items()} if cr.height else {})},
            "deep_corner_top": cr.sort("score", descending=True).head(20).select(
-               "player", "g1", "g2", "ply1", "ply2", "same_path", "div_ply", "k", "clen", "n_pop", "rarity", "surp1", "surp2",
+               "g1", "g2", "ply1", "ply2", "same_path", "div_ply", "k", "clen", "n_pop", "rarity", "surp1", "surp2",
                "repeat", "chance1", "p1_mv1", "games_between", "score").to_dicts() if cr.height else [],
            "notes": "chance1 = sum p^2 under Maia-3 at visit 1 (real Elos, fp16); chance_mean uses the mean of both visits' "
                     "distributions; personal = observed repeat - chance. Surprisal = -sum log p(opponent move) over the "
@@ -475,14 +475,14 @@ def report(src: str, limit: int):
            "by_path": tab("same_path"),
            "deep_by_career_len": [r for r in p.filter(c("deep")).group_by("clb").agg(pairs=pl.len(), repeat_rate=c("repeat").mean()).sort("clb").iter_rows(named=True)],
            "deep_examples": p.filter(c("deep_strict")).sort("rarity", descending=True).head(10)
-           .select("player", "g1", "g2", "ply1", "ply2", "div_ply", "rarity", "repeat", "games_between", "days_between").to_dicts(),
+           .select("g1", "g2", "ply1", "ply2", "div_ply", "rarity", "repeat", "games_between", "days_between").to_dicts(),
            "rarity_quantiles_seen_elsewhere": {str(k): round(v, 3) for k, v in qs.items()}, "rarity_q90_all": round(q90_all, 3),
            "share_unseen_elsewhere": round(float((p["n_pop"] == 0).mean()), 4) if p.height else None, "career_freq_quartiles": [round(x, 4) for x in cfq],
            "k_x_rarity": tab2("ktier", "rtier"), "careerfreq_x_rarity": tab2("cfq", "rtier"),
            "pmi_quantiles": {str(q): round(float(p["pmi"].quantile(q)), 3) for q in (0.1, 0.5, 0.9, 0.99)} if p.height else {},
            "deep_corner_k2_N20_rarity_top10_ply30_diffopp": tier(c("corner")),
            "deep_corner_examples": p.filter(c("corner")).sort("pmi", descending=True).head(10)
-           .select("player", "g1", "g2", "ply1", "ply2", "same_path", "div_ply", "k", "clen", "n_pop", "rarity", "pmi",
+           .select("g1", "g2", "ply1", "ply2", "same_path", "div_ply", "k", "clen", "n_pop", "rarity", "pmi",
                    "repeat", "games_between", "days_between").to_dicts(),
            "notes": "rarity/corpus_p use (n_pop+1)/N_games; n_pop excludes all of the player's games (either colour). "
                     "Keys: two independent 64-bit Zobrist hashes (128 bits). Within-game repeats dropped (first visit kept)."}

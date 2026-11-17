@@ -1,0 +1,635 @@
+{
+ "src": "heldout",
+ "written": "2026-11-16 01:31",
+ "learn": {
+  "pairs": 50000,
+  "seconds": 153,
+  "blunder_rate_visit1": 0.0082,
+  "overall": {
+   "blunder": {
+    "n": 409,
+    "players": 401,
+    "observed": 0.3545,
+    "chance": 0.3706,
+    "personal": -0.0161,
+    "personal_ci": [
+     -0.0642,
+     0.0322
+    ]
+   },
+   "mistake": {
+    "n": 1547,
+    "players": 1456,
+    "observed": 0.5533,
+    "chance": 0.3367,
+    "personal": 0.2166,
+    "personal_ci": [
+     0.1903,
+     0.2412
+    ]
+   },
+   "good (<0.05)": {
+    "n": 43540,
+    "players": 24036,
+    "observed": 0.775,
+    "chance": 0.435,
+    "personal": 0.34,
+    "personal_ci": [
+     0.3358,
+     0.3439
+    ]
+   }
+  },
+  "by_maia_prob_bin": {
+   "<5%": {
+    "blunder": {
+     "n": 202,
+     "players": 202,
+     "observed": 0.1832,
+     "chance": 0.4011,
+     "personal": -0.218,
+     "personal_ci": [
+      -0.2796,
+      -0.1661
+     ]
+    },
+    "good": {
+     "n": 2741,
+     "players": 2477,
+     "observed": 0.4776,
+     "chance": 0.3375,
+     "personal": 0.14,
+     "personal_ci": [
+      0.121,
+      0.1605
+     ]
+    },
+    "diff": {
+     "blunder_minus_good": -0.358,
+     "ci": [
+      -0.4186,
+      -0.2958
+     ]
+    }
+   },
+   "5-15%": {
+    "blunder": {
+     "n": 90,
+     "players": 88,
+     "observed": 0.4,
+     "chance": 0.3205,
+     "personal": 0.0795,
+     "personal_ci": [
+      -0.0258,
+      0.1813
+     ]
+    },
+    "good": {
+     "n": 5522,
+     "players": 4718,
+     "observed": 0.5849,
+     "chance": 0.2956,
+     "personal": 0.2893,
+     "personal_ci": [
+      0.2748,
+      0.3027
+     ]
+    },
+    "diff": {
+     "blunder_minus_good": -0.2098,
+     "ci": [
+      -0.3145,
+      -0.0993
+     ]
+    }
+   },
+   "15-35%": {
+    "blunder": {
+     "n": 56,
+     "players": 56,
+     "observed": 0.4464,
+     "chance": 0.2862,
+     "personal": 0.1602,
+     "personal_ci": [
+      0.0392,
+      0.293
+     ]
+    },
+    "good": {
+     "n": 9602,
+     "players": 7651,
+     "observed": 0.6924,
+     "chance": 0.2651,
+     "personal": 0.4272,
+     "personal_ci": [
+      0.418,
+      0.4366
+     ]
+    },
+    "diff": {
+     "blunder_minus_good": -0.267,
+     "ci": [
+      -0.404,
+      -0.1302
+     ]
+    }
+   },
+   "35-60%": {
+    "blunder": {
+     "n": 41,
+     "players": 40,
+     "observed": 0.6585,
+     "chance": 0.3215,
+     "personal": 0.337,
+     "personal_ci": [
+      0.1962,
+      0.4713
+     ]
+    },
+    "good": {
+     "n": 10226,
+     "players": 8084,
+     "observed": 0.8013,
+     "chance": 0.3275,
+     "personal": 0.4738,
+     "personal_ci": [
+      0.4653,
+      0.4812
+     ]
+    },
+    "diff": {
+     "blunder_minus_good": -0.1368,
+     "ci": [
+      -0.2836,
+      -0.0013
+     ]
+    }
+   },
+   ">=60%": {
+    "blunder": {
+     "n": 20,
+     "players": 20,
+     "observed": 1.0,
+     "chance": 0.6248,
+     "personal": 0.3752,
+     "personal_ci": [
+      0.3088,
+      0.4434
+     ]
+    },
+    "good": {
+     "n": 15449,
+     "players": 10751,
+     "observed": 0.9296,
+     "chance": 0.6788,
+     "personal": 0.2508,
+     "personal_ci": [
+      0.2458,
+      0.2552
+     ]
+    },
+    "diff": null
+   }
+  },
+  "fit": {
+   "label": "learning: visit-1 move quality",
+   "n_pairs": 50000,
+   "n_players": 26677,
+   "converged": true,
+   "seconds": 8.4,
+   "observed_repeat": 0.7498,
+   "chance_repeat": 0.4223,
+   "personal_repetition_pts": 32.75,
+   "intercept_only_marginal_at_ref": 0.8471,
+   "player_sigma_logit": 0.851,
+   "player_sigma_ci": [
+    0.788,
+    0.919
+   ],
+   "player_spread_note": "sd of a player's personal log-odds of repeating, beyond the Maia offset and covariates",
+   "effects": {
+    "intercept": {
+     "coef": 2.5696,
+     "se": 0.0874,
+     "ci": [
+      2.3983,
+      2.7408
+     ]
+    },
+    "f_clkdiff=+20..+60s": {
+     "coef": -0.1807,
+     "se": 0.1272,
+     "ci": [
+      -0.4299,
+      0.0686
+     ],
+     "ame_pts": -2.48,
+     "n_rows": 467
+    },
+    "f_clkdiff=+5..+20s": {
+     "coef": -0.1644,
+     "se": 0.0468,
+     "ci": [
+      -0.2563,
+      -0.0726
+     ],
+     "ame_pts": -2.25,
+     "n_rows": 4072
+    },
+    "f_clkdiff=-20..-5s": {
+     "coef": -0.2479,
+     "se": 0.0529,
+     "ci": [
+      -0.3516,
+      -0.1441
+     ],
+     "ame_pts": -3.44,
+     "n_rows": 2960
+    },
+    "f_clkdiff=-60..-20s": {
+     "coef": -0.3779,
+     "se": 0.1428,
+     "ci": [
+      -0.6579,
+      -0.098
+     ],
+     "ame_pts": -5.33,
+     "n_rows": 372
+    },
+    "f_clkdiff=<=-60s": {
+     "coef": -0.1924,
+     "se": 0.1214,
+     "ci": [
+      -0.4304,
+      0.0456
+     ],
+     "ame_pts": -2.65,
+     "n_rows": 556
+    },
+    "f_clkdiff=>=+60s": {
+     "coef": -0.3536,
+     "se": 0.1187,
+     "ci": [
+      -0.5863,
+      -0.1209
+     ],
+     "ame_pts": -4.97,
+     "n_rows": 562
+    },
+    "f_clk2=60-120s": {
+     "coef": -0.0384,
+     "se": 0.428,
+     "ci": [
+      -0.8772,
+      0.8004
+     ],
+     "ame_pts": -0.52,
+     "n_rows": 49
+    },
+    "f_gap=0": {
+     "coef": -0.1779,
+     "se": 0.1297,
+     "ci": [
+      -0.4321,
+      0.0762
+     ],
+     "ame_pts": -2.27,
+     "n_rows": 753
+    },
+    "f_gap=10-29": {
+     "coef": -0.1774,
+     "se": 0.0795,
+     "ci": [
+      -0.3332,
+      -0.0217
+     ],
+     "ame_pts": -2.26,
+     "n_rows": 10439
+    },
+    "f_gap=100+": {
+     "coef": -0.4054,
+     "se": 0.0793,
+     "ci": [
+      -0.5608,
+      -0.25
+     ],
+     "ame_pts": -5.35,
+     "n_rows": 15185
+    },
+    "f_gap=3-9": {
+     "coef": -0.1611,
+     "se": 0.0843,
+     "ci": [
+      -0.3263,
+      0.004
+     ],
+     "ame_pts": -2.05,
+     "n_rows": 5181
+    },
+    "f_gap=30-99": {
+     "coef": -0.3121,
+     "se": 0.0779,
+     "ci": [
+      -0.4649,
+      -0.1594
+     ],
+     "ame_pts": -4.06,
+     "n_rows": 16745
+    },
+    "f_drating=+15..+50": {
+     "coef": 0.0159,
+     "se": 0.0358,
+     "ci": [
+      -0.0543,
+      0.0861
+     ],
+     "ame_pts": 0.22,
+     "n_rows": 11235
+    },
+    "f_drating=-50..-15": {
+     "coef": 0.0445,
+     "se": 0.0367,
+     "ci": [
+      -0.0274,
+      0.1163
+     ],
+     "ame_pts": 0.6,
+     "n_rows": 10436
+    },
+    "f_drating=<=-50": {
+     "coef": 0.0005,
+     "se": 0.0464,
+     "ci": [
+      -0.0905,
+      0.0916
+     ],
+     "ame_pts": 0.01,
+     "n_rows": 5302
+    },
+    "f_drating=>=+50": {
+     "coef": 0.0638,
+     "se": 0.044,
+     "ci": [
+      -0.0224,
+      0.15
+     ],
+     "ame_pts": 0.86,
+     "n_rows": 6283
+    },
+    "f_ply=14-17": {
+     "coef": -0.0644,
+     "se": 0.035,
+     "ci": [
+      -0.1329,
+      0.0041
+     ],
+     "ame_pts": -0.88,
+     "n_rows": 9423
+    },
+    "f_ply=18-21": {
+     "coef": -0.0346,
+     "se": 0.0665,
+     "ci": [
+      -0.165,
+      0.0958
+     ],
+     "ame_pts": -0.47,
+     "n_rows": 2179
+    },
+    "f_ply=22-25": {
+     "coef": -0.0664,
+     "se": 0.1296,
+     "ci": [
+      -0.3205,
+      0.1876
+     ],
+     "ame_pts": -0.9,
+     "n_rows": 504
+    },
+    "f_ply=26-29": {
+     "coef": 0.3727,
+     "se": 0.2805,
+     "ci": [
+      -0.177,
+      0.9224
+     ],
+     "ame_pts": 4.74,
+     "n_rows": 105
+    },
+    "f_tc=180+2": {
+     "coef": 0.042,
+     "se": 0.0367,
+     "ci": [
+      -0.0299,
+      0.1139
+     ],
+     "ame_pts": 0.56,
+     "n_rows": 11617
+    },
+    "f_tc=300+0": {
+     "coef": -0.0199,
+     "se": 0.0356,
+     "ci": [
+      -0.0896,
+      0.0499
+     ],
+     "ame_pts": -0.27,
+     "n_rows": 11427
+    },
+    "f_tc=300+3": {
+     "coef": -0.0562,
+     "se": 0.0541,
+     "ci": [
+      -0.1622,
+      0.0498
+     ],
+     "ame_pts": -0.77,
+     "n_rows": 3666
+    },
+    "f_tc=other": {
+     "coef": -0.3594,
+     "se": 0.2456,
+     "ci": [
+      -0.8407,
+      0.1219
+     ],
+     "ame_pts": -5.1,
+     "n_rows": 153
+    },
+    "f_path=transposition": {
+     "coef": -0.1278,
+     "se": 0.0269,
+     "ci": [
+      -0.1806,
+      -0.0749
+     ],
+     "ame_pts": -1.72,
+     "n_rows": 28322
+    },
+    "f_k=3-5": {
+     "coef": 0.3867,
+     "se": 0.0288,
+     "ci": [
+      0.3303,
+      0.4431
+     ],
+     "ame_pts": 5.36,
+     "n_rows": 17629
+    },
+    "f_k=6+": {
+     "coef": 0.8247,
+     "se": 0.0445,
+     "ci": [
+      0.7376,
+      0.9119
+     ],
+     "ame_pts": 10.68,
+     "n_rows": 7670
+    },
+    "f_rarity=q2": {
+     "coef": -0.1113,
+     "se": 0.0374,
+     "ci": [
+      -0.1845,
+      -0.0381
+     ],
+     "ame_pts": -1.51,
+     "n_rows": 12412
+    },
+    "f_rarity=q3": {
+     "coef": -0.0691,
+     "se": 0.039,
+     "ci": [
+      -0.1455,
+      0.0073
+     ],
+     "ame_pts": -0.93,
+     "n_rows": 11876
+    },
+    "f_rarity=rare (q4)": {
+     "coef": -0.0297,
+     "se": 0.0422,
+     "ci": [
+      -0.1124,
+      0.0529
+     ],
+     "ame_pts": -0.4,
+     "n_rows": 11117
+    },
+    "f_rarity=unseen elsewhere": {
+     "coef": 0.0368,
+     "se": 0.0747,
+     "ci": [
+      -0.1096,
+      0.1831
+     ],
+     "ame_pts": 0.49,
+     "n_rows": 1911
+    },
+    "f_result1=draw": {
+     "coef": -0.0751,
+     "se": 0.0627,
+     "ci": [
+      -0.198,
+      0.0477
+     ],
+     "ame_pts": -1.01,
+     "n_rows": 2336
+    },
+    "f_result1=loss": {
+     "coef": -0.0909,
+     "se": 0.0263,
+     "ci": [
+      -0.1425,
+      -0.0393
+     ],
+     "ame_pts": -1.23,
+     "n_rows": 22312
+    },
+    "pbin=15-35%": {
+     "coef": -0.3063,
+     "se": 0.0358,
+     "ci": [
+      -0.3765,
+      -0.2361
+     ],
+     "ame_pts": -3.98,
+     "n_rows": 11177
+    },
+    "pbin=5-15%": {
+     "coef": -0.9847,
+     "se": 0.0402,
+     "ci": [
+      -1.0635,
+      -0.906
+     ],
+     "ame_pts": -14.34,
+     "n_rows": 7142
+    },
+    "pbin=<5%": {
+     "coef": -1.7685,
+     "se": 0.0477,
+     "ci": [
+      -1.862,
+      -1.6751
+     ],
+     "ame_pts": -28.0,
+     "n_rows": 4459
+    },
+    "pbin=>=60%": {
+     "coef": -0.075,
+     "se": 0.0431,
+     "ci": [
+      -0.1595,
+      0.0095
+     ],
+     "ame_pts": -0.93,
+     "n_rows": 16024
+    },
+    "blunder1_f": {
+     "coef": -1.3087,
+     "se": 0.1313,
+     "ci": [
+      -1.566,
+      -1.0513
+     ]
+    },
+    "mistake1_f": {
+     "coef": -0.3511,
+     "se": 0.0653,
+     "ci": [
+      -0.4791,
+      -0.2232
+     ]
+    }
+   },
+   "negll": 24603.627418837586
+  },
+  "post_blunder_switches": {
+   "recent_blunder_at_visit2": {
+    "n": 722,
+    "worse_minus_better": 0.0679,
+    "ci": [
+     0.007,
+     0.1288
+    ]
+   },
+   "no_recent_blunder_at_visit2": {
+    "n": 11790,
+    "worse_minus_better": -0.0045,
+    "ci": [
+     -0.017,
+     0.0087
+    ]
+   },
+   "difference": {
+    "value": 0.0724,
+    "ci": [
+     0.0113,
+     0.1319
+    ]
+   }
+  },
+  "note": "loss1 = mover's expected score before minus after the visit-1 move (Stockfish 20k nodes); blunder >= 0.2, mistake 0.1-0.2; personal = observed repeat - Maia chance; CIs: player-cluster bootstrap, 1000 reps."
+ }
+}

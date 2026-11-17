@@ -93,4 +93,4 @@ extended baseline.
 
 | Date | Change | Reason |
 |---|---|---|
-| | | |
+| 2026-11-16 | Gates reported. Weaknesses will be ranked by baseline counts shrunk toward the crowd at the participant's rating (empirical Bayes), not by simulation. | Fidelity check: a player's first 40 real games predict their later blunder rate better than 40 simulated games (r 0.56 vs 0.25). Forecast test on 200 held-out players: shrinking toward a simulation-based prior ties shrinking toward the mean (36–37% of explainable variance either way). Tested on overall blunder rate (≥ 0.2 and ≥ 0.3), not yet per motif or clock phase. No participant data was used. SCIENCE.md §8. |

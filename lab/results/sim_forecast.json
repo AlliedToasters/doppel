@@ -1,0 +1,241 @@
+{
+ "n_players": 200,
+ "folds": 10,
+ "metrics": {
+  "blunder2_per_move": {
+   "mse_x1e4": {
+    "first40": 2.3098,
+    "pooled_mean": 2.5622,
+    "shrink_to_mean": 1.8412,
+    "sim_doppel_t1": 2.5627,
+    "sim_doppel_t08": 2.4291,
+    "sim_maia_t1": 2.537,
+    "shrink_to_sim_doppel_t1": 1.8464,
+    "shrink_to_sim_doppel_t08": 1.8211,
+    "shrink_to_sim_maia_t1": 1.8302,
+    "blend_doppel_t1": 1.8537,
+    "blend_doppel_t08": 1.8176,
+    "blend_maia_t1": 1.8261
+   },
+   "noise_floor_x1e4": 0.6269,
+   "total_var_x1e4": 2.5204,
+   "explainable_share_captured": {
+    "first40": 0.111,
+    "pooled_mean": -0.022,
+    "shrink_to_mean": 0.359,
+    "sim_doppel_t1": -0.022,
+    "sim_doppel_t08": 0.048,
+    "sim_maia_t1": -0.009,
+    "shrink_to_sim_doppel_t1": 0.356,
+    "shrink_to_sim_doppel_t08": 0.369,
+    "shrink_to_sim_maia_t1": 0.364,
+    "blend_doppel_t1": 0.352,
+    "blend_doppel_t08": 0.371,
+    "blend_maia_t1": 0.367
+   },
+   "diff_vs_shrink_to_mean_x1e4_ci": {
+    "first40": [
+     0.2453,
+     0.7113
+    ],
+    "pooled_mean": [
+     0.3521,
+     1.0931
+    ],
+    "shrink_to_mean": [
+     0.0,
+     0.0
+    ],
+    "sim_doppel_t1": [
+     0.3572,
+     1.1007
+    ],
+    "sim_doppel_t08": [
+     0.2106,
+     0.9791
+    ],
+    "sim_maia_t1": [
+     0.3081,
+     1.0933
+    ],
+    "shrink_to_sim_doppel_t1": [
+     -0.0357,
+     0.0473
+    ],
+    "shrink_to_sim_doppel_t08": [
+     -0.0833,
+     0.0434
+    ],
+    "shrink_to_sim_maia_t1": [
+     -0.0541,
+     0.0327
+    ],
+    "blend_doppel_t1": [
+     -0.0726,
+     0.0993
+    ],
+    "blend_doppel_t08": [
+     -0.1306,
+     0.0803
+    ],
+    "blend_maia_t1": [
+     -0.117,
+     0.089
+    ]
+   },
+   "pearson": {
+    "first40": 0.558,
+    "pooled_mean": -0.141,
+    "shrink_to_mean": 0.553,
+    "sim_doppel_t1": 0.028,
+    "sim_doppel_t08": 0.205,
+    "sim_maia_t1": 0.079,
+    "shrink_to_sim_doppel_t1": 0.548,
+    "shrink_to_sim_doppel_t08": 0.554,
+    "shrink_to_sim_maia_t1": 0.553,
+    "blend_doppel_t1": 0.534,
+    "blend_doppel_t08": 0.545,
+    "blend_maia_t1": 0.544
+   },
+   "prior_strength_and_blend": {
+    "tau_mean": 669.0,
+    "tau_doppel_t1": 675.4,
+    "blend_doppel_t1": [
+     0.0474,
+     0.5394,
+     0.0486
+    ],
+    "tau_doppel_t08": 737.9,
+    "blend_doppel_t08": [
+     0.0441,
+     0.5195,
+     0.1016
+    ],
+    "tau_maia_t1": 657.9,
+    "blend_maia_t1": [
+     0.0408,
+     0.538,
+     0.0918
+    ]
+   }
+  },
+  "blunder3_per_move": {
+   "mse_x1e4": {
+    "first40": 1.1754,
+    "pooled_mean": 1.2394,
+    "shrink_to_mean": 0.8912,
+    "sim_doppel_t1": 1.2469,
+    "sim_doppel_t08": 1.2051,
+    "sim_maia_t1": 1.2511,
+    "shrink_to_sim_doppel_t1": 0.8963,
+    "shrink_to_sim_doppel_t08": 0.8768,
+    "shrink_to_sim_maia_t1": 0.8979,
+    "blend_doppel_t1": 0.9074,
+    "blend_doppel_t08": 0.8896,
+    "blend_maia_t1": 0.9118
+   },
+   "noise_floor_x1e4": 0.4016,
+   "total_var_x1e4": 1.2321,
+   "explainable_share_captured": {
+    "first40": 0.068,
+    "pooled_mean": -0.009,
+    "shrink_to_mean": 0.41,
+    "sim_doppel_t1": -0.018,
+    "sim_doppel_t08": 0.032,
+    "sim_maia_t1": -0.023,
+    "shrink_to_sim_doppel_t1": 0.404,
+    "shrink_to_sim_doppel_t08": 0.428,
+    "shrink_to_sim_maia_t1": 0.402,
+    "blend_doppel_t1": 0.391,
+    "blend_doppel_t08": 0.412,
+    "blend_maia_t1": 0.386
+   },
+   "diff_vs_shrink_to_mean_x1e4_ci": {
+    "first40": [
+     0.1512,
+     0.4304
+    ],
+    "pooled_mean": [
+     0.1933,
+     0.506
+    ],
+    "shrink_to_mean": [
+     0.0,
+     0.0
+    ],
+    "sim_doppel_t1": [
+     0.1979,
+     0.5149
+    ],
+    "sim_doppel_t08": [
+     0.1521,
+     0.4749
+    ],
+    "sim_maia_t1": [
+     0.1918,
+     0.5275
+    ],
+    "shrink_to_sim_doppel_t1": [
+     -0.0091,
+     0.0192
+    ],
+    "shrink_to_sim_doppel_t08": [
+     -0.0454,
+     0.0162
+    ],
+    "shrink_to_sim_maia_t1": [
+     -0.0147,
+     0.0285
+    ],
+    "blend_doppel_t1": [
+     -0.0085,
+     0.0394
+    ],
+    "blend_doppel_t08": [
+     -0.054,
+     0.0493
+    ],
+    "blend_maia_t1": [
+     -0.0127,
+     0.054
+    ]
+   },
+   "pearson": {
+    "first40": 0.55,
+    "pooled_mean": -0.116,
+    "shrink_to_mean": 0.544,
+    "sim_doppel_t1": 0.007,
+    "sim_doppel_t08": 0.164,
+    "sim_maia_t1": 0.038,
+    "shrink_to_sim_doppel_t1": 0.54,
+    "shrink_to_sim_doppel_t08": 0.552,
+    "shrink_to_sim_maia_t1": 0.54,
+    "blend_doppel_t1": 0.53,
+    "blend_doppel_t08": 0.539,
+    "blend_maia_t1": 0.528
+   },
+   "prior_strength_and_blend": {
+    "tau_mean": 895.6,
+    "tau_doppel_t1": 906.8,
+    "blend_doppel_t1": [
+     0.0305,
+     0.5165,
+     0.0513
+    ],
+    "tau_doppel_t08": 936.1,
+    "blend_doppel_t08": [
+     0.0246,
+     0.4979,
+     0.1554
+    ],
+    "tau_maia_t1": 923.8,
+    "blend_maia_t1": [
+     0.03,
+     0.5139,
+     0.0579
+    ]
+   }
+  }
+ },
+ "note": "Out-of-fold (10 folds). MSE weighted by moves in games 41-100; x1e4. explainable share = (total variance - MSE) / (total variance - binomial noise floor). Differences vs shrink_to_mean: negative = better; paired player bootstrap 95%. blend coefficients = [intercept, first40, sim]."
+}

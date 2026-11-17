@@ -1,0 +1,508 @@
+{
+ "src": "heldout_smoke200000",
+ "written": "2026-11-15 16:09",
+ "power": {
+  "cells": [
+   {
+    "ply": "10-19",
+    "opponent": "different",
+    "pairs": 3888,
+    "players": 1852,
+    "repeat_rate": 0.7986,
+    "sigma": 0.853,
+    "sigma_ci": [
+     0.647,
+     1.125
+    ],
+    "sigma_source": "cell",
+    "median_pairs_per_player": 1.0,
+    "max_pairs_per_player": 34,
+    "within_mde_pts": 3.83,
+    "within_pairs_needed": {
+     "1pt": 57103,
+     "2pt": 14276,
+     "5pt": 2285
+    },
+    "between_mde_pts": 3.23,
+    "between_pairs_needed": {
+     "1pt": 40467,
+     "2pt": 10117,
+     "5pt": 1619
+    }
+   },
+   {
+    "ply": "10-19",
+    "opponent": "same",
+    "pairs": 4022,
+    "players": 1181,
+    "repeat_rate": 0.7146,
+    "sigma": 0.565,
+    "sigma_ci": [
+     0.431,
+     0.74
+    ],
+    "sigma_source": "cell",
+    "median_pairs_per_player": 2.0,
+    "max_pairs_per_player": 38,
+    "within_mde_pts": 3.47,
+    "within_pairs_needed": {
+     "1pt": 48453,
+     "2pt": 12114,
+     "5pt": 1939
+    },
+    "between_mde_pts": 5.0,
+    "between_pairs_needed": {
+     "1pt": 100671,
+     "2pt": 25168,
+     "5pt": 4027
+    }
+   },
+   {
+    "ply": "20-29",
+    "opponent": "different",
+    "pairs": 85,
+    "players": 51,
+    "repeat_rate": 0.7647,
+    "sigma": 0.827,
+    "sigma_ci": [
+     0.629,
+     1.088
+    ],
+    "sigma_source": "pooled",
+    "median_pairs_per_player": 1.0,
+    "max_pairs_per_player": 5,
+    "within_mde_pts": 13.14,
+    "within_pairs_needed": {
+     "1pt": 14672,
+     "2pt": 3668,
+     "5pt": 587
+    },
+    "between_mde_pts": 28.37,
+    "between_pairs_needed": {
+     "1pt": 68417,
+     "2pt": 17105,
+     "5pt": 2737
+    }
+   },
+   {
+    "ply": "20-29",
+    "opponent": "same",
+    "pairs": 322,
+    "players": 137,
+    "repeat_rate": 0.7236,
+    "sigma": 0.827,
+    "sigma_ci": [
+     0.629,
+     1.088
+    ],
+    "sigma_source": "pooled",
+    "median_pairs_per_player": 2.0,
+    "max_pairs_per_player": 9,
+    "within_mde_pts": 11.26,
+    "within_pairs_needed": {
+     "1pt": 40840,
+     "2pt": 10210,
+     "5pt": 1634
+    },
+    "between_mde_pts": 14.49,
+    "between_pairs_needed": {
+     "1pt": 67621,
+     "2pt": 16906,
+     "5pt": 2705
+    }
+   },
+   {
+    "ply": "30-39",
+    "opponent": "different",
+    "pairs": 1,
+    "players": 1,
+    "note": "too few pairs to simulate"
+   },
+   {
+    "ply": "30-39",
+    "opponent": "same",
+    "pairs": 17,
+    "players": 8,
+    "note": "too few pairs to simulate"
+   },
+   {
+    "ply": "40+",
+    "opponent": "different",
+    "pairs": 1,
+    "players": 1,
+    "note": "too few pairs to simulate"
+   },
+   {
+    "ply": "40+",
+    "opponent": "same",
+    "pairs": 2,
+    "players": 2,
+    "note": "too few pairs to simulate"
+   },
+   {
+    "ply": "deep",
+    "opponent": "different",
+    "pairs": 1,
+    "players": 1,
+    "note": "too few pairs to simulate"
+   }
+  ],
+  "pooled_sigma_different_opp": 0.827,
+  "reps": 20,
+  "alpha": 0.05,
+  "power": 0.8,
+  "method": "null simulation with observed cluster sizes and fitted per-player sigma; MDE = 2.80 x sd of the difference in repeat rate between covariate halves; pairs needed scale as 1/n"
+ },
+ "fit": {
+  "excluded_near_forced": 8,
+  "offset": "logit(chance_cross): P(two draws from Maia-3's policies at visit 1 and visit 2 agree)",
+  "main": {
+   "label": "ply 10-29, different opponents",
+   "n_pairs": 145,
+   "n_players": 137,
+   "converged": true,
+   "seconds": 0.0,
+   "observed_repeat": 0.7862,
+   "chance_repeat": 0.4266,
+   "personal_repetition_pts": 35.96,
+   "intercept_only_marginal_at_ref": 0.6658,
+   "player_sigma_logit": 2.18,
+   "player_sigma_ci": [
+    0.642,
+    7.397
+   ],
+   "player_spread_note": "sd of a player's personal log-odds of repeating, beyond the Maia offset and covariates",
+   "effects": {
+    "intercept": {
+     "coef": 1.6009,
+     "se": 0.8967,
+     "ci": [
+      -0.1566,
+      3.3585
+     ]
+    },
+    "f_gap=10-29": {
+     "coef": 0.8874,
+     "se": 1.0271,
+     "ci": [
+      -1.1256,
+      2.9004
+     ],
+     "ame_pts": 8.77,
+     "n_rows": 32
+    },
+    "f_gap=3-9": {
+     "coef": 0.8876,
+     "se": 0.8283,
+     "ci": [
+      -0.7358,
+      2.5109
+     ],
+     "ame_pts": 8.77,
+     "n_rows": 62
+    },
+    "f_tc=180+2": {
+     "coef": 0.7173,
+     "se": 0.8838,
+     "ci": [
+      -1.0149,
+      2.4495
+     ],
+     "ame_pts": 6.59,
+     "n_rows": 42
+    },
+    "f_path=transposition": {
+     "coef": -0.2026,
+     "se": 0.7242,
+     "ci": [
+      -1.6219,
+      1.2168
+     ],
+     "ame_pts": -1.93,
+     "n_rows": 82
+    },
+    "f_rarity=q2": {
+     "coef": 0.9211,
+     "se": 1.0179,
+     "ci": [
+      -1.0738,
+      2.9161
+     ],
+     "ame_pts": 8.25,
+     "n_rows": 33
+    },
+    "f_result1=loss": {
+     "coef": 0.5208,
+     "se": 0.7746,
+     "ci": [
+      -0.9974,
+      2.039
+     ],
+     "ame_pts": 4.97,
+     "n_rows": 67
+    }
+   },
+   "negll": 71.17787913975309
+  },
+  "with_same_opponent": {
+   "label": "ply 10-29, all opponents (same-opponent flag)",
+   "n_pairs": 291,
+   "n_players": 273,
+   "converged": true,
+   "seconds": 0.0,
+   "observed_repeat": 0.7491,
+   "chance_repeat": 0.417,
+   "personal_repetition_pts": 33.21,
+   "intercept_only_marginal_at_ref": 0.809,
+   "player_sigma_logit": 1.112,
+   "player_sigma_ci": [
+    0.306,
+    4.038
+   ],
+   "player_spread_note": "sd of a player's personal log-odds of repeating, beyond the Maia offset and covariates",
+   "effects": {
+    "intercept": {
+     "coef": 2.3792,
+     "se": 0.6726,
+     "ci": [
+      1.0608,
+      3.6975
+     ]
+    },
+    "f_gap=10-29": {
+     "coef": 0.2894,
+     "se": 0.6509,
+     "ci": [
+      -0.9864,
+      1.5651
+     ],
+     "ame_pts": 3.81,
+     "n_rows": 36
+    },
+    "f_gap=3-9": {
+     "coef": 0.1275,
+     "se": 0.4454,
+     "ci": [
+      -0.7454,
+      1.0004
+     ],
+     "ame_pts": 1.72,
+     "n_rows": 88
+    },
+    "f_ply=14-17": {
+     "coef": -0.658,
+     "se": 0.477,
+     "ci": [
+      -1.5928,
+      0.2768
+     ],
+     "ame_pts": -9.43,
+     "n_rows": 52
+    },
+    "f_tc=180+2": {
+     "coef": 0.4477,
+     "se": 0.5493,
+     "ci": [
+      -0.629,
+      1.5243
+     ],
+     "ame_pts": 5.88,
+     "n_rows": 55
+    },
+    "f_tc=300+0": {
+     "coef": 0.2514,
+     "se": 0.4426,
+     "ci": [
+      -0.6161,
+      1.119
+     ],
+     "ame_pts": 3.4,
+     "n_rows": 67
+    },
+    "f_path=transposition": {
+     "coef": 0.2026,
+     "se": 0.3705,
+     "ci": [
+      -0.5235,
+      0.9288
+     ],
+     "ame_pts": 2.72,
+     "n_rows": 138
+    },
+    "f_k=3-5": {
+     "coef": -0.1348,
+     "se": 0.5661,
+     "ci": [
+      -1.2442,
+      0.9747
+     ],
+     "ame_pts": -1.84,
+     "n_rows": 35
+    },
+    "f_rarity=q2": {
+     "coef": -0.0864,
+     "se": 0.6745,
+     "ci": [
+      -1.4084,
+      1.2356
+     ],
+     "ame_pts": -1.0,
+     "n_rows": 46
+    },
+    "f_rarity=q3": {
+     "coef": -1.2879,
+     "se": 0.689,
+     "ci": [
+      -2.6382,
+      0.0625
+     ],
+     "ame_pts": -18.18,
+     "n_rows": 42
+    },
+    "f_rarity=rare (q4)": {
+     "coef": -0.1616,
+     "se": 0.6604,
+     "ci": [
+      -1.456,
+      1.1329
+     ],
+     "ame_pts": -1.9,
+     "n_rows": 55
+    },
+    "f_rarity=unseen elsewhere": {
+     "coef": -0.8587,
+     "se": 0.6208,
+     "ci": [
+      -2.0753,
+      0.358
+     ],
+     "ame_pts": -11.44,
+     "n_rows": 101
+    },
+    "f_result1=loss": {
+     "coef": -0.276,
+     "se": 0.3625,
+     "ci": [
+      -0.9866,
+      0.4346
+     ],
+     "ame_pts": -3.72,
+     "n_rows": 134
+    },
+    "same_opp_f": {
+     "coef": 0.1207,
+     "se": 0.4779,
+     "ci": [
+      -0.816,
+      1.0575
+     ]
+    }
+   },
+   "negll": 147.66879845357232
+  }
+ },
+ "momentum": {
+  "pairs": 80,
+  "positions_evaluated": 823,
+  "seconds": 11,
+  "fit": {
+   "label": "momentum subset (Stockfish 20k nodes)",
+   "n_pairs": 80,
+   "n_players": 79,
+   "converged": true,
+   "seconds": 0.1,
+   "observed_repeat": 0.7875,
+   "chance_repeat": 0.4384,
+   "personal_repetition_pts": 34.91,
+   "intercept_only_marginal_at_ref": 0.7016,
+   "player_sigma_logit": 2.073,
+   "player_sigma_ci": [
+    0.431,
+    9.98
+   ],
+   "player_spread_note": "sd of a player's personal log-odds of repeating, beyond the Maia offset and covariates",
+   "effects": {
+    "intercept": {
+     "coef": 1.8065,
+     "se": 1.0168,
+     "ci": [
+      -0.1864,
+      3.7994
+     ]
+    },
+    "f_gap=3-9": {
+     "coef": 1.2977,
+     "se": 1.1726,
+     "ci": [
+      -1.0006,
+      3.596
+     ],
+     "ame_pts": 11.53,
+     "n_rows": 31
+    },
+    "f_path=transposition": {
+     "coef": -0.3378,
+     "se": 0.9662,
+     "ci": [
+      -2.2315,
+      1.556
+     ],
+     "ame_pts": -3.08,
+     "n_rows": 46
+    },
+    "f_result1=loss": {
+     "coef": 1.4715,
+     "se": 1.3079,
+     "ci": [
+      -1.092,
+      4.0349
+     ],
+     "ame_pts": 13.45,
+     "n_rows": 36
+    }
+   },
+   "negll": 35.352028728930975
+  },
+  "switch_quality": {
+   "all": {
+    "n": 17,
+    "better": 0.1765,
+    "worse": 0.4118,
+    "same": 0.4118,
+    "mean_dq": -0.0094
+   },
+   "recent_blunder_at_visit2": {
+    "n": 2,
+    "better": 0.0,
+    "worse": 1.0,
+    "same": 0.0,
+    "mean_dq": -0.0428
+   },
+   "no_recent_blunder_at_visit2": {
+    "n": 15,
+    "better": 0.2,
+    "worse": 0.3333,
+    "same": 0.4667,
+    "mean_dq": -0.0049
+   },
+   "clk2_lt_30s": {
+    "n": 0
+   },
+   "after_loss_at_visit1": {
+    "n": 4,
+    "better": 0.25,
+    "worse": 0.5,
+    "same": 0.25,
+    "mean_dq": 0.0006
+   },
+   "after_win_at_visit1": {
+    "n": 13,
+    "better": 0.1538,
+    "worse": 0.3846,
+    "same": 0.4615,
+    "mean_dq": -0.0124
+   },
+   "note": "expected score after the new move minus after the old move, from the visit-2 board; better/worse = beyond +-0.02"
+  }
+ }
+}
