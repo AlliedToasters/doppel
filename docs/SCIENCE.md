@@ -1983,6 +1983,155 @@ The in-band 2000+ z model (v0g recipe on a 2000+ pool, `allie_v0e_v0g_2300.json`
 cost there but adds nothing (+0.00; + memory +0.42, the same as Maia-3 + memory).
 The gain is in the opening at every band (plies 10–19: +0.8, +1.2, +1.5, +2.1) and rises with best cosine (1900: +1.2 at 0.8–0.9, +5.6 at 0.9–0.95, +16 above 0.995).
 
+**Combo: z and the learned lookup together (2026-11-17, `doppel_lab/combo.py`, `lab/results/allie_combo_full.json`,
+`data/allie/combo/combo_fit_<band>.json`).** Both are corrections to frozen Maia-3's log-probs: zres = v0g Doppel −
+Maia-3 (z from 40 earlier games), rlook = lookup head − Maia-3. Combo = Maia-3 + a·zres + b·rlook, (a, b) per ply
+bin on a 0–2 grid, chosen on valrich (600 held-out 2026 players per band, games 40–47; 96–97% of the lookup's valrich
+queries have a z residual, the rest are players with > 48 valrich sides whose targets differ between the two
+pipelines). < 1000 borrows the 1100 weights. Check: Maia-3 + mapped zres reproduces the Doppel's argmax on every
+smoke row, and the lookup and Doppel arms reproduce `allie_retr1_full` and v0g per bucket.
+
+| Valrich (held-out, top-1 pts vs Maia-3) | 1100 | 1500 | 1900 | 2300 |
+|---|---|---|---|---|
+| Lookup | +0.36 | +0.45 | +0.46 | +0.39 |
+| Doppel (z) | +0.31 | +0.21 | +0.10 | +0.03 |
+| Sum (a = b = 1) | +0.58 | +0.51 | +0.55 | +0.39 |
+| Combo, weights from the other half of players | +0.49 | +0.56 | +0.49 | +0.38 |
+
+Whole Allie test set (884,049): **combo 57.53%** vs lookup 57.44% vs Maia-3 57.08%: **+0.44 [+0.40, +0.48]** over
+Maia-3, **+0.08 [+0.05, +0.11]** over the lookup (McNemar χ² = 32). The plain sum gets the same (57.52%), so the
+grid adds nothing beyond "add both". Over the lookup by bucket: +0.19, +0.16, +0.11, +0.06, −0.01 (< 1000 … 2000+), the
+z model's own pattern. By ply (combo − Maia-3): +1.71, +0.28, +0.11, +0.04; the lookup alone: +1.54, +0.20, 0.00,
++0.01. So z adds a little at every ply and is the only part with anything after ply 30 (+0.09 there on its own).
+Control (real z, shuffled-player lookup store): −0.06.
+
+**Lookup store size (2026-11-17, `doppel_lab/lookup_k.py`, `lab/results/lookup_k.json`).** Same head, store = the
+side's k most recent earlier games, same positions.
+
+| k | 1 | 2 | 5 | 10 | 20 | 40 |
+|---|---|---|---|---|---|---|
+| 1400–1600 | +0.03 | +0.08 | +0.15 [0.09, 0.21] | +0.26 | +0.30 | +0.34 |
+| 1600–2000 | +0.05 | +0.09 | +0.16 [0.11, 0.20] | +0.26 | +0.36 | +0.46 |
+
+Not saturated at 40, most clearly at 1600–2000 (stronger players repeat lines more). About 8% of sides have fewer
+than 40 earlier games; the k = 40 gain on sides with a full 40 is the same within 0.01.
+
+Store to 200 games, 1400–1600 only (`doppel_lab/lookup_store.py`, `lab/results/lookup_store.json`): the 200 most recent
+earlier 2022 games per side (695,888 games, 46.3M positions; 80% of sides have the full 200), same head, same PCA,
+97,306 positions.
+
+| k | 10 | 20 | 40 | 80 | 120 | 200 |
+|---|---|---|---|---|---|---|
+| gain | +0.26 | +0.30 | +0.34 [0.21, 0.45] | **+0.48** [0.35, 0.61] | +0.49 | +0.49 [0.33, 0.63] |
+
+The curve keeps rising to 80 games and is flat after. 40 → 80 adds +0.14. The head never saw stores this large in
+training, so the plateau may belong to the head as much as to the data.
+
+**Ceiling probe: a per-player adapter inside Maia-3 (2026-11-17, `doppel_lab/lora_probe.py`,
+`lab/results/lora_probe.json`).** Question: is there personal signal at plies 20+ that an in-trunk method could reach,
+and how does it grow with games? 199 held-out 2026-10 players with ≥ 545 games in one band (77 at 1500, 122 at 1900):
+train on the N games before 5 val games, test on the last 20 (129,890 positions at ply ≥ 10). Rank-8 LoRA on the MLP
+(linear1/linear2) of blocks 5–8, one per player, trained together; AdamW lr 1e-3, wd 0.01; epoch per player on val CE
+(epoch 0 = Maia-3). Control: each player's test through another player's adapter (same band). Game bootstrap.
+
+| N games | All | 10–19 | 20–29 | 30–39 | 40+ | Control (all) |
+|---|---|---|---|---|---|---|
+| 40 | **+0.79** [0.61, 0.96] | +4.10 | +1.26 [0.81, 1.74] | +0.28 [−0.16, 0.71] | −0.13 | −1.90 |
+| 200 | **+0.89** [0.70, 1.08] | +5.91 | +1.77 [1.27, 2.29] | +0.31 [−0.18, 0.83] | −0.59 | −2.94 |
+| 500 | **+0.79** [0.57, 1.01] | +6.87 | +1.53 [0.97, 2.10] | +0.14 [−0.39, 0.66] | −0.93 | −3.69 |
+
+By band (N = 40 / 200 / 500): 1500 +1.20 / +1.58 / +1.54; 1900 +0.54 / +0.48 / +0.35. Best epoch is mostly 1–2.
+
+Reading. (1) Plies 20–29 carry real personal signal reachable in the trunk (+1.3 to +1.8), several times the lookup's
++0.20 there on Allie. (2) Plies 30–39: nothing distinguishable from zero at any N, so the brainstorm's gate ("N = 500
+gives < +0.2 at 30+, CI touching 0") says middlegame personalisation beyond ply 30 is out of reach for this kind of
+adapter even with 500 games. (3) More games buy opening gains and cost the endgame (40+ goes −0.13 → −0.93): the
+adapter learns the player's openings and drifts elsewhere, and per-player early stopping on overall CE can't see it.
+A ply gate (adapter off at ply ≥ 40) is the obvious fix and is fixed here, from these players, before any Allie use.
+Caveat: these are very heavy players (a game every ~1.5 h for a month), more repetitive than typical test sides.
+
+Lookup on the same players (`doppel_lab/probe_lookup.py`, `lab/results/probe_lookup.json`): identical 129,890 test
+positions; store = the same N training games; retr_train's head for the player's band, unchanged. "Adapter, gated" =
+the probe adapter with Maia-3 at ply ≥ 40, computed from the per-ply rows above.
+
+| N | Lookup all | Lookup 10–19 | Lookup 20–29 | Lookup 30+ | Adapter all | Adapter, gated |
+|---|---|---|---|---|---|---|
+| 40 | +0.51 [0.42, 0.62] | +2.67 | +0.44 [0.16, 0.74] | ≈ 0 | +0.79 | +0.86 |
+| 200 | +0.64 [0.51, 0.76] | +3.89 | +0.52 [0.13, 0.92] | ≈ 0 | +0.89 | +1.22 |
+| 500 | +0.65 [0.51, 0.79] | +4.08 | +0.39 [−0.09, 0.81] | ≈ 0 | +0.79 | +1.30 |
+
+The adapter beats the lookup in every ply bin below 30: 10–19 by ~1.5–2.8, 20–29 by ~3×. The lookup never hurts
+at ply 40+ (CI within ±0.15), and the ungated adapter does. With the gate, the adapter is about 2× the lookup and keeps
+improving with N, while the lookup flattens after ~200 games (the head was trained on 40-game stores). By band, the
+lookup gives 1500 +0.57/+0.77/+0.78 and 1900 +0.48/+0.56/+0.57. At 1900 the lookup matches or beats the ungated
+adapter (+0.54/+0.48/+0.35).
+
+**Test-time adapters on the Allie test set (2026-11-17, `doppel_lab/allie_ttt.py`, `lab/results/allie_ttt_1500.json`,
+`allie_stack_1500.json`).** The probe recipe on real test sides, 1400–1600 bucket only so far. Context = the side's
+40 most recent earlier games (the same games z and the lookup use). Val = the 5 most recent, train = the other 35.
+One rank-8 LoRA per side, sides trained 200 at a time, epoch per side on val CE (epoch 0 = Maia-3; picked: 0 for 9%,
+1 for 68%, 2 for 22%). Scored on the bucket's 97,306 protocol positions. Control: each side's test through another
+side's adapter. Game bootstrap. About 48 min of GPU time for 4,008 sides.
+
+| | All | 10–19 | 20–29 | 30–39 | 40+ |
+|---|---|---|---|---|---|
+| Adapter | **+0.80** [0.60, 0.99] | +2.59 | +0.90 [0.49, 1.36] | +0.67 [0.24, 1.15] | −0.03 [−0.30, 0.26] |
+| Control | −1.78 [−1.95, −1.59] | −2.53 | −1.64 | −1.58 | −1.57 |
+
+Stack, equal weights, no fitting (Maia-3 log-probs + each residual), same positions. "ttt40" = adapter off at
+ply ≥ 40 (the gate fixed from the probe players). Last column is paired against ttt40 alone.
+
+| Arm | Gain | vs ttt40 |
+|---|---|---|
+| z | +0.17 [0.06, 0.26] | −0.64 |
+| lookup | +0.34 [0.22, 0.45] | −0.47 |
+| z + lookup | +0.48 [0.34, 0.63] | −0.33 [−0.50, −0.16] |
+| ttt40 | **+0.81** [0.67, 0.96] | 0 |
+| lookup + ttt40 | **+0.83** [0.67, 1.01] | +0.02 [−0.09, 0.12] |
+| z + ttt40 | +0.74 | −0.07 [−0.16, 0.02] |
+| z + lookup + ttt40 | +0.66 | −0.15 [−0.26, −0.02] |
+
+Reading. (1) Training a small adapter on the side's 35 games at test time gives 1.7× z + lookup on the same games,
+and it is the first method with a clear gain at plies 20–39 on the Allie protocol. The probe players showed ≈ 0 at
+30–39; the difference is unexplained (the Allie protocol stops before the first move under 30 s, the probe does not).
+(2) The adapter subsumes the other two: adding the lookup is +0.02, n.s., and adding z at equal weight hurts. It is the
+same history counted twice, so equal weights over-correct. Fitted weights would need a fitting set with adapters
+trained on it (valrich), which has not been run. (3) The ply-40 gate changes little here (+0.01). At 40 games the
+adapter barely moves the endgame. That matches the probe, where the endgame loss grew with N.
+
+More buckets and more context (`allie_stack_{1100,1900}.json`, `allie_ttt_1500_ctx200.json`). 2300 and 700 are pending.
+
+| Bucket | Positions | z + lookup | ttt40 | lookup + ttt40 | lookup + ttt40 vs ttt40 |
+|---|---|---|---|---|---|
+| 1100 | 184,599 | +0.44 [0.34, 0.53] | **+0.91** [0.79, 1.01] | +0.87 | −0.04 [−0.12, 0.04] |
+| 1500 | 97,306 | +0.48 [0.34, 0.63] | +0.81 [0.67, 0.96] | +0.83 | +0.02 [−0.09, 0.12] |
+| 1900 | 213,192 | +0.53 [0.44, 0.61] | +0.65 [0.56, 0.75] | **+0.81** [0.70, 0.92] | +0.16 [0.09, 0.23] |
+
+At 1900 the lookup adds to the adapter (stronger players repeat lines verbatim, which the lookup copies and a rank-8
+adapter on 35 games only partly learns). 1500 with 200 context games (195 train, same val rule; 3.8 h of GPU):
+adapter **+1.01** [0.80, 1.22] vs +0.80 at 40, by ply +3.59 / +1.12 / +0.22 / +0.07. More history helps the opening
+most, and the 30–39 gain seen at 40 games (+0.67) does not appear.
+
+Rating drift and staleness (`doppel_lab/elo_drift.py`, `lab/results/elo_drift_1500.json`), same bucket, same hits.
+Drift = the side's Elo in the test game minus the median of its own Elo over its 40 context games. Span = days from
+the oldest context game to the test game. 59 sides with no context (1,185 positions) are in no bin. Side drift is
+small: 5–95% range −46 to +49.
+
+| | Positions | z + lookup | Adapter (ttt40) |
+|---|---|---|---|
+| \|drift\| < 40 | 83,170 | +0.54 [0.38, 0.68] | +0.85 [0.69, 1.01] |
+| \|drift\| 40–100 | 11,353 | +0.22 [−0.16, 0.62] | +0.74 [0.32, 1.12] |
+| \|drift\| ≥ 100 | 1,598 | +0.06 [−0.70, 0.88] | −0.31 [−0.91, 0.29] |
+| span < 7 days | 56,486 | +0.61 [0.44, 0.80] | +0.99 [0.79, 1.19] |
+| span 7–30 | 27,051 | +0.37 [0.11, 0.62] | +0.71 [0.44, 0.99] |
+| span 30–90 | 7,260 | +0.28 [−0.18, 0.76] | +0.61 [0.07, 1.12] |
+| span ≥ 90 | 5,324 | +0.09 [−0.39, 0.61] | −0.15 [−0.64, 0.37] |
+
+Both methods fade as the history gets older, and the adapter at 90+ days is indistinguishable from zero. Moderate drift
+(40–100) costs the adapter little. Large drift is too rare here (1.7%) to read. The span is confounded with how often
+the player plays: 40 games in a week is a heavier, likely more repetitive player. So this does not yet show that old
+games are stale. Separating the two needs recency weighting within a player, or the same player at two spans.
+
 **Revisits: the same player at the same board (2026-11-15/16, `doppel_lab/revisits.py`,
 `doppel_lab/revisit_model.py`, `lab/results/revisits_*.json`, `revisit_model.json`, `revisit_learn.json`,
 `revisit_triples.json`).** Held-out games (12.7M); a pair = two consecutive visits by one player to one board

@@ -76,6 +76,13 @@ everything here is lab research.
    scored on repeat-consistency (human 77%) and game-share of think time / error size (human 9% / 3.4%). (e) H2: whole vs shuffled games through the same discriminator (CPU after d).
    (f) H3: BC-anchored adversarial / statistic-matching fine-tune (needs code; after v0g and d).
 
+10. **Career dynamics: rating drift and stale history (backlogged 2026-11-17).** On Allie 1500, adapter and z +
+   lookup gains fade with history age (span < 7 days +0.99, 90+ days ≈ 0; SCIENCE.md "Rating drift and staleness").
+   Span is confounded with play frequency. Next tests: (a) recency weighting within a player (adapter sample weights by
+   game age, lookup weights by age), (b) the same heavy player scored with a recent vs an old 40-game window,
+   (c) players whose Elo crosses a band edge: per-band z / lookup heads break there, so a slow career state
+   (career z + per-game tilt) is the design target.
+
 ## Done
 
 - 2026-11-12: style_fidelity on v0f_1100/1900/half/quarter (one 40-min job): z's backwards conformity is real at 1500
