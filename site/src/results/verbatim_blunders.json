@@ -1,0 +1,372 @@
+{
+ "kreq": 40,
+ "bands": {
+  "1100": {
+   "positions": 184599,
+   "blunder_rate": 0.0652,
+   "doppel_vs_maia": {
+    "good (<0.05)": {
+     "n": 136280,
+     "top1_maia": 0.6306,
+     "top1_doppel": 0.6324,
+     "top1_diff_pts": 0.186,
+     "top1_diff_ci_pts": [
+      0.1,
+      0.27
+     ],
+     "only_doppel": 2128,
+     "only_maia": 1875,
+     "p_maia": 0.4787,
+     "p_doppel": 0.4806,
+     "mean_log_ratio": 0.0064,
+     "mean_log_ratio_ci": [
+      0.0058,
+      0.007
+     ]
+    },
+    "inaccuracy (0.05-0.1)": {
+     "n": 21174,
+     "top1_maia": 0.3488,
+     "top1_doppel": 0.3535,
+     "top1_diff_pts": 0.477,
+     "top1_diff_ci_pts": [
+      0.23,
+      0.73
+     ],
+     "only_doppel": 431,
+     "only_maia": 330,
+     "p_maia": 0.2644,
+     "p_doppel": 0.2675,
+     "mean_log_ratio": 0.0148,
+     "mean_log_ratio_ci": [
+      0.0125,
+      0.017
+     ]
+    },
+    "mistake (0.1-0.2)": {
+     "n": 15101,
+     "top1_maia": 0.2931,
+     "top1_doppel": 0.2981,
+     "top1_diff_pts": 0.503,
+     "top1_diff_ci_pts": [
+      0.23,
+      0.82
+     ],
+     "only_doppel": 296,
+     "only_maia": 220,
+     "p_maia": 0.2286,
+     "p_doppel": 0.2318,
+     "mean_log_ratio": 0.0163,
+     "mean_log_ratio_ci": [
+      0.0136,
+      0.019
+     ]
+    },
+    "blunder (>=0.2)": {
+     "n": 12044,
+     "top1_maia": 0.2218,
+     "top1_doppel": 0.2263,
+     "top1_diff_pts": 0.448,
+     "top1_diff_ci_pts": [
+      0.17,
+      0.75
+     ],
+     "only_doppel": 188,
+     "only_maia": 134,
+     "p_maia": 0.1902,
+     "p_doppel": 0.192,
+     "mean_log_ratio": 0.0138,
+     "mean_log_ratio_ci": [
+      0.0107,
+      0.0169
+     ]
+    },
+    "blunder3 (>=0.3)": {
+     "n": 6528,
+     "top1_maia": 0.1944,
+     "top1_doppel": 0.1982,
+     "top1_diff_pts": 0.383,
+     "top1_diff_ci_pts": [
+      0.02,
+      0.73
+     ],
+     "only_doppel": 88,
+     "only_maia": 63,
+     "p_maia": 0.1768,
+     "p_doppel": 0.1782,
+     "mean_log_ratio": 0.011,
+     "mean_log_ratio_ci": [
+      0.007,
+      0.0152
+     ]
+    }
+   }
+  },
+  "1500": {
+   "positions": 97306,
+   "blunder_rate": 0.0529,
+   "doppel_vs_maia": {
+    "good (<0.05)": {
+     "n": 73355,
+     "top1_maia": 0.6483,
+     "top1_doppel": 0.6499,
+     "top1_diff_pts": 0.157,
+     "top1_diff_ci_pts": [
+      0.04,
+      0.26
+     ],
+     "only_doppel": 950,
+     "only_maia": 835,
+     "p_maia": 0.4983,
+     "p_doppel": 0.5006,
+     "mean_log_ratio": 0.0055,
+     "mean_log_ratio_ci": [
+      0.0047,
+      0.0063
+     ]
+    },
+    "inaccuracy (0.05-0.1)": {
+     "n": 11552,
+     "top1_maia": 0.3624,
+     "top1_doppel": 0.3665,
+     "top1_diff_pts": 0.407,
+     "top1_diff_ci_pts": [
+      0.1,
+      0.73
+     ],
+     "only_doppel": 202,
+     "only_maia": 155,
+     "p_maia": 0.2731,
+     "p_doppel": 0.2764,
+     "mean_log_ratio": 0.0127,
+     "mean_log_ratio_ci": [
+      0.0101,
+      0.0158
+     ]
+    },
+    "mistake (0.1-0.2)": {
+     "n": 7256,
+     "top1_maia": 0.3053,
+     "top1_doppel": 0.3058,
+     "top1_diff_pts": 0.055,
+     "top1_diff_ci_pts": [
+      -0.31,
+      0.43
+     ],
+     "only_doppel": 102,
+     "only_maia": 98,
+     "p_maia": 0.2388,
+     "p_doppel": 0.2411,
+     "mean_log_ratio": 0.0113,
+     "mean_log_ratio_ci": [
+      0.0079,
+      0.0148
+     ]
+    },
+    "blunder (>=0.2)": {
+     "n": 5143,
+     "top1_maia": 0.2219,
+     "top1_doppel": 0.2222,
+     "top1_diff_pts": 0.039,
+     "top1_diff_ci_pts": [
+      -0.33,
+      0.38
+     ],
+     "only_doppel": 49,
+     "only_maia": 47,
+     "p_maia": 0.198,
+     "p_doppel": 0.1989,
+     "mean_log_ratio": 0.0052,
+     "mean_log_ratio_ci": [
+      0.0017,
+      0.0087
+     ]
+    },
+    "blunder3 (>=0.3)": {
+     "n": 2678,
+     "top1_maia": 0.2065,
+     "top1_doppel": 0.2087,
+     "top1_diff_pts": 0.224,
+     "top1_diff_ci_pts": [
+      -0.26,
+      0.71
+     ],
+     "only_doppel": 24,
+     "only_maia": 18,
+     "p_maia": 0.1883,
+     "p_doppel": 0.189,
+     "mean_log_ratio": 0.0023,
+     "mean_log_ratio_ci": [
+      -0.0027,
+      0.0072
+     ]
+    }
+   },
+   "lookup_vs_maia": {
+    "good (<0.05)": {
+     "n": 73355,
+     "top1_maia": 0.6485,
+     "top1_lookup": 0.6512,
+     "top1_diff_pts": 0.273,
+     "top1_diff_ci_pts": [
+      0.14,
+      0.41
+     ],
+     "only_lookup": 1335,
+     "only_maia": 1135
+    },
+    "inaccuracy (0.05-0.1)": {
+     "n": 11552,
+     "top1_maia": 0.3623,
+     "top1_lookup": 0.3679,
+     "top1_diff_pts": 0.563,
+     "top1_diff_ci_pts": [
+      0.18,
+      0.94
+     ],
+     "only_lookup": 283,
+     "only_maia": 218
+    },
+    "mistake (0.1-0.2)": {
+     "n": 7256,
+     "top1_maia": 0.3051,
+     "top1_lookup": 0.3098,
+     "top1_diff_pts": 0.469,
+     "top1_diff_ci_pts": [
+      0.07,
+      0.89
+     ],
+     "only_lookup": 142,
+     "only_maia": 108
+    },
+    "blunder (>=0.2)": {
+     "n": 5143,
+     "top1_maia": 0.2199,
+     "top1_lookup": 0.2259,
+     "top1_diff_pts": 0.603,
+     "top1_diff_ci_pts": [
+      0.23,
+      1.0
+     ],
+     "only_lookup": 68,
+     "only_maia": 37
+    },
+    "blunder3 (>=0.3)": {
+     "n": 2678,
+     "top1_maia": 0.2054,
+     "top1_lookup": 0.2091,
+     "top1_diff_pts": 0.373,
+     "top1_diff_ci_pts": [
+      -0.04,
+      0.85
+     ],
+     "only_lookup": 24,
+     "only_maia": 14
+    }
+   },
+   "lookup_positions": 97306
+  },
+  "1900": {
+   "positions": 213192,
+   "blunder_rate": 0.0418,
+   "doppel_vs_maia": {
+    "good (<0.05)": {
+     "n": 163660,
+     "top1_maia": 0.6558,
+     "top1_doppel": 0.6569,
+     "top1_diff_pts": 0.111,
+     "top1_diff_ci_pts": [
+      0.05,
+      0.18
+     ],
+     "only_doppel": 1571,
+     "only_maia": 1389,
+     "p_maia": 0.5126,
+     "p_doppel": 0.5134,
+     "mean_log_ratio": 0.0023,
+     "mean_log_ratio_ci": [
+      0.0019,
+      0.0027
+     ]
+    },
+    "inaccuracy (0.05-0.1)": {
+     "n": 25156,
+     "top1_maia": 0.3673,
+     "top1_doppel": 0.3683,
+     "top1_diff_pts": 0.099,
+     "top1_diff_ci_pts": [
+      -0.09,
+      0.29
+     ],
+     "only_doppel": 306,
+     "only_maia": 281,
+     "p_maia": 0.2853,
+     "p_doppel": 0.2866,
+     "mean_log_ratio": 0.0054,
+     "mean_log_ratio_ci": [
+      0.004,
+      0.007
+     ]
+    },
+    "mistake (0.1-0.2)": {
+     "n": 15475,
+     "top1_maia": 0.2989,
+     "top1_doppel": 0.2992,
+     "top1_diff_pts": 0.032,
+     "top1_diff_ci_pts": [
+      -0.17,
+      0.25
+     ],
+     "only_doppel": 142,
+     "only_maia": 137,
+     "p_maia": 0.2437,
+     "p_doppel": 0.2445,
+     "mean_log_ratio": 0.0036,
+     "mean_log_ratio_ci": [
+      0.0019,
+      0.0054
+     ]
+    },
+    "blunder (>=0.2)": {
+     "n": 8901,
+     "top1_maia": 0.2285,
+     "top1_doppel": 0.2292,
+     "top1_diff_pts": 0.067,
+     "top1_diff_ci_pts": [
+      -0.19,
+      0.28
+     ],
+     "only_doppel": 56,
+     "only_maia": 50,
+     "p_maia": 0.2037,
+     "p_doppel": 0.2043,
+     "mean_log_ratio": 0.0021,
+     "mean_log_ratio_ci": [
+      0.0002,
+      0.0041
+     ]
+    },
+    "blunder3 (>=0.3)": {
+     "n": 4208,
+     "top1_maia": 0.1925,
+     "top1_doppel": 0.193,
+     "top1_diff_pts": 0.048,
+     "top1_diff_ci_pts": [
+      -0.27,
+      0.35
+     ],
+     "only_doppel": 25,
+     "only_maia": 23,
+     "p_maia": 0.1822,
+     "p_doppel": 0.1826,
+     "mean_log_ratio": 0.0014,
+     "mean_log_ratio_ci": [
+      -0.0013,
+      0.0041
+     ]
+    }
+   }
+  }
+ },
+ "note": "Allie test protocol positions; loss = mover's expected-score drop on the played move (Stockfish 20k nodes). top1 = model's top move equals the played move; p = model probability of the played move. Diffs are Doppel (or lookup) minus Maia-3; CIs: game-cluster bootstrap, 1000 reps."
+}

@@ -1,0 +1,153 @@
+---
+title: Learning the lookup
+description: We taught a small model to search a player's earlier games for positions like the one on the board. On the whole standard test set it lifts Maia-3 from 57.08% to 57.44%, in every rating band, and the gain vanishes when it searches someone else's games.
+date: 2026-11-17
+status: draft
+---
+import BarChart from '../../components/BarChart.astro';
+import full from '../../results/allie_retr1_full.json';
+import b7 from '../../results/allie_retr1_700.json';
+import b11 from '../../results/allie_retr1_1100.json';
+import b15 from '../../results/allie_retr1.json';
+import b19 from '../../results/allie_retr1_1900.json';
+import b23 from '../../results/allie_retr1_2300.json';
+import vb from '../../results/verbatim_blunders.json';
+
+export const B = full.by_bucket;
+export const ci = (x) => `${x.ci95[0] >= 0 ? '+' : '−'}${Math.abs(x.ci95[0]).toFixed(2)} to +${x.ci95[1].toFixed(2)}`;
+export const n = (x) => x.positions.toLocaleString('en-US');
+export const bands = [b7, b11, b15, b19, b23].map((b) => b.personal);
+export const pooled = (get) => {
+  const rows = bands.map(get);
+  const pos = rows.reduce((s, r) => s + r.positions, 0);
+  return rows.reduce((s, r) => s + r.positions * r.gain_pts, 0) / pos;
+};
+export const ply = (k) => { const v = pooled((b) => b.by_ply[k]); return Math.abs(v) < 0.005 ? 0 : v; };
+export const cos = b19.personal.by_best_cos;
+export const L = vb.bands['1500'].lookup_vs_maia;
+
+The last post ended with a plan: our first retrieval try found the positions in a player's earlier games that look
+most like the one on the board, and let those vote. It had no training, and it only worked when a near-copy existed.
+The next step was to learn the lookup.
+
+We did. On all 884,049 positions of the standard test set, the learned lookup's top choice matches the move the
+player made **57.44%** of the time. Maia-3 alone gets 57.08%. The gain is **+0.36 points** (95% interval
+{ci(full.lookup_vs_maia)}).
+
+One note on what this number is. The test set was built to score models that see only the board. We also give the
+model up to 40 of the player's earlier games, so this is a different setting, "the Allie test with prior player
+history", and not an entry on the usual leaderboard.
+
+## What the lookup does
+
+For each position, it looks through the player's 40 most recent earlier games, as Maia-3 sees them. A small learned
+head decides how similar each stored position is and how much to trust the match. The stored positions then vote
+with the move the player made there, and that vote nudges Maia-3's probabilities.
+
+The head was trained on 2026 games from 2,000 players per rating band. Nothing was tuned on the test set. Maia-3
+stays frozen.
+
+## Every rating band
+
+<BarChart
+  title="Learned lookup's gain over Maia-3, by rating band"
+  note="Points of top-1 accuracy on each band's share of the Allie test set, 40 earlier games per player. Under each label: positions, then the 95% interval from a bootstrap over games."
+  format="pts" max={0.6}
+  bars={[
+    { label: 'Under 1000', value: B['700'].gain_pts, slot: 1, note: `${n(B['700'])} · ${ci(B['700'])}` },
+    { label: '1000–1400', value: B['1100'].gain_pts, slot: 1, note: `${n(B['1100'])} · ${ci(B['1100'])}` },
+    { label: '1400–1600', value: B['1500'].gain_pts, slot: 1, note: `${n(B['1500'])} · ${ci(B['1500'])}` },
+    { label: '1600–2000', value: B['1900'].gain_pts, slot: 1, note: `${n(B['1900'])} · ${ci(B['1900'])}` },
+    { label: '2000 and up', value: B['2300'].gain_pts, slot: 1, note: `${n(B['2300'])} · ${ci(B['2300'])}` },
+  ]}
+/>
+
+All five bands clear zero. That includes 2000 and up, where the Doppel's player description adds nothing at all
+(+0.00). The two run in opposite directions. The player description helps most for weaker players
+(+0.26 points at 1000–1400) and fades as ratings rise. The lookup grows with rating up to 2000, because stronger
+players repeat their own lines more.
+
+## Whose games matter
+
+Is the lookup just a good way to use more chess data? To check, we gave each player a store of 40 games from a
+different, randomly chosen player.
+
+<BarChart
+  title="Whose earlier games the lookup searches"
+  note="Whole Allie test set, 884,049 positions. Points of top-1 accuracy over Maia-3; 95% intervals from a bootstrap over games."
+  format="pts" min={-0.3} max={0.45}
+  bars={[
+    { label: "The player's own", value: full.lookup_vs_maia.gain_pts, slot: 1, note: ci(full.lookup_vs_maia) },
+    { label: "Someone else's", value: full.shuffled_vs_maia.gain_pts, slot: 2, note: `−${Math.abs(full.shuffled_vs_maia.ci95[0]).toFixed(2)} to −${Math.abs(full.shuffled_vs_maia.ci95[1]).toFixed(2)}` },
+  ]}
+/>
+
+With someone else's games, it does worse than Maia-3 alone. The head has learned to trust what it finds, so the
+wrong person's habits cost accuracy. The gain is personal.
+
+## Where the gain lives
+
+<BarChart
+  title="Learned lookup's gain, by move number"
+  note="Whole Allie test set, all five bands pooled. Points of top-1 accuracy over Maia-3. Plies are half-moves; scoring starts at ply 10."
+  format="pts" min={-0.2} max={1.8}
+  bars={[
+    { label: 'Plies 10–19', value: ply('10-19'), slot: 1 },
+    { label: 'Plies 20–29', value: ply('20-29'), slot: 1 },
+    { label: 'Plies 30–39', value: ply('30-39'), slot: 1 },
+    { label: 'Ply 40 on', value: ply('40-9999'), slot: 1 },
+  ]}
+/>
+
+Almost all of it is in the opening. In plies 10 to 19 the lookup gains 1.5 points, and nearly 90% of the total
+gain comes from there. After ply 30 it adds nothing.
+
+But it is not just exact repeats. Exact repeats of an earlier position are only 12,029 of the 884,049 positions.
+They gain 6.5 points each, which is about a quarter of the total. The rest comes from positions that are close to
+something the player has seen but not identical:
+
+<BarChart
+  title="Gain by how close the best stored match is"
+  note="1600–2000 band, 213,192 positions. Similarity is the cosine between Maia-3's view of the position on the board and of the closest stored position."
+  format="pts" max={17}
+  bars={[
+    { label: 'Below 0.8', value: cos['-1-0.8'].gain_pts, slot: 1, note: `${n(cos['-1-0.8'])} positions` },
+    { label: '0.8–0.9', value: cos['0.8-0.9'].gain_pts, slot: 1, note: `${n(cos['0.8-0.9'])} positions` },
+    { label: '0.9–0.95', value: cos['0.9-0.95'].gain_pts, slot: 1, note: `${n(cos['0.9-0.95'])} positions` },
+    { label: '0.95–0.98', value: cos['0.95-0.98'].gain_pts, slot: 1, note: `${n(cos['0.95-0.98'])} positions` },
+    { label: 'Above 0.98', value: (cos['0.98-0.995'].gain_pts * cos['0.98-0.995'].positions + cos['0.995-2'].gain_pts * cos['0.995-2'].positions) / (cos['0.98-0.995'].positions + cos['0.995-2'].positions), slot: 1, note: `${(cos['0.98-0.995'].positions + cos['0.995-2'].positions).toLocaleString('en-US')} positions` },
+  ]}
+/>
+
+The untrained version from the last post gained nothing in the 0.8–0.9 range. The learned one gains 1.2 points
+there, and that range holds 36,532 positions.
+
+## Does it predict blunders?
+
+A coaching tool cares less about routine moves than about mistakes. So we checked the positions where the player
+actually blundered (lost at least 0.2 of a game's expected score, by Stockfish). How often is the model's top move
+that exact blunder?
+
+Maia-3 already predicts the exact blunder about 22% of the time, in every band we checked. In the 1400–1600 band the
+learned lookup adds {L['blunder (>=0.2)'].top1_diff_pts.toFixed(2)} points on blunders
+({L['blunder (>=0.2)'].n.toLocaleString('en-US')} positions; interval +{L['blunder (>=0.2)'].top1_diff_ci_pts[0].toFixed(2)}
+to +{L['blunder (>=0.2)'].top1_diff_ci_pts[1].toFixed(2)}), against {L['good (<0.05)'].top1_diff_pts.toFixed(2)} on good
+moves. Part of what it learns is a player's own repeated errors. The interval is wide: 5,143 blunders is not
+many.
+
+## How big is that?
+
+Still small: 36 more correct moves per 10,000. But it is about a third of the spread between the best published
+models on this test, it comes from the player alone, and it beats the last post's best combination, the Doppel plus the exact-repeat lookup
+(57.39% on the whole test set), with no player description at all.
+
+Two caveats:
+
+1. **It lives in the opening.** In the middlegame and endgame it adds nothing. Recognising a player's style in a
+   new position is still open.
+2. **We have not combined it with the player description yet.** The two help different players, so they may add up.
+   That is the next experiment.
+
+*Data and code: `doppel_lab/retr_train.py` and `doppel_lab/verbatim_blunders.py`, results in `lab/results/`:
+`allie_retr1_full.json`, `allie_retr1_<band>.json` and `verbatim_blunders.json`, in the
+[repository](https://github.com/AlliedToasters/doppel).*
