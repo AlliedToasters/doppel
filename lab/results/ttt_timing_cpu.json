@@ -1,0 +1,31 @@
+{
+ "device": "cpu",
+ "threads": 16,
+ "epochs": 3,
+ "model_load_s": 0.48,
+ "sides": [
+  {
+   "pid": 1,
+   "train_positions": 892,
+   "val_positions": 144,
+   "encode_s": 0.19,
+   "train_s": 79.96
+  },
+  {
+   "pid": 2,
+   "train_positions": 1116,
+   "val_positions": 160,
+   "encode_s": 0.22,
+   "train_s": 95.07
+  },
+  {
+   "pid": 4,
+   "train_positions": 868,
+   "val_positions": 143,
+   "encode_s": 0.22,
+   "train_s": 73.61
+  }
+ ],
+ "median_encode_s": 0.22,
+ "median_train_s": 79.96
+}

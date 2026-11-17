@@ -1,0 +1,47 @@
+{
+ "device": "cuda",
+ "threads": 16,
+ "epochs": 3,
+ "model_load_s": 0.69,
+ "sides": [
+  {
+   "pid": 1,
+   "train_positions": 892,
+   "val_positions": 144,
+   "encode_s": 0.19,
+   "train_s": 0.57
+  },
+  {
+   "pid": 2,
+   "train_positions": 1116,
+   "val_positions": 160,
+   "encode_s": 0.28,
+   "train_s": 0.73
+  },
+  {
+   "pid": 4,
+   "train_positions": 868,
+   "val_positions": 143,
+   "encode_s": 0.19,
+   "train_s": 0.58
+  },
+  {
+   "pid": 5,
+   "train_positions": 1128,
+   "val_positions": 136,
+   "encode_s": 0.35,
+   "train_s": 0.84
+  },
+  {
+   "pid": 6,
+   "train_positions": 984,
+   "val_positions": 111,
+   "encode_s": 0.31,
+   "train_s": 0.69
+  }
+ ],
+ "median_encode_s": 0.28,
+ "median_train_s": 0.69,
+ "gpu": "NVIDIA GeForce RTX 5090",
+ "peak_vram_mib": 4747
+}

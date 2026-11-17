@@ -2126,6 +2126,11 @@ The adapter's edge shrinks with rating (+0.89 at 700 → +0.30 at 2300) while th
 (−0.05 → +0.25). Stronger players repeat lines verbatim, which the lookup copies and a rank-8 adapter on 35 games only
 partly learns. The adapter's GPU cost: about 0.7 s per side (36,223 sides, 7.2 h in all).
 
+One player at a time (`doppel_lab/ttt_timing.py`, `lab/results/ttt_timing_{cuda,cpu}.json`): 5 Allie 1500 sides
+with a full 40-game context (~870–1,130 train positions), fresh adapter each, after one warm-up side. RTX 5090, bf16:
+median **0.69 s** train + 0.28 s board encoding, peak 4.7 GB VRAM. CPU, 16 threads, fp32: median **80 s** (74–95 s).
+Model load is under 1 s either way. Batching 200 sides buys nothing per side: one at a time is already 0.7 s.
+
 More context: 1500 with 200 context games (195 train, same val rule; 3.8 h of GPU):
 adapter **+1.01** [0.80, 1.22] vs +0.80 at 40, by ply +3.59 / +1.12 / +0.22 / +0.07. More history helps the opening
 most, and the 30–39 gain seen at 40 games (+0.67) does not appear.
