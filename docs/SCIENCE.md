@@ -2099,16 +2099,34 @@ same history counted twice, so equal weights over-correct. Fitted weights would 
 trained on it (valrich), which has not been run. (3) The ply-40 gate changes little here (+0.01). At 40 games the
 adapter barely moves the endgame. That matches the probe, where the endgame loss grew with N.
 
-More buckets and more context (`allie_stack_{1100,1900}.json`, `allie_ttt_1500_ctx200.json`). 2300 and 700 are pending.
+All buckets (`allie_stack_{700,1100,1900,2300}.json`, `allie_ttt_1500_ctx200.json`; full set
+`lab/results/allie_stack_full.json`, `combo stack-full`).
 
 | Bucket | Positions | z + lookup | ttt40 | lookup + ttt40 | lookup + ttt40 vs ttt40 |
 |---|---|---|---|---|---|
+| 700 | 108,121 | +0.35 | **+0.89** | +0.84 | −0.05 |
 | 1100 | 184,599 | +0.44 [0.34, 0.53] | **+0.91** [0.79, 1.01] | +0.87 | −0.04 [−0.12, 0.04] |
 | 1500 | 97,306 | +0.48 [0.34, 0.63] | +0.81 [0.67, 0.96] | +0.83 | +0.02 [−0.09, 0.12] |
 | 1900 | 213,192 | +0.53 [0.44, 0.61] | +0.65 [0.56, 0.75] | **+0.81** [0.70, 0.92] | +0.16 [0.09, 0.23] |
+| 2300 | 280,831 | +0.36 | +0.30 | **+0.55** | +0.25 |
 
-At 1900 the lookup adds to the adapter (stronger players repeat lines verbatim, which the lookup copies and a rank-8
-adapter on 35 games only partly learns). 1500 with 200 context games (195 train, same val rule; 3.8 h of GPU):
+**Full Allie test set (884,049 positions, every one covered; Maia-3 57.09%), equal weights, no fitting on test:**
+
+| Arm | Top-1 | vs Maia-3 | vs z + lookup |
+|---|---|---|---|
+| z + lookup (the combo) | 57.52% | +0.43 [0.38, 0.47] | 0 |
+| ttt40 | 57.73% | +0.64 [0.59, 0.69] | +0.21 [0.16, 0.26] |
+| **lookup + ttt40** | **57.83%** | **+0.75** [0.69, 0.79] | **+0.32** [0.27, 0.36] |
+| z + lookup + ttt40 | 57.76% | +0.67 | +0.24 |
+
+By ply (lookup + ttt40 vs Maia-3): +2.68 / +0.74 / +0.34 / +0.01. The ply-40 gate was fixed from the probe players
+before any Allie use; the arm set (all subsets, gated and not) was fixed before the first stack ran. 57.83% is the
+best of the 11 arms, so a small selection effect applies, but the runner-up gap to the combo (+0.24) is far outside it.
+The adapter's edge shrinks with rating (+0.89 at 700 → +0.30 at 2300) while the lookup's contribution on top grows
+(−0.05 → +0.25). Stronger players repeat lines verbatim, which the lookup copies and a rank-8 adapter on 35 games only
+partly learns. The adapter's GPU cost: about 0.7 s per side (36,223 sides, 7.2 h in all).
+
+More context: 1500 with 200 context games (195 train, same val rule; 3.8 h of GPU):
 adapter **+1.01** [0.80, 1.22] vs +0.80 at 40, by ply +3.59 / +1.12 / +0.22 / +0.07. More history helps the opening
 most, and the 30–39 gain seen at 40 games (+0.67) does not appear.
 

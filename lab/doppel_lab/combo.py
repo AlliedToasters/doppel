@@ -464,6 +464,44 @@ def full():
         print(b, {k: round(v, 3) for k, v in r.items() if isinstance(v, float)})
 
 
+def stack_full():
+    """All five buckets' stack hits (combo.stack) pooled: the full Allie test set -> lab/results/allie_stack_full.json.
+    Paired game bootstrap against Maia-3 and against z + lookup (equal weights, the same positions)."""
+    from doppel_lab.allie_v0e import BANDS
+    hs = {b: np.load(OUT / f"stack_hits_{b}.npz", allow_pickle=True) for b in sorted(BANDS)}
+    arms = [k for k in hs[sorted(BANDS)[0]].files if k not in ("game_id", "ply")]
+    cat = {k: np.concatenate([h[k] for h in hs.values()]) for k in arms + ["ply"]}
+    gid = np.concatenate([np.char.add(f"{b}:", h["game_id"].astype(str)) for b, h in hs.items()])
+    gi = np.unique(gid, return_inverse=True)[1]
+    rng = np.random.default_rng(0)
+    idx = rng.integers(0, gi.max() + 1, (1000, gi.max() + 1))
+
+    def paired(a, b, sel=None):
+        d = cat[a].astype(float) - cat[b].astype(float)
+        g = gi
+        if sel is not None:
+            d, g = d[sel], np.unique(gi[sel], return_inverse=True)[1]
+        gs, gn = np.bincount(g, d), np.bincount(g)
+        ix = idx if sel is None else rng.integers(0, len(gs), (1000, len(gs)))
+        bs = 100 * gs[ix].sum(1) / gn[ix].sum(1)
+        return {"pts": 100 * float(d.mean()), "ci95": [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))]}
+    ply = cat["ply"]
+    res = {"positions": len(gi), "games": int(gi.max() + 1), "maia_top1": float(cat["maia"].mean()),
+           "by_bucket_positions": {str(b): len(h["ply"]) for b, h in hs.items()}, "arms": {}}
+    for k in arms:
+        if k == "maia":
+            continue
+        r = {"top1": float(cat[k].mean()), "vs_maia": paired(k, "maia"), "vs_z_lookup": paired(k, "z_lookup"),
+             "by_ply_vs_maia": {f"{lo}-{hi}": 100 * float((cat[k][(ply >= lo) & (ply <= hi)].astype(float)
+                                                           - cat["maia"][(ply >= lo) & (ply <= hi)]).mean())
+                                for lo, hi in PLY_BINS},
+             "by_bucket_vs_maia": {str(b): 100 * float((h[k].astype(float) - h["maia"]).mean()) for b, h in hs.items()}}
+        res["arms"][k] = r
+        print(f"{k:16s} {100 * r['top1']:.2f}%  vs maia {r['vs_maia']['pts']:+.3f} {[round(x, 2) for x in r['vs_maia']['ci95']]}"
+              f"  vs z+lookup {r['vs_z_lookup']['pts']:+.3f} {[round(x, 2) for x in r['vs_z_lookup']['ci95']]}", flush=True)
+    (ROOT / "lab/results/allie_stack_full.json").write_text(json.dumps(res, indent=1) + "\n")
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -476,6 +514,7 @@ def main():
     for q in (z, sub.add_parser("fit"), sub.add_parser("eval")):
         q.add_argument("--band", type=int, default=1500, choices=sorted(RUN))
     sub.add_parser("full")
+    sub.add_parser("stack-full")
     st = sub.add_parser("stack")
     st.add_argument("--band", type=int, default=1500)
     a = ap.parse_args()
@@ -489,6 +528,8 @@ def main():
         eval_allie(a.band)
     elif a.cmd == "stack":
         stack(a.band)
+    elif a.cmd == "stack-full":
+        stack_full()
     else:
         full()
 
