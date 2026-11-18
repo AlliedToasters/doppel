@@ -114,6 +114,33 @@ everything here is lab research.
      axes with style traits, evalnet blunder rate, opening family, capture/check/pawn-push rates, risk appetite;
      (4) blind human test: coaches name or sort the two ends of an axis, inter-rater agreement; (5) count axes reliable
      across split halves, per band. Check every axis with and without opening repertoire, which can pose as style.
+12. **Persona lessons from LLM interpretability (backlogged 2026-11-18; lit review done, decide pending).** Claim
+    under test: a sequence model trained on many humans gains by modelling who is speaking, and RL-style training
+    collapses that to one persona. Chess map: Maia / Allie / chess-GPT = base model; Elo input = system prompt;
+    per-side adapter = one-PEFT-per-user (OPPU, Tan et al. EMNLP 2024); Leela / "Chessformer" (Monroe & Chalmers,
+    arXiv 2409.12272) and AlphaZero = RL-only, one engine persona. Prior chess proof of the base-model half: Karvonen
+    (COLM 2024, arXiv 2403.15498), a GPT on PGNs linearly encodes player Elo and a skill vector raises win rate up to
+    2.6x. Maia-3 as we use it sees one position + Elo, so it cannot infer the player in context; the adapter does it
+    in weights. Allie sees the game prefix and could. Imports, cheapest first:
+   - **12a. Engine axis.** Assistant Axis analogue (Lu et al., Anthropic, arXiv 2601.10387): is PC1 of per-player
+     adapter deltas an Elo / engine-likeness axis? If so, count styles (item 11) after projecting it out. Blocker:
+     allie_ttt discards the best LoRA snapshot (only log-probs saved); save it per chunk (rank 8, blocks 5-8, small)
+     before any rerun, or rerun one band.
+   - **12b. Player vectors.** Persona vectors (Chen et al., arXiv 2507.21509): difference-of-means direction per
+     player vs the adapter delta; the cross-player swap is the specificity check.
+   - **12c. Does the base model model the player?** TalkTuner (Chen et al., arXiv 2406.07882) recovers user age,
+     gender, education from chat activations. Probe Maia-3 activations for player identity within one Elo bucket;
+     Carlson's silhouette 0.06 predicts weak, which would itself say the base model barely models the player.
+   - **12d. Two kinds of diversity loss.** RLHF cuts per-input and across-input diversity (Kirk et al., ICLR 2024).
+     Chess: per-position move entropy per bucket, and the random-swap cost. Today the swap cost is flat (-2.41 /
+     -2.52 / -2.70 / -2.36 at 700-1900) while own gain shrinks: players do not become interchangeable with rating.
+     Both numbers come from existing outputs (CPU).
+   - **12e. Repertoire vs style.** Emergent misalignment (Betley et al. 2025; persona features, Wang et al. OpenAI,
+     arXiv 2506.19823): narrow tuning moves a broad persona. Our adapters do the reverse: ttt40 (off after ply 40)
+     helps, so the gain may be opening repertoire, not style. Split gain by ply and by in-book vs out-of-book; feeds 11f.
+   Where the analogy breaks: per-move player signal is tiny (board constrains moves); no post-training stage in
+   human models, so any "RL collapse" lives in the humans (practice, engine prep) and shows only in the Elo curve;
+   LLM personas are characters, chess styles are policies (probing/steering transfers, role-play framing does not).
 
 ## Done
 
