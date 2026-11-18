@@ -94,6 +94,13 @@ everything here is lab research.
    no by-rating diversity). Nobody reports a predictive style count or how it varies with rating. Aggregate results
    only; no other users' usernames in committed results. Ethics: opponent-profiling during a live game is outside
    Lichess fair play; do not build that.
+   - **Measurement notes (2026-11-18).** (1) Normalize every per-band metric for headroom: gain as a share of the
+     positions Maia-3 misses (ctx200 own gain 2.58 / 2.59 / 2.33 / 2.19% at 700 / 1100 / 1500 / 1900, vs raw
+     +1.28 / +1.18 / +1.01 / +0.93). (2) The cross-player swap control is the cluster test: score each side with
+     its own adapter, a same-cluster neighbour's, and a random other-cluster player's. Real clusters mean
+     same-cluster swaps cost much less than the random swap (today about -2.4 to -2.7 pts at every band); the
+     same-cluster cost as a share of the random cost is a per-band, headroom-free cluster-validity number.
+     Conformity at the modality level = k falls with rating while the random-swap cost stays flat.
    - **11e. Prep study (scheduled games and consenting players only).** The predictive version yields a
      per-opponent mixture profile ("88% A, 6% B, ...") in k forward passes over the opponent's recent games, well
      under 1 s. If style is a continuum, the card is coordinates, not percentages. Primary outcome needs no matches:
