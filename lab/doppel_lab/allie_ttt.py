@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import time
 from pathlib import Path
 
@@ -78,8 +79,21 @@ def run(band: int, device: str, workers: int, epochs: int, lr: float, wd: float,
         p.requires_grad_(False)
     out = {k: [] for k in ("game_id", "ply", "maia", "own", "ctrl", "best_ep")}
     lps, legs = [], []
+    sfx = tag if not limit else tag + "_smoke"
+    parts = ROOT / f"data/allie/ttt_{band}{sfx}_parts"      # one file per finished chunk: a killed run resumes
+    parts.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     for c0 in range(0, n_sides, CHUNK):
+        part = parts / f"chunk_{c0:06d}_{CHUNK}.npz"
+        if part.exists():
+            z = np.load(part)
+            for k in out:
+                out[k].append(z[k])
+            lps.extend(np.split(z["lp_flat"], np.cumsum(z["lens"])[:-1]))
+            legs.extend(np.split(z["lg_flat"], np.cumsum(z["lens"])[:-1]))
+            print(f"chunk {c0:,}: resumed from {part.name}", flush=True)
+            continue
+        n_lp = len(lps)
         d = rows.filter((c("pid") >= c0) & (c("pid") < min(n_sides, c0 + CHUNK))).with_columns(pid=c("pid") - c0)
         n = int(d["pid"].max()) + 1
         enc = encode_all(d, workers)
@@ -129,6 +143,13 @@ def run(band: int, device: str, workers: int, epochs: int, lr: float, wd: float,
         out["game_id"].append(gid_of[P.game[te]]); out["ply"].append(P.ply[te])
         out["maia"].append(h_m); out["own"].append(h_o); out["ctrl"].append(h_c)
         out["best_ep"].append(best_ep[P.pid[te]])
+        new_lp, new_lg = lps[n_lp:], legs[n_lp:]
+        tmp = part.with_suffix(".tmp")
+        with open(tmp, "wb") as f:
+            np.savez(f, **{k: v[-1] for k, v in out.items()}, lens=np.array([len(x) for x in new_lp], np.int64),
+                     lp_flat=np.concatenate(new_lp) if new_lp else np.zeros(0, np.float16),
+                     lg_flat=np.concatenate(new_lg) if new_lg else np.zeros(0, np.int64))
+        tmp.rename(part)
         done = min(n_sides, c0 + CHUNK)
         hm, ho = np.concatenate(out["maia"]), np.concatenate(out["own"])
         print(f"{done:,}/{n_sides:,} sides, {len(hm):,} positions, own {100 * (ho.mean() - hm.mean()):+.3f} pts, "
@@ -140,8 +161,8 @@ def run(band: int, device: str, workers: int, epochs: int, lr: float, wd: float,
     lg_arr = np.full((len(lps), L), -1, np.int16)
     for i, (a, b) in enumerate(zip(lps, legs)):
         lp_arr[i, :len(a)] = a; lg_arr[i, :len(b)] = b
-    sfx = tag if not limit else tag + "_smoke"
     np.savez(ROOT / f"data/allie/ttt_{band}{sfx}.npz", logp=lp_arr, legal=lg_arr, **r)
+    shutil.rmtree(parts)
     summary(band, sfx)
 
 
