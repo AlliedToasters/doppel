@@ -24,13 +24,17 @@ ROOT = Path(__file__).resolve().parents[2]
 BAND = 1500
 CTX = 200
 OUT = ROOT / f"data/allie/store{CTX}_{BAND}"
+
+
+def out(band: int) -> Path:
+    return ROOT / f"data/allie/store{CTX}_{band}"
 KS = (10, 20, 40, 80, 120, 200)
 c = pl.col
 
 
-def select():
+def select(band: int = BAND):
     from doppel_lab.allie_v0e import HIST, TEST, test_games
-    t = test_games(BAND)
+    t = test_games(band)
     all_test = set(pl.read_parquet(TEST, columns=["game_id"])["game_id"].to_list())
     sides = pl.concat([t.select("game_id", "created_at", player=c(col)) for col in ("white", "black")]).drop_nulls()
     players = sides["player"].str.to_lowercase().unique()
@@ -49,16 +53,17 @@ def select():
     hg = h.filter(c("game_id").is_in(keep.implode())).unique("game_id").rename({"utc_ms": "t"}).drop("wl", "bl")
     tg = t.with_columns(t=c("created_at")).select(hg.columns)
     g = pl.concat([tg, hg]).sort("t")
-    OUT.mkdir(parents=True, exist_ok=True)
-    g.write_parquet(OUT / "games.parquet")
+    o = out(band)
+    o.mkdir(parents=True, exist_ok=True)
+    g.write_parquet(o / "games.parquet")
     per = ctx.group_by("game_id", "player").len()["len"]
     print(f"{t.height:,} test games, {sides.height:,} sides, context games {hg.height:,}; per side median "
           f"{per.median():.0f}, >= 80: {(per >= 80).mean():.2f}, >= 200: {(per >= 200).mean():.2f}; "
-          f"{g['moves'].list.len().sum():,} positions -> {OUT / 'games.parquet'}", flush=True)
+          f"{g['moves'].list.len().sum():,} positions -> {o / 'games.parquet'}", flush=True)
 
 
 def games(band: int = BAND) -> pl.DataFrame:
-    return pl.read_parquet(OUT / "games.parquet", columns=["game_id", "white", "black", "white_elo", "black_elo",
+    return pl.read_parquet(out(band) / "games.parquet", columns=["game_id", "white", "black", "white_elo", "black_elo",
                                                           "moves", "t"])
 
 
@@ -148,7 +153,8 @@ def evaluate():
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("select")
+    sel = sub.add_parser("select")
+    sel.add_argument("--band", type=int, default=BAND, help="context selection only; states/eval stay 1500")
     s = sub.add_parser("states")
     s.add_argument("--gpu-ok", action="store_true")
     s.add_argument("--workers", type=int, default=12)
@@ -156,7 +162,7 @@ def main():
     sub.add_parser("eval")
     a = ap.parse_args()
     if a.cmd == "select":
-        select()
+        select(a.band)
     elif a.cmd == "states":
         if not a.gpu_ok:
             raise SystemExit("refusing to touch the GPU without --gpu-ok (run through the warden)")

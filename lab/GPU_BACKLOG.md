@@ -82,6 +82,31 @@ everything here is lab research.
    game age, lookup weights by age), (b) the same heavy player scored with a recent vs an old 40-game window,
    (c) players whose Elo crosses a band edge: per-band z / lookup heads break there, so a slow career state
    (career z + per-game tilt) is the design target.
+11. **Player modality: how many playstyles, and does the count change with rating? (backlogged 2026-11-17; research
+   order step 2 lit review done, step 3 not decided).** Representations: per-player adapter deltas (runs must save
+   them), the Doppel z, interpretable departure-from-Maia profiles. Two definitions of "number of styles":
+   predictive (k shared cluster adapters recovering most of the per-player gain) and geometric (within-band
+   effective dimension, cluster stability, split-half reliability to remove 40-game noise). Compare across the 5
+   buckets with rating controlled. Product payoff: a cluster adapter as cold start for players under 20 games (the
+   adapter gains nothing measurable below that). Prior art: McIlroy-Young et al. NeurIPS 2021 (stylometry, 98% ID
+   from 100 games, qualitative clustering), Omi et al. arXiv 2502.14998 (PEFT style vectors, 47,864 players, no
+   cluster count), Carlson arXiv 2606.25176 (Elo-disentangled z residual on Maia-3, silhouette 0.06, rating R² 0.06,
+   no by-rating diversity). Nobody reports a predictive style count or how it varies with rating. Aggregate results
+   only; no other users' usernames in committed results. Ethics: opponent-profiling during a live game is outside
+   Lichess fair play; do not build that.
+   - **11e. Prep study (scheduled games and consenting players only).** The predictive version yields a
+     per-opponent mixture profile ("88% A, 6% B, ...") in k forward passes over the opponent's recent games, well
+     under 1 s. If style is a continuum, the card is coordinates, not percentages. Primary outcome needs no matches:
+     after prep, the subject predicts the opponent's moves on held-out positions (top-1). Arms: none, the 10 s card,
+     30 min traditional game review, sparring vs the opponent's doppel; compare gain per minute of prep. Secondary:
+     scored results in scheduled matches (noisy). Only worth running if the predictive k is small.
+   - **11f. Interpretability of the style space.** Receipts that the representation is personal: +0.82 top-1 at 40
+     games (all buckets), own vs another player's adapter at 700 +1.03 vs -1.88, split-half rho +0.89 (player_markov)
+     and +0.49/+0.51 (style traits). Steps: (1) PCA of adapter deltas / z per band; (2) per axis, the positions where
+     moving along it shifts the move distribution most, shown as boards with gaining and losing moves; (3) correlate
+     axes with style traits, evalnet blunder rate, opening family, capture/check/pawn-push rates, risk appetite;
+     (4) blind human test: coaches name or sort the two ends of an axis, inter-rater agreement; (5) count axes reliable
+     across split halves, per band. Check every axis with and without opening repertoire, which can pose as style.
 
 ## Done
 

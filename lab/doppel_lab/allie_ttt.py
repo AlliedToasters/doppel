@@ -58,7 +58,7 @@ def side_rows(band: int) -> tuple[pl.DataFrame, dict]:
 
 
 def use_store200():
-    """Context = the 200 most recent earlier games (lookup_store's selection, 1400-1600 only)."""
+    """Context = the 200 most recent earlier games (lookup_store's selection; run `lookup_store select --band` first)."""
     from doppel_lab import allie_knn, allie_v0e, lookup_store
     allie_knn.games, allie_v0e.CTX = lookup_store.games, lookup_store.CTX
 
@@ -182,7 +182,7 @@ def main():
     r.add_argument("--wd", type=float, default=0.01)
     r.add_argument("--bs", type=int, default=512)
     r.add_argument("--limit", type=int, default=0, help="smoke: first N sides")
-    r.add_argument("--ctx", type=int, default=40, choices=(40, 200), help="200: lookup_store's context (1500 only)")
+    r.add_argument("--ctx", type=int, default=40, choices=(40, 200), help="200: lookup_store's context")
     s = sub.add_parser("summary")
     s.add_argument("--band", type=int, default=1500)
     s.add_argument("--tag", default="")
@@ -192,7 +192,6 @@ def main():
             raise SystemExit("refusing to touch the GPU without --gpu-ok (run through the warden)")
         tag = ""
         if a.ctx == 200:
-            assert a.band == 1500
             use_store200()
             tag = "_ctx200"
         run(a.band, "cuda" if a.gpu_ok else "cpu", a.workers, a.epochs, a.lr, a.wd, a.bs, a.limit, tag)
