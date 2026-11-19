@@ -161,6 +161,8 @@ class Doppel(Base):
     error: Mapped[str | None] = mapped_column(String(200), nullable=True)
     requested_at: Mapped[float] = mapped_column(Float, default=time.time)
     updated_at: Mapped[float] = mapped_column(Float, default=time.time)
+    job_id: Mapped[str | None] = mapped_column(String(32), nullable=True)  # random, while "training" (trainer.py)
+    claimed_at: Mapped[float | None] = mapped_column(Float, nullable=True)  # when the trainer last took it
 
 
 class HistoryImport(Base):
@@ -248,7 +250,8 @@ _ADDED = [  # additive columns for databases created by an earlier skeleton
 
 _ADDED_USERS = [("lichess_id", "VARCHAR(32)"), ("lichess_username", "VARCHAR(32)"), ("lichess_kid", "BOOLEAN")]
 _ADDED_BY_TABLE = {"games": _ADDED, "users": _ADDED_USERS, "login_codes": [("lichess_kid", "BOOLEAN")],
-                   "consents": [("adult", "BOOLEAN")], "imported_games": [("opp_bot", "BOOLEAN")]}  # nullable, no default: safe on Postgres and SQLite
+                   "consents": [("adult", "BOOLEAN")], "imported_games": [("opp_bot", "BOOLEAN")],
+                   "doppels": [("job_id", "VARCHAR(32)"), ("claimed_at", "FLOAT")]}  # nullable, no default: safe on Postgres and SQLite
 
 
 def make_sessionmaker(url: str | None = None):

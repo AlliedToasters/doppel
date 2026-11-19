@@ -7,6 +7,7 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/venv PATH=/v
 WORKDIR /src
 COPY . .
 RUN uv sync --frozen --no-dev --package "$PKG" $EXTRAS
-RUN useradd -m -u 10001 app && mkdir -p /data && chown app /data
+# /adapters: a new named volume copies this dir's owner, so the api (app) can write doppel adapters there
+RUN useradd -m -u 10001 app && mkdir -p /data /adapters && chown app /data /adapters
 USER app
 WORKDIR /data

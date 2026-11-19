@@ -24,6 +24,12 @@ services:
       DOPPEL_REQUIRE_AUTH: "1"
       DOPPEL_PUBLIC_URL: ${PUBLIC_URL:-https://${DOMAIN}}
       DOPPEL_TRUST_IP_HEADER: "1"   # X-Doppel-Client-IP from Caddy keys the rate limits; api has no published port
+      DOPPEL_MODELS: /models        # reads format-2 manifests (lora spec) to check uploaded adapters
+      DOPPEL_ADAPTERS: /adapters    # writes doppel adapters (trainer.py); infer reads them
+      DOPPEL_TRAINER_TOKEN_SHA256: ${TRAINER_TOKEN_SHA256:-}   # unset: trainer endpoints answer 404
+    volumes:
+      - ../models:/models:ro
+      - adapters:/adapters
     depends_on:
       db: {condition: service_healthy}
       infer: {condition: service_started}

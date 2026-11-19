@@ -30,7 +30,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from . import accounts, doppel, history, limits, lichess_login, ratings, rules
+from . import accounts, doppel, history, limits, lichess_login, ratings, rules, trainer
 from .db import Game, Ply, make_sessionmaker
 
 
@@ -78,6 +78,7 @@ app.include_router(accounts.router)
 app.include_router(lichess_login.router)
 app.include_router(history.router)
 app.include_router(doppel.router)
+app.include_router(trainer.router)
 _locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 _sockets: dict[str, set[WebSocket]] = defaultdict(set)
 _bot_busy: set[str] = set()  # games whose bot turn is in flight
