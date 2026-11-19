@@ -8,7 +8,20 @@
     "id": {"type": "string", "pattern": "^[a-z0-9-]+-[0-9a-f]{8}$", "description": "<name>-<sha256[:8]>; one id = one rated player"},
     "name": {"type": "string", "description": "bot id the backend serves it under, e.g. maia3-79m"},
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "of model.onnx"},
-    "format": {"const": 1},
+    "format": {"enum": [1, 2], "description": "1 = base model; 2 = base model with per-player LoRA inputs (see lora)"},
+    "lora": {
+      "type": "object", "description": "format 2 only: per-player adapter inputs; zero inputs give the base model",
+      "required": ["blocks", "layers", "rank", "scale", "inputs", "residual_weight"],
+      "properties": {
+        "blocks": {"type": "array", "items": {"type": "integer"}},
+        "layers": {"type": "array", "items": {"type": "string"}},
+        "rank": {"type": "integer", "minimum": 1},
+        "scale": {"type": "number"},
+        "inputs": {"type": "array", "items": {"type": "object", "required": ["name", "shape"],
+                   "properties": {"name": {"type": "string"}, "shape": {"type": "array", "items": {"type": "integer"}}}}},
+        "residual_weight": {"type": "number", "description": "served log-probs = base + w * (adapted - base), renormalised over legal moves"}
+      }
+    },
     "input": {
       "type": "object",
       "required": ["encoding", "history"],

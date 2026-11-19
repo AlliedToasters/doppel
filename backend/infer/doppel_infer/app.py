@@ -11,6 +11,7 @@ Env: DOPPEL_MODELS, DOPPEL_THREADS (ORT intra-op threads per package, default 4)
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import time
@@ -38,6 +39,8 @@ def _load() -> dict[str, ModelPackage]:
     by_name: dict[str, ModelPackage] = {}
     dirs = sorted((p for p in MODELS.iterdir() if (p / "manifest.json").exists()), key=lambda p: p.stat().st_mtime)
     for d in dirs:
+        if json.loads((d / "manifest.json").read_text()).get("lora"):
+            continue  # format 2 (per-player adapters) is served per doppel, not as a bot; not wired up yet
         pkg = ModelPackage.load(d, threads=THREADS)
         by_name[pkg.manifest["name"]] = pkg
     return by_name

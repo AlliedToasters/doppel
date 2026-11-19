@@ -11,6 +11,13 @@ positions sampled from held-out human games. Log-probs over legal moves must agr
 
 CPU only (no GPU needed). Run from repo root:
     .venv/bin/python -m doppel_lab.export_package --model 79m --out models
+    .venv/bin/python -m doppel_lab.export_package --model 79m --lora data/allie/adapters_1500_ctx200_fit5_s200 --out models
+
+--lora <adapter dir> exports the adapter graph (format 2): the same model with a rank-r LoRA on linear1/linear2 of
+the recipe's blocks, whose A/B weights are extra graph inputs (manifest "lora": names, shapes, residual weight).
+Zero adapters give Maia-3 exactly, so one package serves every player: infer feeds each player's ~390 KB adapter
+per request. Parity runs twice: zero adapters vs Maia-3, and one real saved adapter vs the lab's hooked torch model
+(doppel_lab.lora_probe.Lora), both on --n-parity positions.
 """
 
 from __future__ import annotations
@@ -88,6 +95,75 @@ class _ExportMHA(torch.nn.Module):
         return self.out(o.transpose(1, 2).reshape(B, L, E)), None
 
 
+class _Ctx:
+    ab: tuple = ()
+
+
+class _LoraLinear(torch.nn.Module):
+    """lin(x) + B @ (A @ x), with A (r, in) and B (out, r) read from the graph inputs (batch 1: one adapter)."""
+
+    def __init__(self, lin: torch.nn.Linear, ctx: _Ctx, i: int, scale: float):
+        super().__init__()
+        self.lin, self.ctx, self.i, self.scale = lin, ctx, i, scale
+
+    def forward(self, x):
+        A, B = self.ctx.ab[2 * self.i], self.ctx.ab[2 * self.i + 1]
+        return self.lin(x) + self.scale * ((x @ A.transpose(0, 1)) @ B.transpose(0, 1))
+
+
+class _PolicyLora(torch.nn.Module):
+    def __init__(self, m, recipe: dict):
+        super().__init__()
+        self.ctx = _Ctx()
+        i = 0
+        for bi in recipe["blocks"]:
+            blk = m.transformer.layers[bi]
+            for name in recipe["layers"]:
+                setattr(blk, name, _LoraLinear(getattr(blk, name), self.ctx, i, recipe["scale"]))
+                i += 1
+        self.m = m
+
+    def forward(self, tokens, elo_self, elo_opp, *ab):
+        self.ctx.ab = ab
+        out = self.m(tokens, elo_self.float(), elo_opp.float())
+        return out[0], out[1]
+
+
+def lora_inputs(model: torch.nn.Module, recipe: dict) -> list[dict]:
+    """Graph input names and shapes, in the recipe's param_order (A then B per layer)."""
+    out = []
+    for bi in recipe["blocks"]:
+        for name in recipe["layers"]:
+            lin = getattr(model.transformer.layers[bi], name)
+            r = recipe["rank"]
+            out += [{"name": f"lora_b{bi}_{name}_A", "shape": [r, lin.in_features]},
+                    {"name": f"lora_b{bi}_{name}_B", "shape": [lin.out_features, r]}]
+    return out
+
+
+def adapter_row(adir: Path, row: int = 0) -> list[np.ndarray]:
+    """One player's adapter from a lab adapter dir (first chunk), float32, in param order."""
+    z = np.load(sorted(adir.glob("chunk_*.npz"))[0])
+    keys = sorted((k for k in z.files if k[0] == "p" and k[1:].isdigit()), key=lambda k: int(k[1:]))
+    return [z[k][row].astype(np.float32) for k in keys]
+
+
+def parity_lora(eng: Maia3, pkg: ModelPackage, positions, recipe: dict, ab: list[np.ndarray]) -> dict:
+    """ONNX with adapter `ab` vs the lab's hooked torch model (lora_probe.Lora, one player loaded with ab)."""
+    from doppel_lab import lora_probe
+    assert tuple(recipe["blocks"]) == lora_probe.BLOCKS and recipe["rank"] == lora_probe.R
+    lora = lora_probe.Lora(eng.model, 1, "cpu", r=recipe["rank"], scale=recipe["scale"])
+    with torch.no_grad():
+        for p, w in zip(lora.params, ab):
+            p.copy_(torch.from_numpy(w)[None])
+    lora.cur = torch.zeros(1, dtype=torch.long)
+    try:
+        return parity(eng, pkg, positions, adapter=ab)
+    finally:
+        for h in lora.hooks:
+            h.remove()
+
+
 def _swap_mha(model: torch.nn.Module) -> torch.nn.Module:
     for mod in list(model.modules()):
         for name, child in list(mod.named_children()):
@@ -112,7 +188,7 @@ def sample_positions(n: int, seed: int = 0):
     return out
 
 
-def parity(eng: Maia3, pkg: ModelPackage, positions) -> dict:
+def parity(eng: Maia3, pkg: ModelPackage, positions, adapter=None) -> dict:
     worst, top1_agree = 0.0, 0
     for moves, we, be in positions:
         board = chess.Board()
@@ -123,7 +199,7 @@ def parity(eng: Maia3, pkg: ModelPackage, positions) -> dict:
         st = GameState(board, we, be, moves=list(moves), maia_hist=hist[-8:])
         ref = logprobs(eng, [st])[0]
         mover, opp = (we, be) if board.turn == chess.WHITE else (be, we)
-        _, legal, lp = pkg.policy(list(moves), mover, opp)
+        _, legal, lp = pkg.policy(list(moves), mover, opp, adapter=adapter)
         got = dict(zip(legal, lp))
         assert set(got) == set(ref)
         worst = max(worst, float(max(abs(got[u] - ref[u]) for u in ref)))
@@ -137,7 +213,10 @@ def main():
     ap.add_argument("--out", default="models")
     ap.add_argument("--n-parity", type=int, default=1000)
     ap.add_argument("--tol", type=float, default=1e-4)
+    ap.add_argument("--lora", type=Path, default=None, help="lab adapter dir (recipe.json + chunk_*.npz)")
     a = ap.parse_args()
+    if a.lora:
+        return main_lora(a)
 
     torch.set_num_threads(8)
     eng = Maia3(a.model, "cpu")
@@ -173,6 +252,60 @@ def main():
     (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))
     print(json.dumps(manifest["parity"]))
     if not manifest["parity"]["pass"]:
+        raise SystemExit(f"parity FAILED; package left at {tmp}")
+    dest = ROOT / a.out / name
+    shutil.rmtree(dest, ignore_errors=True)
+    tmp.rename(dest)
+    print(f"wrote {dest}")
+
+
+def main_lora(a) -> None:
+    """Format 2: the adapter graph. Same Maia-3 weights, LoRA A/B as inputs; two parity tests."""
+    recipe = json.loads((a.lora / "recipe.json").read_text())
+    assert f"maia3-{a.model}" in recipe["base"], recipe["base"]
+    torch.set_num_threads(8)
+    eng = Maia3(a.model, "cpu")
+    hist = eng.cfg.history
+    tag = f"maia3-{a.model}-lora{recipe['rank']}"
+    tmp = ROOT / a.out / f".tmp-{tag}"
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    ins = lora_inputs(eng.model, recipe)
+    x = torch.zeros((1, 64, 12 * hist + 1))
+    e1, e2 = torch.tensor([1500], dtype=torch.long), torch.tensor([1700], dtype=torch.long)
+    ab0 = tuple(torch.randn(i["shape"]) * 0.01 for i in ins)   # distinct, nonzero: no tied or folded inputs
+    torch.onnx.export(_PolicyLora(_swap_mha(copy.deepcopy(eng.model)), recipe).eval(), (x, e1, e2, *ab0),
+                      str(tmp / "model.onnx"), input_names=["tokens", "elo_self", "elo_opp"] + [i["name"] for i in ins],
+                      output_names=["logits_move", "logits_value"], dynamo=True, external_data=False, opset_version=18)
+    sha = hashlib.sha256((tmp / "model.onnx").read_bytes()).hexdigest()
+    commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    name = f"{tag}-{sha[:8]}"
+    manifest = {
+        "id": name, "name": tag, "sha256": sha, "format": 2,
+        "input": {"encoding": "maia3", "history": hist, "clk_ponder": 0.0},
+        "outputs": ["logits_move", "logits_value"],
+        "elo_range": [600, 2800], "z_prior": None, "clock_head": False,
+        "lora": {"blocks": recipe["blocks"], "layers": recipe["layers"], "rank": recipe["rank"],
+                 "scale": recipe["scale"], "inputs": ins, "residual_weight": recipe["residual_weight"],
+                 "forward": "layer_out + scale * B @ (A @ layer_in); zero inputs = the base model; served log-probs = "
+                            "base + residual_weight * (adapted - base), renormalised over legal moves",
+                 "train": recipe["train"]},
+        "base_model": {"family": "maia3", "size": a.model, "license": "AGPL-3.0",
+                       "source": f"https://huggingface.co/UofTCSSLab/Maia3-{a.model.upper()}"},
+        "source": REPO,
+        "lab_commit": commit,
+    }
+    (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    write_license(tmp, a.model, commit)
+    pkg = ModelPackage.load(tmp, threads=8)
+    pos = sample_positions(a.n_parity)
+    zero = parity(eng, pkg, pos)
+    real = parity_lora(eng, pkg, pos, recipe, adapter_row(a.lora))
+    ok = zero["max_abs_logp_diff"] <= a.tol and real["max_abs_logp_diff"] <= a.tol
+    manifest["parity"] = zero | {"tol": a.tol, "pass": bool(ok), "adapter": real | {"source": str(a.lora.name), "row": 0}}
+    (tmp / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    print(json.dumps(manifest["parity"]))
+    if not ok:
         raise SystemExit(f"parity FAILED; package left at {tmp}")
     dest = ROOT / a.out / name
     shutil.rmtree(dest, ignore_errors=True)
