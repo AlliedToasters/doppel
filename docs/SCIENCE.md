@@ -2178,6 +2178,52 @@ gains (gain / (1 − Maia top-1)): 2.58 / 2.59 / 2.33 / 2.19 / 0.10% of Maia's m
 (4) 19 arms were compared; the winner over the runner-up (+0.015) is within selection noise, the gated adapter's gain
 over the 40-game stack (+0.12) is not.
 
+**Where the adapter gains, and how strongly it should speak (2026-11-18; `doppel_lab/ttt_weight.py`,
+`lab/results/ttt_weight_{bins,fit}.json`; CPU on saved outputs).** Margin = Maia-3's p1 − p2 at the position. CE in
+nats per position (Maia-3 ≈ 1.5 overall). Ungated 200-game adapter, all five buckets:
+
+| Margin | ply < 40: top-1 | ply < 40: CE | ply ≥ 40: top-1 | ply ≥ 40: CE |
+|---|---|---|---|---|
+| < 0.1 (near-tie) | +3.6 to +5.9 | −0.03 to −0.10 | +2.0 to +3.1 (2300 +0.3) | −0.02 to +0.05 |
+| 0.1–0.25 | +1.4 to +2.4 | −0.03 to −0.09 | −2.0 to +0.1 | −0.01 to +0.05 |
+| 0.25–0.75 | −0.4 to +0.3 | −0.01 to −0.07 | −2.0 to −0.2 | −0.02 to +0.04 |
+| ≥ 0.75 (forcing) | about −0.1 | about 0 | about −0.1 | 0 to +0.01 |
+
+Readings. (1) The top-1 gain sits where Maia-3's top two moves are nearly tied: in a game with right answers, the
+personal signal is mostly how a player breaks near-ties (backlog 12f predicted this from the LLM analogy: chess is
+closer to a verifiable task than to open text). (2) Top-1 understates the opening: CE improves at every margin before
+ply 40, including where Maia-3's favourite stays right. (3) The late-game loss is real in CE too (1900 and 2300 worse
+at every margin) and sits at middling margins, where the adapter overrules a moderate Maia-3 favourite, not where
+Maia-3 is most confident. The adapter is over-confident, not wrong in direction.
+
+The fix is a weight on the adapter's residual, Maia-3 + w · (adapter − Maia-3). Gates by margin or ply were also
+searched (cross-fitted on halves of the test games, `bins`); they were almost never chosen, and w = 0.5–0.75 was.
+Deciding late on/off per side (on alternate late positions) did no better than the fixed gate. To keep the test set
+out of the choice, w was then chosen on held-out pre-test games: `allie_ttt run --ctx 200 --fit 5 --sample 200` (200
+random sides per band, the 5 most recent context games held out of training and epoch choice; 45 min of GPU),
+136,283 fit positions. w by top-1 = **0.625** (by CE 0.5), the same in all 5 side-folds and 0.5–0.625 in every band.
+Separate opening / late weights pick 0.625 / 0.5.
+
+**Full test set, scored once (884,049 positions; Maia-3 57.09%):**
+
+| Arm | Top-1 vs Maia-3 | CE change | vs ttt200g40 |
+|---|---|---|---|
+| ttt200 (w = 1) | +0.75 [0.69, 0.82] | −0.018 | −0.11 [−0.15, −0.07] |
+| ttt200g40 (previous best) | +0.86 [0.82, 0.92] | −0.026 | 0 |
+| **w = 0.625** | **+1.15** [1.09, 1.21] | **−0.038** [−0.039, −0.037] | **+0.28** [0.24, 0.33] |
+| w = 0.625 / 0.5 by phase | +1.18 [1.12, 1.23] | −0.040 | +0.31 [0.27, 0.36] |
+
+By bucket at w = 0.625: 700 +1.47, 1100 +1.49, 1500 +1.33, 1900 +1.34, 2300 +0.59 (ungated 2300 was +0.04). The
+phase pair adds +0.03; the shipped recipe is the single weight (`allie_ttt` recipe `residual_weight`). Headline for
+the method: **+1.15 top-1 and −0.038 nats over Maia-3 on the full Allie test set**, with nothing chosen on test.
+Caveats: w was fitted on adapters trained on 5 fewer games than the scored ones; at 700, where 56% of sides have
+fewer than 200 earlier games, the held-out games come out of a short history.
+
+Deployable artifact (`allie_ttt` writes it per side unless `--no-save-adapters`): the chosen rank-8 LoRA, 196,608
+parameters (≈ 390 KB fp16) per player on top of the shared Maia-3 79M, plus a recipe (blocks, layers, rank, forward
+rule, residual weight). Reloaded into a fresh model it reproduces the run's log-probs within 0.004 (fp16). Saved so
+far for the fit runs of 1500, 1900, 2300 (200 sides each); the main 200-game runs predate it and kept log-probs only.
+
 Rating drift and staleness (`doppel_lab/elo_drift.py`, `lab/results/elo_drift_1500.json`), same bucket, same hits.
 Drift = the side's Elo in the test game minus the median of its own Elo over its 40 context games. Span = days from
 the oldest context game to the test game. 59 sides with no context (1,185 positions) are in no bin. Side drift is
