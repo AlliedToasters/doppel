@@ -45,6 +45,7 @@ import Base from '../layouts/Base.astro';
         <p id="doppel-games" class="line"></p>
         <div class="row">
           <button id="doppel-train" class="btn primary" type="button">Train my doppel</button>
+          <a id="doppel-play" class="btn ghost" href="/play/" hidden>Play your doppel</a>
         </div>
         <p id="doppel-status" class="muted line" role="status" hidden></p>
       </div>
@@ -170,6 +171,7 @@ import Base from '../layouts/Base.astro';
     const line = [doppelLine(d), !busy && !d.can_request ? d.reason : ''].filter(Boolean).join(' ');
     $('doppel-status').textContent = line;
     $('doppel-status').hidden = !line;
+    $('doppel-play').hidden = !d.adapter;
     const btn = $('doppel-train') as HTMLButtonElement;
     btn.disabled = !d.can_request;
     btn.textContent = d.state === 'ready' || d.state === 'error' ? 'Train again' : 'Train my doppel';

@@ -45,10 +45,17 @@ class Infer:
         r.raise_for_status()
         return {b["id"]: b for b in r.json()["bots"]}
 
+    async def doppel_bases(self) -> dict[str, str]:
+        """Format-2 package name -> package id (infer's /api/health)."""
+        r = await self.http.get("/api/health")
+        r.raise_for_status()
+        return r.json().get("doppel_bases", {})
+
     async def move(self, g: Game) -> tuple[str, float]:
         """The sampled move and the policy's top-move probability (drives think time)."""
         r = await self.http.post("/api/move", json={
-            "bot": g.bot, "elo": g.bot_elo, "opp_elo": g.human_elo, "moves": g.moves, "z": g.z})
+            "bot": g.bot, "elo": g.bot_elo, "opp_elo": g.human_elo, "moves": g.moves, "z": g.z,
+            **({"adapter": g.adapter_id} if g.adapter_id else {})})
         r.raise_for_status()
         d = r.json()
         return d["move"], float(d["top"][0]["p"]) if d.get("top") else 0.5
@@ -241,13 +248,26 @@ async def create_game(req: NewGame, request: Request):
     if user is None and accounts.require_auth():
         raise HTTPException(401, "sign in first")
     app_.state.limits.check("game", limits.actor(request, user))
-    bots = await app_.state.infer.bots()
-    if req.bot not in bots:
-        raise HTTPException(400, f"unknown bot {req.bot}")
+    adapter = None
+    if req.bot == doppel.BOT_ID:              # the user's own doppel (doppel.py); never anyone else's
+        with app_.state.sessions() as sess:
+            mine = doppel.playable(sess, user)
+        if mine is None:
+            raise HTTPException(403, "You have no doppel yet. Train one on the account page.")
+        bases = await app_.state.infer.doppel_bases()
+        if mine["package"] not in bases:
+            raise HTTPException(503, "Doppels are unavailable right now. Try again later.")
+        bot, package_id, adapter = mine["package"], f"{bases[mine['package']]}+{mine['adapter']}", mine["adapter"]
+        bot_elo, z_prior = mine["elo"], None
+    else:
+        bots = await app_.state.infer.bots()
+        if req.bot not in bots:
+            raise HTTPException(400, f"unknown bot {req.bot}")
+        bot, package_id, bot_elo, z_prior = req.bot, bots[req.bot]["package"], req.bot_elo, bots[req.bot].get("z_prior")
     color = random.choice(["white", "black"]) if req.color == "random" else req.color
-    g = Game(bot=req.bot, package_id=bots[req.bot]["package"], bot_elo=req.bot_elo, human_elo=req.human_elo,
+    g = Game(bot=bot, package_id=package_id, adapter_id=adapter, bot_elo=bot_elo, human_elo=req.human_elo,
              human_color=color, base_ms=req.base_s * 1000, inc_ms=req.inc_s * 1000, white_ms=req.base_s * 1000,
-             black_ms=req.base_s * 1000, moves=[], z=rules.sample_z(bots[req.bot].get("z_prior"), _rng),
+             black_ms=req.base_s * 1000, moves=[], z=rules.sample_z(z_prior, _rng),
              bot_pace=req.pace, player=req.player, user_id=user.id if user else None, last_move_at=time.time())
     with app_.state.sessions() as sess:
         sess.add(g)
@@ -401,8 +421,17 @@ async def game_ws(ws: WebSocket, game_id: str):
 # ---------- passthrough to infer (the api is the only service the client talks to) ----------
 @app.get("/api/bots")
 async def bots(request: Request):
+    """infer's bots, plus "Your doppel" first for a signed-in user whose doppel is ready."""
     r = await request.app.state.infer.http.get("/api/bots")
-    return JSONResponse(r.json(), status_code=r.status_code)
+    body = r.json()
+    if r.status_code == 200:
+        with request.app.state.sessions() as sess:
+            mine = doppel.playable(sess, accounts.current_user(sess, request))
+        if mine is not None:
+            body["bots"] = [{"id": doppel.BOT_ID, "name": "Your doppel",
+                             "blurb": f"Plays like you: trained on {mine['games']} of your {mine['speed']} games",
+                             "clock": False, "z_prior": None, "package": f"{mine['package']}+{mine['adapter']}"}] + body["bots"]
+    return JSONResponse(body, status_code=r.status_code)
 
 
 # No stateless "/api/move" here: a move for an arbitrary position is a move-suggestion service (Lichess fair play,

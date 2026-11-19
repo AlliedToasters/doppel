@@ -30,6 +30,7 @@ from .history import ImportFailed, refusal as history_refusal
 
 router = APIRouter()
 
+BOT_ID = "doppel"   # the bot id a client sends to play its own doppel (app.create_game)
 SPEEDS = ("bullet", "blitz", "rapid", "classical")
 TARGET = 200
 WEEK_S = 7 * 86400
@@ -90,6 +91,20 @@ def status(sess, u: User) -> dict:
             "requested_at": d.requested_at if d else None, "updated_at": d.updated_at if d else None,
             "eligible": counts, "best_speed": pick_speed(counts, None), "need": min_games(), "target": TARGET,
             "can_request": why is None, "reason": why}
+
+
+def playable(sess, u: User | None) -> dict | None:
+    """The user's ready doppel as {adapter, package, games, speed, elo}, or None. elo = the median of the user's
+    own ratings in its training games (Maia-3's elo_self for the doppel)."""
+    if u is None:
+        return None
+    d = sess.get(Doppel, u.id)
+    if d is None or not d.adapter_id or not d.package:
+        return None
+    rs = sorted(r for r in sess.scalars(select(ImportedGame.rating).where(
+        ImportedGame.user_id == u.id, ImportedGame.lichess_game_id.in_(d.games))) if r is not None)
+    elo = int(min(2800, max(600, rs[len(rs) // 2]))) if rs else 1500
+    return {"adapter": d.adapter_id, "package": d.package, "games": len(d.games), "speed": d.speed, "elo": elo}
 
 
 class DoppelRequest(BaseModel):

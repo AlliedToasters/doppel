@@ -92,9 +92,9 @@ class _PlayScreenState extends State<PlayScreen> {
     try {
       final saved = (await SharedPreferences.getInstance()).getString('bot_pace');
       if (saved != null) pace = saved;
+      await Account.ensure(); // first: the bot list includes "Your doppel" only with the account token
       bots = await listBots();
       if (bots.isNotEmpty) botId = bots.first.$1;
-      await Account.ensure();
       try {
         final linked = await Account.finishWebLink(); // web: back from Lichess sign-in with ?login_code=
         if (linked != null && mounted) {

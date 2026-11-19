@@ -26,7 +26,8 @@ class Game(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     created_at: Mapped[float] = mapped_column(Float, default=time.time)
     bot: Mapped[str] = mapped_column(String(64))
-    package_id: Mapped[str] = mapped_column(String(80))  # rated player = package id
+    package_id: Mapped[str] = mapped_column(String(80))  # rated player = package id (+adapter for a doppel)
+    adapter_id: Mapped[str | None] = mapped_column(String(16), nullable=True)  # a doppel game: the user's adapter
     bot_elo: Mapped[int] = mapped_column(Integer)
     human_elo: Mapped[int] = mapped_column(Integer)
     human_color: Mapped[str] = mapped_column(String(5))  # "white" | "black"
@@ -245,6 +246,7 @@ _ADDED = [  # additive columns for databases created by an earlier skeleton
     ("player", "VARCHAR(64)"),
     ("last_move_at", "FLOAT"),
     ("user_id", "VARCHAR(36) REFERENCES users(id)"),
+    ("adapter_id", "VARCHAR(16)"),
 ]
 
 

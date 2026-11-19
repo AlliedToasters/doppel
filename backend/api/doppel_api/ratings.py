@@ -32,7 +32,7 @@ def bot_subject(g: Game) -> str:
 
 def rated(g: Game) -> bool:
     return g.status == "over" and g.result in ("1-0", "0-1", "1/2-1/2") and g.user_id is not None \
-        and len(g.moves) >= MIN_PLIES and g.termination != "abort"
+        and len(g.moves) >= MIN_PLIES and g.termination != "abort" and g.adapter_id is None   # not vs your doppel
 
 
 def user_score(g: Game) -> float:
