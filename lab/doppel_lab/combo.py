@@ -6,6 +6,7 @@
     python -m doppel_lab.combo eval --band 1500                            # CPU: Allie bucket -> combo_positions_<band>.parquet
     python -m doppel_lab.combo full                                        # CPU: all buckets -> lab/results/allie_combo_full.json
     python -m doppel_lab.combo stack --band 1500                           # CPU: + allie_ttt adapters -> allie_stack_<band>.json
+                                                                           #   (+ ttt200 / ttt200g40 arms when ttt_<band>_ctx200.npz exists)
 
 Both signals are corrections to frozen Maia-3's log-probs over the legal moves:
   zres  = Doppel log-probs - Maia-3 log-probs (v0g model of the band, z from the side's 40 most recent earlier games)
@@ -356,9 +357,13 @@ def stack(band: int = 1500):
     kmap = {(g, p): r for g, p, r in zip(key["game_id"].to_list(), key["ply"].to_list(), key["zrow"].to_list())}
     tt = np.load(ROOT / f"data/allie/ttt_{band}.npz", allow_pickle=True)
     tmap = {(str(g), int(p)): i for i, (g, p) in enumerate(zip(tt["game_id"], tt["ply"]))}
+    t2p = ROOT / f"data/allie/ttt_{band}_ctx200.npz"          # allie_ttt --ctx 200 (the 200 most recent games)
+    t2 = np.load(t2p, allow_pickle=True) if t2p.exists() else None
+    t2map = {(str(g), int(p)): i for i, (g, p) in enumerate(zip(t2["game_id"], t2["ply"]))} if t2 is not None else {}
     parts = ("z", "lookup", "ttt")
     combos = [s for k in range(1, 4) for s in itertools.combinations(parts, k)]
-    combos += [tuple("ttt40" if p == "ttt" else p for p in s) for s in combos if "ttt" in s]
+    alt = ("ttt40",) + (("ttt200", "ttt200g40") if t2 is not None else ())
+    combos += [tuple(v if p == "ttt" else p for p in s) for v in alt for s in combos if "ttt" in s]
     rec = {"+".join(s): [] for s in combos}
     rec["maia"], gids, plys = [], [], []
     with torch.no_grad():
@@ -386,6 +391,12 @@ def stack(band: int = 1500):
             res["ttt"] = np.where(legal >= 0, tl - logp, 0.0)
             # ply gate fixed from lora_probe (independent players): the adapter loses at ply >= 40 there
             res["ttt40"] = np.where((plies < 40)[:, None], res["ttt"], 0.0)
+            if t2 is not None:
+                t2i = np.array([t2map[(gid, int(p))] for p in plies])
+                t2l = np.nan_to_num(align_any(t2["legal"][t2i].astype(np.int64), t2["logp"][t2i].astype(np.float32),
+                                              legal), neginf=-1e9)
+                res["ttt200"] = np.where(legal >= 0, t2l - logp, 0.0)
+                res["ttt200g40"] = np.where((plies < 40)[:, None], res["ttt200"], 0.0)
             rec["maia"].append(logp.argmax(1) == truth)
             for s in combos:
                 rec["+".join(s)].append((logp + sum(res[p] for p in s)).argmax(1) == truth)

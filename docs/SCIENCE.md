@@ -2135,6 +2135,49 @@ More context: 1500 with 200 context games (195 train, same val rule; 3.8 h of GP
 adapter **+1.01** [0.80, 1.22] vs +0.80 at 40, by ply +3.59 / +1.12 / +0.22 / +0.07. More history helps the opening
 most, and the 30–39 gain seen at 40 games (+0.67) does not appear.
 
+**200 context games, all buckets (2026-11-18; `allie_ttt_<band>_ctx200.json`, `allie_stack_<band>.json`,
+`allie_stack_full.json`).** Same recipe, the 200 most recent earlier games (`lookup_store.py select --band`,
+`allie_ttt run --ctx 200`); sides with fewer use what they have (≥ 200 available: 700 44%, 1100 69%, 1900 83%, 2300
+79%). Stack arms ttt200 (ungated) and ttt200g40 (off at ply ≥ 40, the same fixed gate) were added to the 11; 19 arms
+in all, the gate and arm list fixed before the run. About 32 h of GPU over the five buckets (2300 alone 11.2 h).
+
+| Bucket | Maia-3 | ttt40 (40 games) | ttt200 | **ttt200g40** | ttt200 by ply (10–19 / 20–29 / 30–39 / 40+) | Control |
+|---|---|---|---|---|---|---|
+| 700 | 50.5% | +0.89 | **+1.28** [1.07, 1.46] | +1.03 | +2.57 / +1.50 / +0.53 / +0.66 | −2.41 |
+| 1100 | 54.4% | +0.91 | **+1.18** [1.03, 1.32] | +1.11 | +3.34 / +1.25 / +0.88 / +0.16 | −2.52 |
+| 1500 | 56.6% | +0.81 | **+1.01** [0.80, 1.22] | +0.98 | +3.59 / +1.12 / +0.22 / +0.07 | −2.70 |
+| 1900 | 57.8% | +0.65 | +0.93 [0.78, 1.07] | **+1.02** | +4.05 / +0.98 / +0.35 / −0.21 | −2.36 |
+| 2300 | 61.0% | +0.30 | +0.04 [−0.08, 0.15] | **+0.48** | +2.87 / +0.20 / −0.55 / −0.96 | −1.98 |
+
+Control = the same positions scored with another side's 200-game adapter (ungated).
+
+**Full test set (884,049 positions; Maia-3 57.09%):**
+
+| Arm | Top-1 | vs Maia-3 | vs z + lookup |
+|---|---|---|---|
+| lookup + ttt40 (previous best) | 57.83% | +0.75 [0.69, 0.79] | +0.32 [0.27, 0.36] |
+| ttt200 | 57.84% | +0.75 [0.68, 0.82] | +0.32 [0.25, 0.39] |
+| **ttt200g40** | **57.95%** | **+0.86** [0.81, 0.92] | **+0.43** [0.38, 0.49] |
+| lookup + ttt200g40 | 57.97% | +0.88 [0.82, 0.94] | +0.45 [0.39, 0.50] |
+
+Paired, game bootstrap: ttt200g40 − ttt40 **+0.23** [0.18, 0.28]; ttt200g40 − lookup + ttt40 +0.12 [0.06, 0.18]; the
+gate at 200 games +0.11 [0.07, 0.16]; adding the lookup to ttt200g40 +0.015 [−0.02, 0.05], n.s. So the headline is one
+method, the gated 200-game adapter, by ply +3.28 / +0.89 / +0.18 / 0. At 200 games the adapter absorbs what the lookup
+added at 40 (the repeated lines).
+
+Readings. (1) More history helps every bucket's opening (10–19: +2.6 to +4.1, the largest at 1900), and helps less or
+hurts later. At 2300 the ungated adapter gains +2.87 in the opening and loses −0.96 at 40+, netting zero; gated it is
++0.48. The fall of the ungated gain with rating is therefore mostly a late-game cost, not less personal play overall.
+(2) Maia-3's own top-1 at 2300 is 60.4% at 10–19 and 62.5% at 40+, so a strong base model sets the size of the late
+headroom but does not explain a negative sign: an adapter with nothing to learn should land near 0 after epoch
+selection. The likelier cause is that the epoch is chosen on validation CE over all plies, which the opening dominates;
+the fit spills into later positions where there is little personal signal. Per-phase epoch choice is untested.
+(3) The swap control stays at −2.0 to −2.7 at every band, while the own gain shrinks at 2300: players are no more
+interchangeable at 2300, but less of their difference is reachable beyond the opening. Headroom-normalised ttt200
+gains (gain / (1 − Maia top-1)): 2.58 / 2.59 / 2.33 / 2.19 / 0.10% of Maia's misses at 700–2300.
+(4) 19 arms were compared; the winner over the runner-up (+0.015) is within selection noise, the gated adapter's gain
+over the 40-game stack (+0.12) is not.
+
 Rating drift and staleness (`doppel_lab/elo_drift.py`, `lab/results/elo_drift_1500.json`), same bucket, same hits.
 Drift = the side's Elo in the test game minus the median of its own Elo over its 40 context games. Span = days from
 the oldest context game to the test game. 59 sides with no context (1,185 positions) are in no bin. Side drift is

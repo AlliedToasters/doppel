@@ -138,6 +138,14 @@ everything here is lab research.
    - **12e. Repertoire vs style.** Emergent misalignment (Betley et al. 2025; persona features, Wang et al. OpenAI,
      arXiv 2506.19823): narrow tuning moves a broad persona. Our adapters do the reverse: ttt40 (off after ply 40)
      helps, so the gain may be opening repertoire, not style. Split gain by ply and by in-book vs out-of-book; feeds 11f.
+   - **12f. Is the player's share of a move's uncertainty set by how forcing the position is?** Chess is closer to LLMs on
+     verifiable tasks (math, code) than to open text: most move variance is graded error, not expression. So the
+     prediction is that adapter gain concentrates where several moves are near-equal and vanishes in forcing positions.
+     Identity can still be strong (it accumulates over moves); this is about prediction gain only. Tiers: (1) CPU now:
+     bin positions by Maia-3's own policy margin (p1 - p2) and entropy from the saved log-probs, gain per bin, headroom-
+     normalised; (2) engine version: best-vs-second-best eval gap. evalnet.py scores positions, not moves, so this needs
+     a pass over every legal child (~30x per position, GPU) or Stockfish multipv on a test subsample. Do (1) first; the
+     engine tier only if Maia's margin and the engine gap might disagree in a way that matters.
    Where the analogy breaks: per-move player signal is tiny (board constrains moves); no post-training stage in
    human models, so any "RL collapse" lives in the humans (practice, engine prep) and shows only in the Elo curve;
    LLM personas are characters, chess styles are policies (probing/steering transfers, role-play framing does not).
