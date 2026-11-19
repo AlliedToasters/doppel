@@ -23,6 +23,7 @@ services:
       DOPPEL_DB_URL: postgresql+psycopg://doppel:${POSTGRES_PASSWORD}@db:5432/doppel
       DOPPEL_REQUIRE_AUTH: "1"
       DOPPEL_PUBLIC_URL: ${PUBLIC_URL:-https://${DOMAIN}}
+      DOPPEL_TRUST_IP_HEADER: "1"   # X-Doppel-Client-IP from Caddy keys the rate limits; api has no published port
     depends_on:
       db: {condition: service_healthy}
       infer: {condition: service_started}

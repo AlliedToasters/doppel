@@ -14,6 +14,7 @@ DOPPEL_HISTORY_MAX_GAMES (default 5000)
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import random
 import time
@@ -29,7 +30,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from . import accounts, history, lichess_login, ratings, rules
+from . import accounts, history, limits, lichess_login, ratings, rules
 from .db import Game, Ply, make_sessionmaker
 
 
@@ -63,6 +64,7 @@ async def lifespan(app: FastAPI):
     if not hasattr(app.state, "lichess"):
         app.state.lichess = httpx.AsyncClient(base_url=lichess_login.LICHESS, timeout=10,
                                               headers={"user-agent": lichess_login.USER_AGENT})
+    app.state.limits = limits.Limiter.from_env()  # fresh per lifespan; DOPPEL_LIMITS=off disables
     app.state.history = history.Importer(app)   # per lifespan: its lock belongs to this event loop
     app.state.history.recover()
     yield
@@ -71,6 +73,7 @@ async def lifespan(app: FastAPI):
 
 accounts.install_log_redaction()
 app = FastAPI(title="Doppel API", lifespan=lifespan)
+app.middleware("http")(limits.middleware)
 app.include_router(accounts.router)
 app.include_router(lichess_login.router)
 app.include_router(history.router)
@@ -235,6 +238,7 @@ async def create_game(req: NewGame, request: Request):
         user = accounts.current_user(sess, request)
     if user is None and accounts.require_auth():
         raise HTTPException(401, "sign in first")
+    app_.state.limits.check("game", limits.actor(request, user))
     bots = await app_.state.infer.bots()
     if req.bot not in bots:
         raise HTTPException(400, f"unknown bot {req.bot}")
@@ -276,9 +280,12 @@ async def _human_move(app_: FastAPI, game_id: str, intent: MoveIntent) -> None:
         await _broadcast(g)
 
 
-def _check_owner(request: Request | WebSocket, game_id: str) -> None:
+def _check_owner(request: Request | WebSocket, game_id: str, rule: str | None = None) -> None:
+    """The caller owns the game; with `rule`, also take a token from that per-account limit."""
     with request.app.state.sessions() as sess:
         _owned(sess, game_id, request)
+        if rule:
+            request.app.state.limits.check(rule, limits.actor(request, accounts.current_user(sess, request)))
 
 
 @app.get("/api/me/games")
@@ -300,7 +307,7 @@ def my_games(request: Request, limit: int = 50):
 async def post_move(game_id: str, intent: MoveIntent, request: Request):
     """Apply the human's move, then the bot's reply; returns the state after both (in realtime pace this
     blocks for the bot's think time; the WebSocket is the non-blocking path)."""
-    _check_owner(request, game_id)
+    _check_owner(request, game_id, "move")
     async with _locks[game_id]:
         await _human_move(request.app, game_id, intent)
     await _bot_turn(request.app, game_id)
@@ -347,7 +354,9 @@ async def game_ws(ws: WebSocket, game_id: str):
             await ws.close(code=4404)
             return
         try:
-            accounts.authorize(g, accounts.current_user(sess, ws))
+            who = accounts.current_user(sess, ws)
+            accounts.authorize(g, who)
+            key = limits.actor(ws, who)
         except HTTPException as e:
             await ws.close(code=4000 + e.status_code)  # 4401 unknown token, 4403 not your game
             return
@@ -359,6 +368,11 @@ async def game_ws(ws: WebSocket, game_id: str):
         _spawn_bot_turn(app_, game_id)  # resume a bot turn lost to a server restart (no-op if not its turn)
         while True:
             msg = await ws.receive_json()
+            wait = app_.state.limits.wait("move", key)
+            if wait:
+                await ws.send_json({"type": "error", "status": 429, "detail": "too many messages; slow down",
+                                    "retry_after": math.ceil(wait)})
+                continue
             try:
                 async with _locks[game_id]:
                     kind = msg.get("type")

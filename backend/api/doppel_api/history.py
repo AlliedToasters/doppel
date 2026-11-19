@@ -260,6 +260,7 @@ async def post_import(request: Request):
         why = refusal(sess, u)
         if why:
             raise HTTPException(403, why)
+        request.app.state.limits.check("import", f"u:{u.id}")
         row = sess.get(HistoryImport, u.id)
         if row is None:
             row = HistoryImport(user_id=u.id, state="queued")

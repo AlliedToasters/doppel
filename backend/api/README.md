@@ -62,6 +62,12 @@ New tables are created at startup; new columns are added by the additive list in
 Environment: `DOPPEL_DB_URL`, `DOPPEL_INFER_URL`, `DOPPEL_STATIC`, `DOPPEL_PUBLIC_URL` (sign-in redirects),
 `DOPPEL_LICHESS_URL` (default https://lichess.org), `DOPPEL_LICHESS_CLIENT_ID` (default doppelbot.org),
 `DOPPEL_REQUIRE_AUTH` (1 refuses anonymous games), `DOPPEL_HISTORY_MAX_GAMES` (games per import run, default 5000).
+`DOPPEL_LIMITS` (off disables the rate limits), `DOPPEL_TRUST_IP_HEADER` (1 keys per-IP limits on Caddy's
+`X-Doppel-Client-IP`; set only where Caddy is the sole way in).
+
+Rate limits (`limits.py`, in-memory token buckets, HTTP 429 with Retry-After): every `/api/*` request 10/s per IP
+(burst 60); new accounts 10/h per IP; Lichess sign-in 30/h per IP; new games 60/h and moves (REST and WebSocket
+messages) 3/s per account (burst 20); history imports 6/day per account. One uvicorn worker, so one set of buckets.
 
 Stage 0 (bigbox): the api is the only service the phone sees (tailscale serve :8460 -> 127.0.0.1:8612). It
 also passes `/api/bots` through to infer and serves the APK from `demo/static`. There is deliberately no stateless

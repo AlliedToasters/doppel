@@ -26,8 +26,13 @@ www.{$DOMAIN} {
 		-Server
 	}
 
+	# The api rate-limits per visitor (backend/api/doppel_api/limits.py): pass the visitor's address, which
+	# client_ip resolves from CF-Connecting-IP for Cloudflare's ranges only. header_up replaces any copy the
+	# visitor sent, and only Caddy can reach the api, so the header can't be forged.
 	handle /api/* {
-		reverse_proxy api:8612
+		reverse_proxy api:8612 {
+			header_up X-Doppel-Client-IP {client_ip}
+		}
 	}
 	# The Flutter web client (flutter build web --wasm into site/dist/play; see ship.sh). Its file names carry
 	# no content hash, so every response revalidates (ETag) instead of risking a stale main.dart.js next to a new
