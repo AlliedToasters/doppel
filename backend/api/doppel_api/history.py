@@ -16,6 +16,11 @@ Re-running is incremental: `since` is the newest stored game's createdAt as of t
 interrupted run is fetched again from that point; games already stored are skipped). A run that hits the cap
 fetches the newest games only, so a gap of older-than-cap games since the previous run is left unfetched.
 
+Accounts Lichess has flagged (tosViolation, e.g. for engine use), closed accounts and BOT accounts are refused
+before the export: checked on GET /api/user/{id} at every run. Each game records whether the opponent was a BOT
+account (opp_bot; no name or title kept), so a doppel trains only on games against people (doppel.py).
+A run also backfills opp_bot on games imported before it existed (it refetches from the start once).
+
 Training is not here: the rows are kept for the personal doppel (and for general models only alongside the
 training consent, once the export learns about them).
 """
@@ -72,6 +77,7 @@ def parse(g: dict, lichess_id: str) -> tuple[int, dict] | None:
     if color is None or not moves:
         return None
     opp = "black" if color == "white" else "white"
+    opp_user = (players.get(opp) or {}).get("user") or {}
     winner = g.get("winner")
     result = {"white": "1-0", "black": "0-1"}.get(winner, "1/2-1/2")
     clock, opening = g.get("clock") or {}, g.get("opening") or {}
@@ -85,6 +91,7 @@ def parse(g: dict, lichess_id: str) -> tuple[int, dict] | None:
         "moves": moves, "clocks": g.get("clocks"),
         "opening_eco": (opening.get("eco") or None) and opening["eco"][:8],
         "opening_name": (opening.get("name") or None) and opening["name"][:128],
+        "opp_bot": opp_user.get("title") == "BOT",
     }
 
 
@@ -157,6 +164,10 @@ class Importer:
             if u is None or row is None or not u.lichess_id:
                 raise _Withdrawn
             lid, since = u.lichess_id, row.cursor_ms
+            if sess.scalar(select(ImportedGame.id).where(ImportedGame.user_id == user_id,
+                                                         ImportedGame.opp_bot.is_(None)).limit(1)) is not None:
+                since = None   # backfill opp_bot on games imported before it was recorded
+        await self.check_account(lid)
         params = {"max": max_games(), "perfType": PERF_TYPES, "moves": "true", "clocks": "true", "opening": "true",
                   "pgnInJson": "false", "finished": "true", "sort": "dateDesc"}
         if since:
@@ -195,6 +206,27 @@ class Importer:
             return
         raise ImportFailed("Lichess is busy (rate limit). Try again in a few minutes.")
 
+    async def check_account(self, lid: str) -> None:
+        """Refuse accounts Lichess flagged, closed or BOT accounts (public GET /api/user/{id}; no token)."""
+        lc: httpx.AsyncClient = self.app.state.lichess
+        for _ in range(ATTEMPTS):
+            await self._wait_backoff()
+            r = await lc.get(f"/api/user/{lid}", headers={"accept": "application/json", "user-agent": USER_AGENT})
+            if r.status_code == 429:
+                self.not_before = time.time() + BACKOFF_S
+                continue
+            if r.status_code == 404:
+                raise ImportFailed("Lichess has no such account (closed or renamed?).")
+            if r.status_code != 200:
+                raise ImportFailed(f"Lichess answered {r.status_code}. Try again later.")
+            a = r.json()
+            if a.get("tosViolation") or a.get("disabled") or a.get("closed"):
+                raise ImportFailed("Doppel can't import accounts Lichess has closed or flagged for its terms of service.")
+            if a.get("title") == "BOT":
+                raise ImportFailed("Doppel can't import Lichess BOT accounts.")
+            return
+        raise ImportFailed("Lichess is busy (rate limit). Try again in a few minutes.")
+
     def _store(self, user_id: str, rows: list[dict], added_so_far: int) -> int:
         """Write a batch, skipping games already stored. Synchronous and on the event loop, like the consent
         withdrawal and DELETE /api/me, so a withdrawal can never land between the consent check and the write."""
@@ -205,6 +237,12 @@ class Importer:
             have = set(sess.scalars(select(ImportedGame.lichess_game_id).where(
                 ImportedGame.user_id == user_id, ImportedGame.lichess_game_id.in_(ids)))) if ids else set()
             new = {r["lichess_game_id"]: r for r in rows if r["lichess_game_id"] not in have}
+            old = {r["lichess_game_id"]: r["opp_bot"] for r in rows if r["lichess_game_id"] in have}
+            if old:
+                for g in sess.scalars(select(ImportedGame).where(ImportedGame.user_id == user_id,
+                                                                 ImportedGame.lichess_game_id.in_(old),
+                                                                 ImportedGame.opp_bot.is_(None))):
+                    g.opp_bot = old[g.lichess_game_id]
             for r in new.values():
                 sess.add(ImportedGame(user_id=user_id, **r))
             row = sess.get(HistoryImport, user_id)

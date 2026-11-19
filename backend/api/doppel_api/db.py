@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 import uuid
+from pathlib import Path
 
 from sqlalchemy import (JSON, BigInteger, Boolean, Float, ForeignKey, Index, Integer, String, UniqueConstraint,
-                        create_engine, delete, inspect, text)
+                        create_engine, delete, inspect, select, text)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 
@@ -140,6 +142,25 @@ class ImportedGame(Base):
     clocks: Mapped[list | None] = mapped_column(JSON, nullable=True)  # mover's clock after each ply, centiseconds
     opening_eco: Mapped[str | None] = mapped_column(String(8), nullable=True)
     opening_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # The opponent was a Lichess BOT account (no name or title kept). None: imported before this was recorded.
+    opp_bot: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
+
+class Doppel(Base):
+    """One row per user: their personal doppel (doppel.py). Trained from their imported games, so it is deleted
+    with them (delete_history), adapter file included."""
+
+    __tablename__ = "doppels"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), primary_key=True)
+    state: Mapped[str] = mapped_column(String(10))  # "queued" | "training" | "ready" | "error"
+    speed: Mapped[str] = mapped_column(String(16))  # bullet | blitz | rapid | classical
+    games: Mapped[list] = mapped_column(JSON, default=list)  # lichess game ids used, oldest first
+    adapter_id: Mapped[str | None] = mapped_column(String(16), nullable=True)  # doppel_model.adapter id when ready
+    package: Mapped[str | None] = mapped_column(String(64), nullable=True)  # format-2 package name it plays on
+    error: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    requested_at: Mapped[float] = mapped_column(Float, default=time.time)
+    updated_at: Mapped[float] = mapped_column(Float, default=time.time)
 
 
 class HistoryImport(Base):
@@ -202,9 +223,18 @@ class Ply(Base):
 
 
 def delete_history(sess, user_id: str) -> int:
-    """Delete a user's imported Lichess games and import status; returns the number of games deleted."""
+    """Delete a user's imported Lichess games, import status and the doppel trained from them (its adapter file
+    too, under DOPPEL_ADAPTERS); returns the number of games deleted."""
     n = sess.execute(delete(ImportedGame).where(ImportedGame.user_id == user_id)).rowcount
     sess.execute(delete(HistoryImport).where(HistoryImport.user_id == user_id))
+    d = sess.get(Doppel, user_id)
+    if d is not None:
+        aid = d.adapter_id
+        sess.delete(d)
+        sess.flush()
+        if aid and re.fullmatch(r"[0-9a-f]{16}", aid) and os.environ.get("DOPPEL_ADAPTERS") and \
+                sess.scalar(select(Doppel.user_id).where(Doppel.adapter_id == aid)) is None:
+            (Path(os.environ["DOPPEL_ADAPTERS"]) / f"{aid}.npz").unlink(missing_ok=True)
     return n
 
 
@@ -218,7 +248,7 @@ _ADDED = [  # additive columns for databases created by an earlier skeleton
 
 _ADDED_USERS = [("lichess_id", "VARCHAR(32)"), ("lichess_username", "VARCHAR(32)"), ("lichess_kid", "BOOLEAN")]
 _ADDED_BY_TABLE = {"games": _ADDED, "users": _ADDED_USERS, "login_codes": [("lichess_kid", "BOOLEAN")],
-                   "consents": [("adult", "BOOLEAN")]}  # nullable, no default: safe on Postgres and SQLite
+                   "consents": [("adult", "BOOLEAN")], "imported_games": [("opp_bot", "BOOLEAN")]}  # nullable, no default: safe on Postgres and SQLite
 
 
 def make_sessionmaker(url: str | None = None):

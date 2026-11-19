@@ -38,6 +38,17 @@ import Base from '../layouts/Base.astro';
         <p id="history-status" class="muted line" role="status" hidden></p>
       </div>
 
+      <div class="card" id="doppel-card" hidden>
+        <h2>Your doppel</h2>
+        <p class="muted">A bot that plays like you, trained on your most recent rated games against people at one
+          speed (up to 200; at least 40).</p>
+        <p id="doppel-games" class="line"></p>
+        <div class="row">
+          <button id="doppel-train" class="btn primary" type="button">Train my doppel</button>
+        </div>
+        <p id="doppel-status" class="muted line" role="status" hidden></p>
+      </div>
+
       <div class="card">
         <h2>Help train doppels</h2>
         <p id="consent-text" class="muted"></p>
@@ -86,6 +97,7 @@ import Base from '../layouts/Base.astro';
   let historyVersion = '';
   let historyGranted = false;
   let poll: number | undefined;
+  let dpoll: number | undefined;
 
   function render(me: any | null) {
     $('signedout').hidden = !!me?.lichess;
@@ -133,8 +145,41 @@ import Base from '../layouts/Base.astro';
   }
 
   async function refreshHistory() {
-    try { renderHistory(await api('/api/me/history')); }
+    try {
+      const h = await api('/api/me/history');
+      renderHistory(h);
+      if (h.state !== 'queued' && h.state !== 'running') await refreshDoppel();
+    }
     catch { poll = window.setTimeout(refreshHistory, 10000); }   // keep trying quietly while a run is going
+  }
+
+  function doppelLine(d: any): string {
+    if (d.state === 'queued') return 'Queued for training.';
+    if (d.state === 'training') return 'Training…';
+    if (d.state === 'ready') return `Your doppel is ready: trained on ${plural(d.games_used)} at ${d.speed}.`;
+    if (d.state === 'error') return d.error || 'Training failed. Try again.';
+    return '';
+  }
+
+  function renderDoppel(d: any) {
+    $('doppel-card').hidden = !historyGranted;
+    const n = d.eligible?.[d.best_speed] ?? 0;
+    $('doppel-games').textContent = `${Math.min(n, d.target)} of ${d.target} rated ${d.best_speed} games against people`
+      + (n < d.need ? ` (needs ${d.need})` : '') + '.';
+    const busy = d.state === 'queued' || d.state === 'training';
+    const line = [doppelLine(d), !busy && !d.can_request ? d.reason : ''].filter(Boolean).join(' ');
+    $('doppel-status').textContent = line;
+    $('doppel-status').hidden = !line;
+    const btn = $('doppel-train') as HTMLButtonElement;
+    btn.disabled = !d.can_request;
+    btn.textContent = d.state === 'ready' || d.state === 'error' ? 'Train again' : 'Train my doppel';
+    clearTimeout(dpoll);
+    if (busy) dpoll = window.setTimeout(refreshDoppel, 5000);
+  }
+
+  async function refreshDoppel() {
+    try { renderDoppel(await api('/api/me/doppel')); }
+    catch { dpoll = window.setTimeout(refreshDoppel, 15000); }
   }
 
   async function finishLogin(q: URLSearchParams) {
@@ -199,7 +244,14 @@ import Base from '../layouts/Base.astro';
       status('');
     } catch { status("Couldn't turn that off. Try again."); }
   });
-  $('signout').addEventListener('click', () => { clearTimeout(poll); store.clear(); render(null); });
+  $('doppel-train').addEventListener('click', async () => {
+    try { renderDoppel(await api('/api/me/doppel', { method: 'POST', body: '{}' })); }
+    catch (e: any) {
+      $('doppel-status').textContent = detail(e, "Couldn't start training. Try again.");
+      $('doppel-status').hidden = false;
+    }
+  });
+  $('signout').addEventListener('click', () => { clearTimeout(poll); clearTimeout(dpoll); store.clear(); render(null); });
   $('delete').addEventListener('click', async () => {
     if (!confirm('Delete your Doppel account and all its games? This cannot be undone.')) return;
     try { await api('/api/me', { method: 'DELETE' }); clearTimeout(poll); store.clear(); render(null); status('Your account is deleted.'); }

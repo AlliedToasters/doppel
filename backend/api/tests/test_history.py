@@ -184,8 +184,9 @@ def test_429_backs_off_at_least_a_minute(env, monkeypatch):
     assert len(fake.export_calls) == 2 and len(slept) == 1 and slept[0] >= 59
     fake.statuses = [429, 429, 429]                   # gives up after three tries, with a plain message
     s = run_import(c, x["token"])
-    # four waits: the backoff left by the first run (time is frozen here), then one after each 429 but the last
-    assert s["state"] == "error" and "rate limit" in s["error"] and len(slept) == 4
+    # five waits (time is frozen here): the backoff left by the first run, once before the account check and
+    # once before the export, then one after each 429 but the last
+    assert s["state"] == "error" and "rate limit" in s["error"] and len(slept) == 5
 
 
 def test_one_export_stream_at_a_time(env):

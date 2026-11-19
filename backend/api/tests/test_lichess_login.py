@@ -24,6 +24,7 @@ class FakeLichess:
         self.games = {}           # lichess id -> list of export game dicts
         self.export_calls = []    # (path, params, headers) per export request
         self.statuses = []        # export status codes to answer before serving games (e.g. [429])
+        self.accounts = {}        # lichess id -> extra public profile fields (tosViolation, title, disabled)
 
     def export(self, req: httpx.Request) -> httpx.Response:
         q = dict(req.url.params)
@@ -39,6 +40,10 @@ class FakeLichess:
     def handler(self, req: httpx.Request) -> httpx.Response:
         if req.method == "GET" and req.url.path.startswith("/api/games/user/"):
             return self.export(req)
+        if req.method == "GET" and req.url.path.startswith("/api/user/"):
+            uid = req.url.path.rsplit("/", 1)[1]
+            extra = self.accounts.get(uid, {})
+            return httpx.Response(404) if extra == "missing" else httpx.Response(200, json={"id": uid} | extra)
         if req.method == "POST" and req.url.path == "/api/token":
             f = parse_qs(req.content.decode())
             code = f["code"][0]
