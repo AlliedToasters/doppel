@@ -35,8 +35,10 @@ services:
     environment:
       DOPPEL_MODELS: /models
       DOPPEL_THREADS: ${INFER_THREADS:-4}
+      DOPPEL_ADAPTERS: /adapters
     volumes:
       - ../models:/models:ro   # Maia-3 packages only; ChessMimic is never deployed
+      - adapters:/adapters:ro  # per-player doppel adapters (doppel_model.adapter); the api writes them
 
   db:
     image: postgres:17
@@ -62,6 +64,7 @@ services:
     depends_on: [infer]
 
 volumes:
+  adapters:
   caddy_data:
   caddy_config:
   pg:

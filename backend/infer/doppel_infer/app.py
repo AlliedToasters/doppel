@@ -6,7 +6,14 @@ packages share a name, the newest directory wins.
 
 Run (repo root): .venv/bin/uvicorn doppel_infer.app:app --host 127.0.0.1 --port 8614  (behind backend/api)
 Env: DOPPEL_MODELS, DOPPEL_THREADS (ORT intra-op threads per package, default 4),
+     DOPPEL_ADAPTERS (per-player adapter files, default ./adapters; read-only here),
+     DOPPEL_ADAPTER_CACHE (adapters kept in memory, default 256, ~0.8 MB each),
      DOPPEL_STATIC (optional dir served at / — Stage 0 uses it for the APK download).
+
+Doppels: a format-2 package (per-player LoRA inputs) is not a bot by itself. A move request with
+`adapter: <16-hex id>` and `bot: <format-2 package name>` plays that player's doppel: the adapter file
+(doppel_model.adapter) is loaded, checked against the package and cached; the move comes from
+base + residual_weight * (adapted - base) over legal moves.
 """
 
 from __future__ import annotations
@@ -14,7 +21,9 @@ from __future__ import annotations
 import json
 import math
 import os
+import threading
 import time
+from collections import OrderedDict
 from pathlib import Path
 
 import chess
@@ -24,9 +33,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from doppel_model import ModelPackage
+from doppel_model.adapter import ID as ADAPTER_ID, load_adapter
 
 MODELS = Path(os.environ.get("DOPPEL_MODELS", "models"))
 THREADS = int(os.environ.get("DOPPEL_THREADS", "4"))
+ADAPTERS = Path(os.environ.get("DOPPEL_ADAPTERS", "adapters"))
+CACHE_N = int(os.environ.get("DOPPEL_ADAPTER_CACHE", "256"))
 BLURBS = {
     "maia3-79m": "Most accurate per-move human model",
     "maia3-23m": "Smaller Maia-3",
@@ -35,18 +47,43 @@ BLURBS = {
 ORDER = ["maia3-79m", "maia3-23m", "maia3-5m"]
 
 
-def _load() -> dict[str, ModelPackage]:
+def _load(lora: bool) -> dict[str, ModelPackage]:
+    """Bots (format 1) or doppel bases (format 2, lora=True), by manifest name; the newest directory wins."""
     by_name: dict[str, ModelPackage] = {}
     dirs = sorted((p for p in MODELS.iterdir() if (p / "manifest.json").exists()), key=lambda p: p.stat().st_mtime)
     for d in dirs:
-        if json.loads((d / "manifest.json").read_text()).get("lora"):
-            continue  # format 2 (per-player adapters) is served per doppel, not as a bot; not wired up yet
+        if bool(json.loads((d / "manifest.json").read_text()).get("lora")) != lora:
+            continue
         pkg = ModelPackage.load(d, threads=THREADS)
         by_name[pkg.manifest["name"]] = pkg
     return by_name
 
 
-PACKAGES = _load() if MODELS.exists() else {}
+PACKAGES = _load(False) if MODELS.exists() else {}
+DOPPEL_BASES = _load(True) if MODELS.exists() else {}
+_cache: OrderedDict[tuple[str, str], list[np.ndarray]] = OrderedDict()  # (package id, adapter id) -> arrays
+_cache_lock = threading.Lock()  # move() runs in FastAPI's threadpool
+
+
+def _adapter(pkg: ModelPackage, aid: str) -> list[np.ndarray]:
+    key = (pkg.id, aid)
+    with _cache_lock:
+        if key in _cache:
+            _cache.move_to_end(key)
+            return _cache[key]
+    try:
+        arrs, meta = load_adapter(ADAPTERS, aid, pkg.manifest["lora"])
+    except FileNotFoundError:
+        raise HTTPException(404, f"unknown adapter {aid}")
+    except ValueError as e:
+        raise HTTPException(422, f"adapter {aid}: {e}")
+    if meta.get("package") != pkg.manifest["name"]:
+        raise HTTPException(422, f"adapter {aid} was made for {meta.get('package')}, not {pkg.manifest['name']}")
+    with _cache_lock:
+        _cache[key] = arrs
+        while len(_cache) > CACHE_N:
+            _cache.popitem(last=False)
+    return arrs
 _rng = np.random.default_rng()
 app = FastAPI(title="Doppel infer")
 
@@ -58,6 +95,7 @@ class MoveReq(BaseModel):
     moves: list[str] = []
     temperature: float = Field(1.0, ge=0.0, le=2.0)
     z: list[float] | None = None  # per-game z from the api; ignored by stateless packages (z_prior null)
+    adapter: str | None = Field(None, pattern=ADAPTER_ID.pattern)  # a doppel: bot must then be a format-2 package
 
 
 def _display(m: dict) -> str:
@@ -76,12 +114,20 @@ def bots():
 
 @app.post("/api/move")
 def move(req: MoveReq):
-    pkg = PACKAGES.get(req.bot)
-    if pkg is None:
-        raise HTTPException(400, f"unknown bot {req.bot}")
     t0 = time.perf_counter()
+    if req.adapter:
+        pkg = DOPPEL_BASES.get(req.bot)
+        if pkg is None:
+            raise HTTPException(400, f"unknown doppel base {req.bot}")
+        ab = _adapter(pkg, req.adapter)
+        run = lambda: pkg.doppel_policy(req.moves, req.elo, req.opp_elo or req.elo, ab)
+    else:
+        pkg = PACKAGES.get(req.bot)
+        if pkg is None:
+            raise HTTPException(400, f"unknown bot {req.bot}")
+        run = lambda: pkg.policy(req.moves, req.elo, req.opp_elo or req.elo)
     try:
-        board, legal, lp = pkg.policy(req.moves, req.elo, req.opp_elo or req.elo)
+        board, legal, lp = run()
     except ValueError:
         raise HTTPException(400, "illegal move list")
     if board.is_game_over(claim_draw=True):
@@ -100,6 +146,7 @@ def move(req: MoveReq):
         "think_s": None,
         "compute_ms": round(ms, 1),
         "package": pkg.id,
+        "adapter": req.adapter,
         "top": [{"uci": legal[j], "san": board.san(chess.Move.from_uci(legal[j])), "p": round(math.exp(lp[j]), 4)}
                 for j in top],
     }
@@ -107,7 +154,8 @@ def move(req: MoveReq):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "packages": {n: p.id for n, p in PACKAGES.items()}}
+    return {"ok": True, "packages": {n: p.id for n, p in PACKAGES.items()},
+            "doppel_bases": {n: p.id for n, p in DOPPEL_BASES.items()}, "adapters_cached": len(_cache)}
 
 
 if os.environ.get("DOPPEL_STATIC"):
