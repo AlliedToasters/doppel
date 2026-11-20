@@ -10,6 +10,13 @@ everything here is lab research.
 
 ## Running / queued
 
+2026-11-19: adapter bank restore (unblocks 11, 11f, 12a, 12b). `allie_ttt restore --upto 25 --max-minutes 100`
+(label `doppel:ttt_restore_seg<k>`, one segment at a time): rerun ctx200 chunks with their original seeds, saving the
+adapters the full runs discarded. Order of record: `data/allie/restore_index_ctx200.json` (copy in
+lab/results/), 185 units (band, chunk), bands in turn, chunks bit-reversal spread; first 5N units = N x 200 sides per
+band; done = adapter file exists. Verified bit-exact vs the original run (1500 chunk 2000: hits, epochs, log-probs all
+identical). Target now: first 25 units (1,000 sides/band), ~4.6 h. `allie_ttt verify --band <b>` per band after.
+
 2026-11-13 evening: 59b0b0d91955 `doppel:v0g_1100-seg1` running, 912de0bbdcf7 `doppel:v0g_1900-seg1` queued (`v0e_train train --run v0g_<band> --band <band> --w-con 0.1 --kl-per-player --res-lr-mult 0.3 --max-minutes 90`; seg2 each after, then eval). Done: v0g_b seg1+2, allie_v0e eval of v0g_a and v0g_b on the 1400–1600 bucket (v0g_b + memory +0.26 over Maia-3). Earlier commands, for reference:
 
 | Command | What it answers | Approx. GPU time |
