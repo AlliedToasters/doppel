@@ -1,0 +1,102 @@
+{
+ "700": {
+  "raw": {
+   "id_top1": 0.0039,
+   "id_top10": 0.0312,
+   "median_rank": 1092
+  },
+  "centred": {
+   "id_top1": 0.0084,
+   "id_top10": 0.0357,
+   "median_rank": 973
+  },
+  "n_sides": 5346,
+  "chance_top1": 0.00019,
+  "pool150_top1": 0.0713,
+  "halves_pool150_top1": 0.4001,
+  "halves_n": 4769,
+  "elo_only_halves_pool150_top1": 0.4126,
+  "halves_elo_resid_pool150_top1": 0.3073,
+  "halves_elo_resid_ply30_pool150_top1": 0.1472
+ },
+ "1100": {
+  "raw": {
+   "id_top1": 0.0044,
+   "id_top10": 0.021,
+   "median_rank": 1749
+  },
+  "centred": {
+   "id_top1": 0.0059,
+   "id_top10": 0.0311,
+   "median_rank": 1511
+  },
+  "n_sides": 7946,
+  "chance_top1": 0.00013,
+  "pool150_top1": 0.0695,
+  "halves_pool150_top1": 0.3929,
+  "halves_n": 7535,
+  "elo_only_halves_pool150_top1": 0.5242,
+  "halves_elo_resid_pool150_top1": 0.2991,
+  "halves_elo_resid_ply30_pool150_top1": 0.1295
+ },
+ "1500": {
+  "raw": {
+   "id_top1": 0.0079,
+   "id_top10": 0.0347,
+   "median_rank": 956
+  },
+  "centred": {
+   "id_top1": 0.0073,
+   "id_top10": 0.0337,
+   "median_rank": 964
+  },
+  "n_sides": 3949,
+  "chance_top1": 0.00025,
+  "pool150_top1": 0.0535,
+  "halves_pool150_top1": 0.3536,
+  "halves_n": 3833,
+  "elo_only_halves_pool150_top1": 0.4137,
+  "halves_elo_resid_pool150_top1": 0.2812,
+  "halves_elo_resid_ply30_pool150_top1": 0.1237
+ },
+ "1900": {
+  "raw": {
+   "id_top1": 0.0041,
+   "id_top10": 0.0222,
+   "median_rank": 1815
+  },
+  "centred": {
+   "id_top1": 0.0052,
+   "id_top10": 0.0244,
+   "median_rank": 1594
+  },
+  "n_sides": 8117,
+  "chance_top1": 0.00012,
+  "pool150_top1": 0.0597,
+  "halves_pool150_top1": 0.3669,
+  "halves_n": 7887,
+  "elo_only_halves_pool150_top1": 0.5532,
+  "halves_elo_resid_pool150_top1": 0.2693,
+  "halves_elo_resid_ply30_pool150_top1": 0.1214
+ },
+ "2300": {
+  "raw": {
+   "id_top1": 0.0028,
+   "id_top10": 0.0126,
+   "median_rank": 2444
+  },
+  "centred": {
+   "id_top1": 0.0028,
+   "id_top10": 0.0143,
+   "median_rank": 2183
+  },
+  "n_sides": 10206,
+  "chance_top1": 0.0001,
+  "pool150_top1": 0.0472,
+  "halves_pool150_top1": 0.3095,
+  "halves_n": 9599,
+  "elo_only_halves_pool150_top1": 0.6194,
+  "halves_elo_resid_pool150_top1": 0.2078,
+  "halves_elo_resid_ply30_pool150_top1": 0.1081
+ }
+}

@@ -1,0 +1,444 @@
+{
+ "tag": "_ctx200_restore",
+ "epoch0_share": 0.2114,
+ "pooled": {
+  "n": 1104,
+  "participation_ratio": 1102.35,
+  "pc_share": [
+   0.0011,
+   0.0011,
+   0.001,
+   0.001,
+   0.001,
+   0.001,
+   0.001,
+   0.001,
+   0.001,
+   0.001
+  ],
+  "cos_mean": 0.0005,
+  "cos_p90": 0.0014,
+  "pc_spearman": {
+   "pc1": {
+    "elo": 0.233,
+    "own_gain": -0.042,
+    "log_norm": 0.167,
+    "best_ep": 0.097,
+    "val_ce": -0.308,
+    "colour": -0.035,
+    "band": 0.222
+   },
+   "pc2": {
+    "elo": -0.022,
+    "own_gain": 0.002,
+    "log_norm": 0.084,
+    "best_ep": 0.086,
+    "val_ce": 0.137,
+    "colour": 0.025,
+    "band": -0.024
+   },
+   "pc3": {
+    "elo": -0.265,
+    "own_gain": 0.072,
+    "log_norm": -0.027,
+    "best_ep": 0.047,
+    "val_ce": 0.047,
+    "colour": 0.026,
+    "band": -0.244
+   },
+   "pc4": {
+    "elo": -0.24,
+    "own_gain": 0.011,
+    "log_norm": -0.103,
+    "best_ep": -0.022,
+    "val_ce": 0.067,
+    "colour": 0.017,
+    "band": -0.219
+   },
+   "pc5": {
+    "elo": -0.015,
+    "own_gain": -0.038,
+    "log_norm": -0.047,
+    "best_ep": -0.021,
+    "val_ce": -0.086,
+    "colour": 0.065,
+    "band": -0.021
+   }
+  },
+  "norm_spearman": {
+   "elo": 0.385,
+   "own_gain": 0.014,
+   "best_ep": 0.827,
+   "val_ce": -0.348,
+   "colour": -0.047,
+   "band": 0.435
+  }
+ },
+ "bands": {
+  "700": {
+   "n": 302,
+   "participation_ratio": 300.86,
+   "pc_share": [
+    0.0038,
+    0.0036,
+    0.0036,
+    0.0036,
+    0.0036,
+    0.0035,
+    0.0035,
+    0.0035,
+    0.0035,
+    0.0035
+   ],
+   "cos_mean": 0.0006,
+   "cos_p90": 0.002,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.153,
+     "own_gain": 0.029,
+     "log_norm": -0.244,
+     "best_ep": -0.187,
+     "val_ce": 0.248,
+     "colour": -0.043,
+     "band": -0.179
+    },
+    "pc2": {
+     "elo": 0.045,
+     "own_gain": 0.045,
+     "log_norm": -0.03,
+     "best_ep": -0.091,
+     "val_ce": 0.213,
+     "colour": 0.03,
+     "band": -0.023
+    },
+    "pc3": {
+     "elo": 0.008,
+     "own_gain": 0.075,
+     "log_norm": 0.222,
+     "best_ep": 0.108,
+     "val_ce": -0.105,
+     "colour": 0.04,
+     "band": 0.196
+    },
+    "pc4": {
+     "elo": -0.09,
+     "own_gain": -0.03,
+     "log_norm": -0.141,
+     "best_ep": -0.071,
+     "val_ce": 0.344,
+     "colour": 0.044,
+     "band": -0.211
+    },
+    "pc5": {
+     "elo": -0.082,
+     "own_gain": 0.049,
+     "log_norm": -0.059,
+     "best_ep": -0.047,
+     "val_ce": 0.216,
+     "colour": 0.026,
+     "band": -0.054
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.058,
+    "own_gain": 0.092,
+    "best_ep": 0.75,
+    "val_ce": -0.179,
+    "colour": 0.055,
+    "band": 0.353
+   }
+  },
+  "1100": {
+   "n": 153,
+   "participation_ratio": 151.98,
+   "pc_share": [
+    0.0069,
+    0.0068,
+    0.0068,
+    0.0067,
+    0.0067,
+    0.0067,
+    0.0067,
+    0.0067,
+    0.0067,
+    0.0067
+   ],
+   "cos_mean": 0.0007,
+   "cos_p90": 0.0018,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.011,
+     "own_gain": -0.04,
+     "log_norm": -0.011,
+     "best_ep": -0.054,
+     "val_ce": -0.239,
+     "colour": -0.152,
+     "band": -0.08
+    },
+    "pc2": {
+     "elo": -0.019,
+     "own_gain": 0.021,
+     "log_norm": -0.228,
+     "best_ep": -0.136,
+     "val_ce": -0.215,
+     "colour": 0.128,
+     "band": 0.065
+    },
+    "pc3": {
+     "elo": 0.147,
+     "own_gain": -0.066,
+     "log_norm": -0.025,
+     "best_ep": 0.07,
+     "val_ce": -0.139,
+     "colour": 0.071,
+     "band": 0.106
+    },
+    "pc4": {
+     "elo": 0.136,
+     "own_gain": -0.018,
+     "log_norm": 0.17,
+     "best_ep": 0.157,
+     "val_ce": -0.232,
+     "colour": 0.051,
+     "band": 0.066
+    },
+    "pc5": {
+     "elo": -0.089,
+     "own_gain": 0.152,
+     "log_norm": 0.021,
+     "best_ep": 0.009,
+     "val_ce": 0.042,
+     "colour": -0.021,
+     "band": 0.064
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.016,
+    "own_gain": -0.105,
+    "best_ep": 0.73,
+    "val_ce": -0.107,
+    "colour": 0.022,
+    "band": 0.106
+   }
+  },
+  "1500": {
+   "n": 335,
+   "participation_ratio": 333.94,
+   "pc_share": [
+    0.0032,
+    0.0032,
+    0.0032,
+    0.0031,
+    0.0031,
+    0.0031,
+    0.0031,
+    0.0031,
+    0.0031,
+    0.0031
+   ],
+   "cos_mean": 0.0006,
+   "cos_p90": 0.0015,
+   "pc_spearman": {
+    "pc1": {
+     "elo": 0.044,
+     "own_gain": 0.026,
+     "log_norm": 0.081,
+     "best_ep": 0.098,
+     "val_ce": -0.066,
+     "colour": 0.115,
+     "band": 0.024
+    },
+    "pc2": {
+     "elo": -0.008,
+     "own_gain": -0.044,
+     "log_norm": -0.157,
+     "best_ep": -0.174,
+     "val_ce": 0.003,
+     "colour": 0.05,
+     "band": -0.017
+    },
+    "pc3": {
+     "elo": 0.078,
+     "own_gain": 0.051,
+     "log_norm": -0.125,
+     "best_ep": -0.121,
+     "val_ce": -0.195,
+     "colour": 0.009,
+     "band": -0.068
+    },
+    "pc4": {
+     "elo": -0.028,
+     "own_gain": -0.011,
+     "log_norm": 0.16,
+     "best_ep": 0.154,
+     "val_ce": -0.064,
+     "colour": 0.066,
+     "band": 0.097
+    },
+    "pc5": {
+     "elo": 0.027,
+     "own_gain": 0.07,
+     "log_norm": -0.213,
+     "best_ep": -0.205,
+     "val_ce": -0.137,
+     "colour": 0.064,
+     "band": -0.055
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.051,
+    "own_gain": 0.077,
+    "best_ep": 0.743,
+    "val_ce": -0.064,
+    "colour": 0.085,
+    "band": 0.326
+   }
+  },
+  "1900": {
+   "n": 170,
+   "participation_ratio": 168.99,
+   "pc_share": [
+    0.0061,
+    0.0061,
+    0.0061,
+    0.0061,
+    0.006,
+    0.006,
+    0.006,
+    0.006,
+    0.006,
+    0.006
+   ],
+   "cos_mean": 0.0006,
+   "cos_p90": 0.0014,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.076,
+     "own_gain": 0.138,
+     "log_norm": -0.028,
+     "best_ep": -0.046,
+     "val_ce": 0.163,
+     "colour": 0.084,
+     "band": 0.08
+    },
+    "pc2": {
+     "elo": -0.099,
+     "own_gain": 0.031,
+     "log_norm": 0.143,
+     "best_ep": 0.051,
+     "val_ce": -0.037,
+     "colour": 0.049,
+     "band": -0.002
+    },
+    "pc3": {
+     "elo": 0.087,
+     "own_gain": -0.057,
+     "log_norm": 0.173,
+     "best_ep": 0.266,
+     "val_ce": -0.101,
+     "colour": 0.098,
+     "band": 0.017
+    },
+    "pc4": {
+     "elo": 0.072,
+     "own_gain": 0.029,
+     "log_norm": -0.205,
+     "best_ep": -0.183,
+     "val_ce": -0.146,
+     "colour": -0.074,
+     "band": 0.003
+    },
+    "pc5": {
+     "elo": 0.007,
+     "own_gain": 0.005,
+     "log_norm": -0.111,
+     "best_ep": -0.094,
+     "val_ce": 0.031,
+     "colour": -0.095,
+     "band": -0.013
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.061,
+    "own_gain": 0.061,
+    "best_ep": 0.756,
+    "val_ce": -0.132,
+    "colour": 0.135,
+    "band": -0.006
+   }
+  },
+  "2300": {
+   "n": 144,
+   "participation_ratio": 142.99,
+   "pc_share": [
+    0.0072,
+    0.0071,
+    0.0071,
+    0.0071,
+    0.0071,
+    0.0071,
+    0.0071,
+    0.0071,
+    0.0071,
+    0.0071
+   ],
+   "cos_mean": 0.0005,
+   "cos_p90": 0.0012,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.12,
+     "own_gain": 0.032,
+     "log_norm": 0.145,
+     "best_ep": -0.037,
+     "val_ce": 0.123,
+     "colour": -0.095,
+     "band": 0.061
+    },
+    "pc2": {
+     "elo": -0.115,
+     "own_gain": 0.044,
+     "log_norm": -0.014,
+     "best_ep": -0.078,
+     "val_ce": -0.245,
+     "colour": 0.066,
+     "band": 0.092
+    },
+    "pc3": {
+     "elo": -0.21,
+     "own_gain": 0.106,
+     "log_norm": 0.165,
+     "best_ep": 0.105,
+     "val_ce": 0.095,
+     "colour": 0.026,
+     "band": 0.012
+    },
+    "pc4": {
+     "elo": 0.179,
+     "own_gain": -0.01,
+     "log_norm": -0.439,
+     "best_ep": -0.293,
+     "val_ce": -0.008,
+     "colour": 0.047,
+     "band": 0.092
+    },
+    "pc5": {
+     "elo": 0.052,
+     "own_gain": -0.131,
+     "log_norm": 0.155,
+     "best_ep": 0.17,
+     "val_ce": 0.067,
+     "colour": 0.073,
+     "band": 0.01
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.306,
+    "own_gain": 0.055,
+    "best_ep": 0.651,
+    "val_ce": -0.063,
+    "colour": 0.059,
+    "band": -0.052
+   }
+  }
+ }
+}

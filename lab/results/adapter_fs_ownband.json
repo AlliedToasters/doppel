@@ -1,0 +1,585 @@
+{
+ "own_band_only": true,
+ "bands": {
+  "700": {
+   "n": 462,
+   "participation_ratio": 47.33,
+   "pc_share": [
+    0.0781,
+    0.0573,
+    0.0533,
+    0.0413,
+    0.0399,
+    0.0283,
+    0.0249,
+    0.0238,
+    0.0195,
+    0.0172
+   ],
+   "cos_mean": 0.0554,
+   "cos_p90": 0.2245,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.246,
+     "own_gain": -0.01,
+     "log_norm": -0.177,
+     "best_ep": -0.175,
+     "val_ce": 0.423,
+     "colour": -0.008,
+     "band": -0.154
+    },
+    "pc2": {
+     "elo": -0.038,
+     "own_gain": 0.086,
+     "log_norm": 0.165,
+     "best_ep": 0.182,
+     "val_ce": -0.188,
+     "colour": 0.024,
+     "band": 0.043
+    },
+    "pc3": {
+     "elo": 0.066,
+     "own_gain": 0.007,
+     "log_norm": -0.188,
+     "best_ep": -0.025,
+     "val_ce": 0.17,
+     "colour": 0.034,
+     "band": -0.099
+    },
+    "pc4": {
+     "elo": -0.056,
+     "own_gain": -0.029,
+     "log_norm": -0.128,
+     "best_ep": -0.018,
+     "val_ce": 0.068,
+     "colour": -0.015,
+     "band": 0.037
+    },
+    "pc5": {
+     "elo": 0.004,
+     "own_gain": 0.029,
+     "log_norm": 0.148,
+     "best_ep": 0.023,
+     "val_ce": -0.022,
+     "colour": 0.013,
+     "band": 0.061
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.143,
+    "own_gain": 0.086,
+    "best_ep": 0.606,
+    "val_ce": -0.155,
+    "colour": 0.041,
+    "band": 0.028
+   },
+   "pc_spearman_extra": {
+    "pc1": {
+     "sharpen": -0.605,
+     "kl": -0.177
+    },
+    "pc2": {
+     "sharpen": 0.271,
+     "kl": 0.165
+    },
+    "pc3": {
+     "sharpen": -0.105,
+     "kl": -0.188
+    },
+    "pc4": {
+     "sharpen": 0.063,
+     "kl": -0.128
+    },
+    "pc5": {
+     "sharpen": -0.119,
+     "kl": 0.148
+    }
+   },
+   "kl_spearman": {
+    "elo": -0.143,
+    "own_gain": 0.086,
+    "best_ep": 0.606
+   },
+   "sharpen_mean": -0.122,
+   "sharpen_spearman_elo": 0.18,
+   "cumshare_64": [
+    0.0781,
+    0.27,
+    0.3837,
+    0.5057,
+    0.6654,
+    0.7073
+   ],
+   "silhouette": {
+    "2": 0.0727,
+    "4": 0.0552,
+    "8": 0.0458,
+    "16": 0.033
+   }
+  },
+  "1100": {
+   "n": 501,
+   "participation_ratio": 67.14,
+   "pc_share": [
+    0.0592,
+    0.0466,
+    0.0409,
+    0.0357,
+    0.0343,
+    0.0271,
+    0.0224,
+    0.0202,
+    0.019,
+    0.0167
+   ],
+   "cos_mean": 0.0618,
+   "cos_p90": 0.2016,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.001,
+     "own_gain": -0.005,
+     "log_norm": 0.172,
+     "best_ep": 0.155,
+     "val_ce": -0.193,
+     "colour": -0.096,
+     "band": 0.074
+    },
+    "pc2": {
+     "elo": -0.027,
+     "own_gain": 0.06,
+     "log_norm": -0.406,
+     "best_ep": -0.348,
+     "val_ce": 0.326,
+     "colour": -0.037,
+     "band": -0.033
+    },
+    "pc3": {
+     "elo": -0.04,
+     "own_gain": 0.053,
+     "log_norm": 0.01,
+     "best_ep": 0.066,
+     "val_ce": 0.158,
+     "colour": -0.049,
+     "band": 0.042
+    },
+    "pc4": {
+     "elo": -0.103,
+     "own_gain": -0.037,
+     "log_norm": 0.067,
+     "best_ep": 0.067,
+     "val_ce": 0.085,
+     "colour": 0.014,
+     "band": 0.119
+    },
+    "pc5": {
+     "elo": -0.055,
+     "own_gain": 0.017,
+     "log_norm": -0.118,
+     "best_ep": -0.046,
+     "val_ce": 0.091,
+     "colour": 0.087,
+     "band": -0.035
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.114,
+    "own_gain": -0.043,
+    "best_ep": 0.661,
+    "val_ce": -0.138,
+    "colour": 0.021,
+    "band": 0.132
+   },
+   "pc_spearman_extra": {
+    "pc1": {
+     "sharpen": 0.349,
+     "kl": 0.172
+    },
+    "pc2": {
+     "sharpen": -0.474,
+     "kl": -0.406
+    },
+    "pc3": {
+     "sharpen": -0.084,
+     "kl": 0.01
+    },
+    "pc4": {
+     "sharpen": -0.069,
+     "kl": 0.067
+    },
+    "pc5": {
+     "sharpen": -0.116,
+     "kl": -0.118
+    }
+   },
+   "kl_spearman": {
+    "elo": -0.114,
+    "own_gain": -0.043,
+    "best_ep": 0.661
+   },
+   "sharpen_mean": -0.1008,
+   "sharpen_spearman_elo": 0.096,
+   "cumshare_64": [
+    0.0592,
+    0.2166,
+    0.322,
+    0.4339,
+    0.5937,
+    0.6385
+   ],
+   "silhouette": {
+    "2": 0.0586,
+    "4": 0.0455,
+    "8": 0.0394,
+    "16": 0.0331
+   }
+  },
+  "1500": {
+   "n": 506,
+   "participation_ratio": 77.67,
+   "pc_share": [
+    0.0549,
+    0.0405,
+    0.0365,
+    0.0343,
+    0.0313,
+    0.0238,
+    0.02,
+    0.019,
+    0.0181,
+    0.0166
+   ],
+   "cos_mean": 0.0741,
+   "cos_p90": 0.2027,
+   "pc_spearman": {
+    "pc1": {
+     "elo": 0.055,
+     "own_gain": 0.038,
+     "log_norm": 0.103,
+     "best_ep": 0.07,
+     "val_ce": -0.121,
+     "colour": 0.064,
+     "band": -0.015
+    },
+    "pc2": {
+     "elo": 0.05,
+     "own_gain": -0.041,
+     "log_norm": -0.385,
+     "best_ep": -0.373,
+     "val_ce": 0.369,
+     "colour": -0.044,
+     "band": -0.074
+    },
+    "pc3": {
+     "elo": -0.027,
+     "own_gain": 0.062,
+     "log_norm": 0.049,
+     "best_ep": -0.034,
+     "val_ce": 0.025,
+     "colour": -0.101,
+     "band": -0.08
+    },
+    "pc4": {
+     "elo": 0.085,
+     "own_gain": 0.018,
+     "log_norm": -0.103,
+     "best_ep": -0.104,
+     "val_ce": -0.05,
+     "colour": 0.01,
+     "band": -0.072
+    },
+    "pc5": {
+     "elo": -0.011,
+     "own_gain": 0.035,
+     "log_norm": -0.031,
+     "best_ep": -0.059,
+     "val_ce": -0.018,
+     "colour": -0.019,
+     "band": -0.056
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.044,
+    "own_gain": 0.079,
+    "best_ep": 0.673,
+    "val_ce": -0.181,
+    "colour": 0.053,
+    "band": 0.02
+   },
+   "pc_spearman_extra": {
+    "pc1": {
+     "sharpen": 0.188,
+     "kl": 0.103
+    },
+    "pc2": {
+     "sharpen": -0.621,
+     "kl": -0.385
+    },
+    "pc3": {
+     "sharpen": -0.077,
+     "kl": 0.049
+    },
+    "pc4": {
+     "sharpen": 0.13,
+     "kl": -0.103
+    },
+    "pc5": {
+     "sharpen": 0.017,
+     "kl": -0.031
+    }
+   },
+   "kl_spearman": {
+    "elo": -0.044,
+    "own_gain": 0.079,
+    "best_ep": 0.673
+   },
+   "sharpen_mean": -0.0923,
+   "sharpen_spearman_elo": 0.005,
+   "cumshare_64": [
+    0.0549,
+    0.1975,
+    0.2951,
+    0.4046,
+    0.5635,
+    0.61
+   ],
+   "silhouette": {
+    "2": 0.0583,
+    "4": 0.0403,
+    "8": 0.0384,
+    "16": 0.0296
+   }
+  },
+  "1900": {
+   "n": 500,
+   "participation_ratio": 86.11,
+   "pc_share": [
+    0.0483,
+    0.0395,
+    0.0361,
+    0.0324,
+    0.0295,
+    0.0239,
+    0.0206,
+    0.0197,
+    0.016,
+    0.0145
+   ],
+   "cos_mean": 0.0822,
+   "cos_p90": 0.2042,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.049,
+     "own_gain": 0.123,
+     "log_norm": -0.35,
+     "best_ep": -0.274,
+     "val_ce": 0.292,
+     "colour": 0.007,
+     "band": -0.062
+    },
+    "pc2": {
+     "elo": 0.033,
+     "own_gain": 0.021,
+     "log_norm": 0.346,
+     "best_ep": 0.285,
+     "val_ce": -0.199,
+     "colour": 0.006,
+     "band": 0.064
+    },
+    "pc3": {
+     "elo": -0.032,
+     "own_gain": -0.085,
+     "log_norm": -0.056,
+     "best_ep": -0.067,
+     "val_ce": -0.12,
+     "colour": -0.041,
+     "band": 0.039
+    },
+    "pc4": {
+     "elo": -0.001,
+     "own_gain": -0.021,
+     "log_norm": 0.26,
+     "best_ep": 0.161,
+     "val_ce": -0.217,
+     "colour": 0.012,
+     "band": -0.037
+    },
+    "pc5": {
+     "elo": -0.022,
+     "own_gain": 0.017,
+     "log_norm": -0.119,
+     "best_ep": 0.001,
+     "val_ce": 0.02,
+     "colour": -0.033,
+     "band": 0.065
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.168,
+    "own_gain": -0.032,
+    "best_ep": 0.687,
+    "val_ce": -0.171,
+    "colour": 0.007,
+    "band": -0.065
+   },
+   "pc_spearman_extra": {
+    "pc1": {
+     "sharpen": -0.448,
+     "kl": -0.35
+    },
+    "pc2": {
+     "sharpen": 0.33,
+     "kl": 0.346
+    },
+    "pc3": {
+     "sharpen": 0.215,
+     "kl": -0.056
+    },
+    "pc4": {
+     "sharpen": 0.275,
+     "kl": 0.26
+    },
+    "pc5": {
+     "sharpen": -0.091,
+     "kl": -0.119
+    }
+   },
+   "kl_spearman": {
+    "elo": -0.168,
+    "own_gain": -0.032,
+    "best_ep": 0.687
+   },
+   "sharpen_mean": -0.0805,
+   "sharpen_spearman_elo": 0.209,
+   "cumshare_64": [
+    0.0483,
+    0.1858,
+    0.2805,
+    0.3835,
+    0.5345,
+    0.5812
+   ],
+   "silhouette": {
+    "2": 0.0531,
+    "4": 0.0391,
+    "8": 0.0347,
+    "16": 0.0285
+   }
+  },
+  "2300": {
+   "n": 288,
+   "participation_ratio": 99.37,
+   "pc_share": [
+    0.0396,
+    0.0355,
+    0.0307,
+    0.0294,
+    0.024,
+    0.0187,
+    0.0183,
+    0.0168,
+    0.0154,
+    0.0148
+   ],
+   "cos_mean": 0.123,
+   "cos_p90": 0.2287,
+   "pc_spearman": {
+    "pc1": {
+     "elo": -0.104,
+     "own_gain": -0.015,
+     "log_norm": 0.592,
+     "best_ep": 0.481,
+     "val_ce": -0.287,
+     "colour": 0.097,
+     "band": 0.02
+    },
+    "pc2": {
+     "elo": 0.009,
+     "own_gain": 0.069,
+     "log_norm": 0.102,
+     "best_ep": 0.022,
+     "val_ce": -0.148,
+     "colour": 0.007,
+     "band": -0.018
+    },
+    "pc3": {
+     "elo": 0.094,
+     "own_gain": 0.106,
+     "log_norm": -0.076,
+     "best_ep": -0.119,
+     "val_ce": -0.063,
+     "colour": 0.019,
+     "band": 0.008
+    },
+    "pc4": {
+     "elo": 0.067,
+     "own_gain": -0.023,
+     "log_norm": 0.059,
+     "best_ep": 0.12,
+     "val_ce": -0.08,
+     "colour": -0.132,
+     "band": 0.03
+    },
+    "pc5": {
+     "elo": 0.079,
+     "own_gain": 0.036,
+     "log_norm": 0.1,
+     "best_ep": 0.044,
+     "val_ce": -0.076,
+     "colour": 0.14,
+     "band": -0.043
+    }
+   },
+   "norm_spearman": {
+    "elo": -0.348,
+    "own_gain": -0.043,
+    "best_ep": 0.636,
+    "val_ce": -0.072,
+    "colour": 0.055,
+    "band": -0.073
+   },
+   "pc_spearman_extra": {
+    "pc1": {
+     "sharpen": 0.582,
+     "kl": 0.592
+    },
+    "pc2": {
+     "sharpen": 0.221,
+     "kl": 0.102
+    },
+    "pc3": {
+     "sharpen": 0.217,
+     "kl": -0.076
+    },
+    "pc4": {
+     "sharpen": 0.16,
+     "kl": 0.059
+    },
+    "pc5": {
+     "sharpen": 0.136,
+     "kl": 0.1
+    }
+   },
+   "kl_spearman": {
+    "elo": -0.348,
+    "own_gain": -0.043,
+    "best_ep": 0.636
+   },
+   "sharpen_mean": -0.0544,
+   "sharpen_spearman_elo": 0.232,
+   "cumshare_64": [
+    0.0396,
+    0.1593,
+    0.2432,
+    0.3475,
+    0.5295,
+    0.5897
+   ],
+   "silhouette": {
+    "2": 0.042,
+    "4": 0.0363,
+    "8": 0.0292,
+    "16": 0.0231
+   }
+  }
+ }
+}

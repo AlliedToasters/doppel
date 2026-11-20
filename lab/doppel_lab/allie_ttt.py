@@ -94,7 +94,7 @@ def use_store200():
 
 
 def run(band: int, device: str, workers: int, epochs: int, lr: float, wd: float, bs: int, limit: int, tag: str = "",
-        nfit: int = 0, sample: int = 0, keep_adapters: bool = True, chunks: str = "", deadline: float = 0.0, pre=None):
+        nfit: int = 0, sample: int = 0, keep_adapters: bool = True, chunks: str = "", deadline: float = 0.0, pre=None, split: bool = False):
     import torch
 
     from doppel_lab.engines import Maia3
@@ -106,6 +106,12 @@ def run(band: int, device: str, workers: int, epochs: int, lr: float, wd: float,
         rows = rows.join(pl.DataFrame({"pid": keep.astype(np.int64), "new": np.arange(sample, dtype=np.int64)}),
                          on="pid").with_columns(pid=c("new")).drop("new").sort("pid", "j")
         tag += f"_fit{nfit}_s{sample}"
+    if split:     # split-half reliability: side p -> pseudo-sides 2p (even-ranked train games) and 2p+1 (odd);
+        tr_ = rows.filter(c("role") == "train")         # val and test games shared; control of 2p = its sister half
+        rest = rows.filter(c("role") != "train")
+        rows = pl.concat([tr_.with_columns(pid=2 * c("pid") + c("tr_rank") % 2), rest.with_columns(pid=2 * c("pid")),
+                          rest.with_columns(pid=2 * c("pid") + 1)]).sort("pid", "j")
+        tag += "_split"
     n_sides = int(rows["pid"].max()) + 1
     if limit:
         n_sides = min(n_sides, limit)
@@ -403,6 +409,7 @@ def main():
     r.add_argument("--fit", type=int, default=0, help="hold out the N most recent context games as a fit split")
     r.add_argument("--sample", type=int, default=0, help="a random subset of N sides (seeded by band)")
     r.add_argument("--no-save-adapters", action="store_true", help="skip writing the per-side adapters")
+    r.add_argument("--split", action="store_true", help="two adapters per side on disjoint halves of its train games")
     r.add_argument("--chunks", default="", help="restore: 'spread:K' or '0,2000,...'; only those chunks, -> *_restore")
     s = sub.add_parser("summary")
     s.add_argument("--band", type=int, default=1500)
@@ -437,7 +444,7 @@ def main():
             use_store200()
             tag = "_ctx200"
         run(a.band, "cuda" if a.gpu_ok else "cpu", a.workers, a.epochs, a.lr, a.wd, a.bs, a.limit, tag, a.fit, a.sample,
-            not a.no_save_adapters, a.chunks)
+            not a.no_save_adapters, a.chunks, split=a.split)
     else:
         summary(a.band, a.tag)
 

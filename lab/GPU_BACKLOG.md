@@ -153,6 +153,69 @@ identical). Target now: first 25 units (1,000 sides/band), ~4.6 h. `allie_ttt ve
      normalised; (2) engine version: best-vs-second-best eval gap. evalnet.py scores positions, not moves, so this needs
      a pass over every legal child (~30x per position, GPU) or Stockfish multipv on a test subsample. Do (1) first; the
      engine tier only if Maia's margin and the engine gap might disagree in a way that matters.
+   - **Result 2026-11-19 (12d, 12e, 12f tier 1; CPU, `persona_pilots`, lab/results/persona_pilots.json).** Join of
+     the ctx200 hits with Maia-3's full policy is exact (argmax = Maia hit on 100% of positions, all bands).
+     12f: the personal signal (own - control, pts) falls with Maia's margin p1 - p2 in every band, from +6.3 to +7.2
+     in the least forcing quintile (+4.5 at 2300) to +0.1 to +0.5 in the most forcing; own gain is negative where
+     Maia is confident (about -1 to -2% of misses). Margin-gated adapter (adapter only where margin < tau, tau tuned
+     on one half of test games, scored on the other): 700 +1.31 vs +1.28 ungated, 1100 +1.30 vs +1.18, 1500 +1.18
+     vs +1.01, 1900 +1.09 vs +0.93, 2300 +0.36 vs +0.04 (tau ~0.2-0.3). Product candidate; changes the shipped
+     model, needs the user's go. 12d: Maia entropy falls with rating (1.56 / 1.39 / 1.32 / 1.25 / 1.13 nats)
+     while the headroom-normalised swap cost stays flat (-4.9 / -5.5 / -6.2 / -5.6 / -5.1% of misses): per-input
+     diversity shrinks, across-player diversity does not. 12e: normalised gain is front-loaded (ply 10-19: +4.9 to
+     +8.9% of misses; ply 60+: -3.0 to +1.2) but own - control stays positive late (+0.8 to +2.1 pts at ply 60+), so
+     not all repertoire; exact-repeat positions (memory `hist`) are rare (125-7,413 per band) and gain 7-13 pts.
+   - **Adapter geometry, first look (2026-11-19).** Weight space is the wrong place: each side's LoRA A starts
+     from its own random init, so dW = BA of two sides are near-orthogonal (cosine 0.0005, participation ratio =
+     n). Function space instead (`adapter_space probe`: change in log-probs on 2,560 fixed probe positions, Fisher-
+     weighted), then `adapter_space fs` (geometry) and `adapter_space swap` (GPU: nearest-neighbour vs random swap,
+     cluster-soup adapters for k = 1..64, the predictive count).
+   - **Function space (2026-11-19, `adapter_space probe/fs/traits`, lab/results/adapter_fs*.json, adapter_traits.json;
+     2,257 restored adapters, 288-506 per band).** Effective dimension (participation ratio) rises with rating:
+     47 / 67 / 78 / 86 / 99 (own-band probe positions), but noise inflates it too (split-half pending). k-means
+     silhouettes 0.03-0.07 and falling with k: no discrete styles, a continuum (as Carlson's 0.06). 12a: PC1 (PC2 at
+     1100/1500) is a conformity axis, the adapter's shift of probability onto Maia-3's top move (Spearman +0.69 to
+     +0.90), with chosen epoch / norm; not a rating axis (traits vs Elo within band |rho| < 0.19). The second axis is
+     pawn moves vs piece retreats / castling. The mean adapter moves mass off Maia's top move (-2.9 pts at 700,
+     -1.35 at 2300) and trait spreads shrink with rating (top-1 shift sd 3.7 -> 1.8 pts).
+   - **Split-half (2026-11-19, `allie_ttt run --ctx 200 --sample 200 --split`, ~13 min/band).** Two adapters per
+     side on disjoint halves of its train games. On the test game the sister-half adapter keeps the full gain while
+     another player's costs 1.3-2.8 pts (700 +1.04 vs -1.74, 1100 +1.73 vs -2.07, 1500 +0.50 vs -2.75, 1900
+     +0.93 vs -2.31, 2300 +0.36 vs -1.35): the personal signal reproduces across disjoint games. Function-space
+     reliability (`adapter_space split`) after the split probe.
+   - **Predictive count: swaps and cluster soups (2026-11-19, `adapter_space swap`, lab/results/adapter_swap.json,
+     ~50 min GPU).** Own adapter reproduces the original hits (agreement 0.9999-1.0). Scoring each side with the
+     r-th most similar other side (function-space cosine) gives a gradient: nn1 -1.4 to -2.5 pts, random -2.3 to
+     -3.4, least similar -3.8 to -5.8; similarity is real but even the nearest neighbour's adapter is worse than
+     Maia-3 (nn1 cost as a share of the random cost: 0.65 / 0.81 / 0.65 / 0.83 / 0.94). Cluster soups (mean dW of a
+     k-means cluster, cross-fit so a side's own adapter is never in its soup, scale chosen on the other half):
+     k = 1-32 recover -0.5 to +0.6 pts (best: 700 k16 +0.58 of own +1.75; 1900 k32 +0.29 of +1.49; 2300 none).
+     Verdict: no small k recovers the per-player gain at any rating; the predictive "number of styles" is large.
+     Cold start from a cluster adapter is weak (at most a third of the gain, 700 only). 11e's "88% A, 6% B" card
+     has no basis; a trait card does (below).
+   - **Split-half reliability in function space (2026-11-19, `adapter_space split`, adapter_split.json,
+     adapter_traits_splithalf.json; 121-164 pairs/band).** Sister-half cosine 0.48 / 0.41 / 0.38 / 0.33 / 0.25 vs
+     0.00 for other players (centred); the sister is the top-1 match among all other-half adapters 81 / 79 / 77 /
+     74 / 50% of the time (chance < 1%). Cross-validated PCA: reliable share of variance 46 / 38 / 37 / 30 / 24%,
+     reliable effective dimension 18 / 25 / 23 / 27 / 20 (flat; the raw rise in dimension with rating was noise).
+     Answer to 11: style is a continuum of about 20 reliable dimensions at every rating; what shrinks with rating
+     is the share of a player's departure from Maia-3 that is stable, not the number of ways to differ. Trait
+     reliability (Spearman across halves, 700 -> 2300): castling 0.79 -> 0.48, captures 0.72 -> 0.43, checks
+     0.74 -> 0.49, retreats 0.63 -> 0.51, Maia-top-move conformity 0.60 -> 0.43, pawn moves 0.75 -> 0.21; piece-type
+     traits are weaker.
+   - **12c: does the base model carry the player? (2026-11-19, CPU, knn keys = Maia-3 pooled trunk output, PCA
+     128; lab/results/maia_trunk_identity.json).** Mean key over 20 of a side's context games vs the other 20,
+     nearest match in pools of 150 sides (chance 0.7%): 40 / 39 / 35 / 37 / 31% top-1 (700 -> 2300). Elo alone
+     (mean rating per half) does 41 / 52 / 41 / 55 / 62%, so much of it is the Elo input; with Elo regressed out
+     (cubic) the keys still give 31 / 30 / 28 / 27 / 21%, and 15 / 13 / 12 / 12 / 11% from ply >= 30 positions only.
+     Maia sees one position + Elo, so this is identity in *which positions a player reaches* (repertoire, then the
+     structures they steer into), not the model inferring the player. Function-space adapters by ply (split-half
+     ID, ~150 candidates): plies 10-19 89 -> 50%, 20-29 82 -> 42%, 30+ 80 -> 36% (700 -> 2300); identity in how a
+     player moves fades with ply but stays far above chance (12e: not only repertoire). Matched data (ctx40 split:
+     adapters on ~17 games per half, 100-173 pairs, lab/results/adapter_split_fit0_s200_split.json): adapter ID
+     54 / 40 / 38 / 34 / 23% vs trunk keys (Elo regressed out, 20 games, pools of 150) 31 / 30 / 28 / 27 / 21%: on
+     equal data the adapter carries more of the player than the positions reached, the margin closing at 2300.
+     Reliable dimension 12 / 15 / 13 / 17 / 11 at 17 games vs ~20 at ~97: more games resolve more style axes.
    Where the analogy breaks: per-move player signal is tiny (board constrains moves); no post-training stage in
    human models, so any "RL collapse" lives in the humans (practice, engine prep) and shows only in the Elo curve;
    LLM personas are characters, chess styles are policies (probing/steering transfers, role-play framing does not).

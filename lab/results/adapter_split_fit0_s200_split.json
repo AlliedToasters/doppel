@@ -1,0 +1,252 @@
+{
+ "700": {
+  "band": 700,
+  "pairs": 163,
+  "raw": {
+   "sister": 0.453,
+   "other": 0.0344,
+   "id_top1": 0.546,
+   "id_chance": 0.0061
+  },
+  "centred": {
+   "sister": 0.4344,
+   "other": 0.0043,
+   "id_top1": 0.5399,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.3993,
+  "reliable_pr": 11.66,
+  "reliable_share_top": [
+   0.0804,
+   0.0458,
+   0.0465,
+   0.0341,
+   0.0218,
+   0.0192,
+   0.0173,
+   0.0141,
+   0.0093,
+   0.0084,
+   0.0063,
+   0.0064,
+   0.0059,
+   0.005,
+   0.0042,
+   0.0035,
+   0.0035,
+   0.004,
+   0.004,
+   0.003
+  ],
+  "n_pc_reliable_gt_1pct": 17,
+  "total_pr_half": 20.75,
+  "test": {
+   "positions": 4026,
+   "maia_acc": 51.47,
+   "half0_own": 0.522,
+   "half1_own": 0.969,
+   "sister_swap": 0.969,
+   "other_player_swap": -0.869
+  }
+ },
+ "1100": {
+  "band": 1100,
+  "pairs": 173,
+  "raw": {
+   "sister": 0.3849,
+   "other": 0.0415,
+   "id_top1": 0.3931,
+   "id_chance": 0.0058
+  },
+  "centred": {
+   "sister": 0.3588,
+   "other": 0.007,
+   "id_top1": 0.4046,
+   "id_chance": 0.0058
+  },
+  "reliable_share": 0.3241,
+  "reliable_pr": 14.96,
+  "reliable_share_top": [
+   0.0439,
+   0.0368,
+   0.0345,
+   0.0262,
+   0.0281,
+   0.0187,
+   0.0126,
+   0.0104,
+   0.0116,
+   0.0101,
+   0.006,
+   0.0066,
+   0.0058,
+   0.0033,
+   0.0024,
+   0.0027,
+   0.0023,
+   0.0035,
+   0.0027,
+   0.0024
+  ],
+  "n_pc_reliable_gt_1pct": 15,
+  "total_pr_half": 25.83,
+  "test": {
+   "positions": 4679,
+   "maia_acc": 55.18,
+   "half0_own": 0.492,
+   "half1_own": 0.684,
+   "sister_swap": 0.684,
+   "other_player_swap": -1.282
+  }
+ },
+ "1500": {
+  "band": 1500,
+  "pairs": 159,
+  "raw": {
+   "sister": 0.3615,
+   "other": 0.0355,
+   "id_top1": 0.4214,
+   "id_chance": 0.0063
+  },
+  "centred": {
+   "sister": 0.3424,
+   "other": 0.0082,
+   "id_top1": 0.3774,
+   "id_chance": 0.0063
+  },
+  "reliable_share": 0.2996,
+  "reliable_pr": 13.46,
+  "reliable_share_top": [
+   0.0428,
+   0.0455,
+   0.038,
+   0.0182,
+   0.0193,
+   0.0128,
+   0.0069,
+   0.0086,
+   0.0077,
+   0.0077,
+   0.006,
+   0.0047,
+   0.0042,
+   0.0047,
+   0.0047,
+   0.0035,
+   0.0031,
+   0.0021,
+   0.0032,
+   0.0029
+  ],
+  "n_pc_reliable_gt_1pct": 18,
+  "total_pr_half": 24.4,
+  "test": {
+   "positions": 5160,
+   "maia_acc": 56.36,
+   "half0_own": 0.814,
+   "half1_own": 0.795,
+   "sister_swap": 0.795,
+   "other_player_swap": -1.57
+  }
+ },
+ "1900": {
+  "band": 1900,
+  "pairs": 149,
+  "raw": {
+   "sister": 0.3196,
+   "other": 0.0367,
+   "id_top1": 0.3221,
+   "id_chance": 0.0067
+  },
+  "centred": {
+   "sister": 0.2973,
+   "other": 0.009,
+   "id_top1": 0.3423,
+   "id_chance": 0.0067
+  },
+  "reliable_share": 0.2338,
+  "reliable_pr": 17.13,
+  "reliable_share_top": [
+   0.0182,
+   0.039,
+   0.0187,
+   0.014,
+   0.0141,
+   0.0126,
+   0.0074,
+   0.0078,
+   0.0083,
+   0.0064,
+   0.0059,
+   0.0045,
+   0.0029,
+   0.0052,
+   0.004,
+   0.0027,
+   0.0047,
+   0.0039,
+   0.0022,
+   0.0016
+  ],
+  "n_pc_reliable_gt_1pct": 19,
+  "total_pr_half": 20.66,
+  "test": {
+   "positions": 5277,
+   "maia_acc": 58.33,
+   "half0_own": 0.038,
+   "half1_own": -0.019,
+   "sister_swap": -0.019,
+   "other_player_swap": -1.611
+  }
+ },
+ "2300": {
+  "band": 2300,
+  "pairs": 100,
+  "raw": {
+   "sister": 0.2983,
+   "other": 0.0397,
+   "id_top1": 0.27,
+   "id_chance": 0.01
+  },
+  "centred": {
+   "sister": 0.2726,
+   "other": 0.0028,
+   "id_top1": 0.23,
+   "id_chance": 0.01
+  },
+  "reliable_share": 0.2271,
+  "reliable_pr": 11.03,
+  "reliable_share_top": [
+   0.0323,
+   0.0476,
+   0.0235,
+   0.0109,
+   0.0148,
+   0.0141,
+   0.0042,
+   0.0035,
+   0.0058,
+   0.0062,
+   0.0028,
+   0.0062,
+   0.004,
+   0.0052,
+   0.003,
+   0.0009,
+   0.0041,
+   0.0041,
+   0.0024,
+   0.0029
+  ],
+  "n_pc_reliable_gt_1pct": 19,
+  "total_pr_half": 16.71,
+  "test": {
+   "positions": 5576,
+   "maia_acc": 61.53,
+   "half0_own": 0.179,
+   "half1_own": 0.126,
+   "sister_swap": 0.126,
+   "other_player_swap": -0.036
+  }
+ }
+}

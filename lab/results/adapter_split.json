@@ -1,0 +1,252 @@
+{
+ "700": {
+  "band": 700,
+  "pairs": 141,
+  "raw": {
+   "sister": 0.4945,
+   "other": 0.0436,
+   "id_top1": 0.8156,
+   "id_chance": 0.0071
+  },
+  "centred": {
+   "sister": 0.4754,
+   "other": -0.0013,
+   "id_top1": 0.8085,
+   "id_chance": 0.0071
+  },
+  "reliable_share": 0.4588,
+  "reliable_pr": 17.78,
+  "reliable_share_top": [
+   0.0588,
+   0.0389,
+   0.0451,
+   0.0407,
+   0.0314,
+   0.0289,
+   0.0181,
+   0.0139,
+   0.0122,
+   0.0098,
+   0.0108,
+   0.0076,
+   0.0062,
+   0.0064,
+   0.0068,
+   0.006,
+   0.0055,
+   0.0046,
+   0.0045,
+   0.004
+  ],
+  "n_pc_reliable_gt_1pct": 18,
+  "total_pr_half": 34.15,
+  "test": {
+   "positions": 4026,
+   "maia_acc": 51.47,
+   "half0_own": 1.267,
+   "half1_own": 1.043,
+   "sister_swap": 1.043,
+   "other_player_swap": -1.739
+  }
+ },
+ "1100": {
+  "band": 1100,
+  "pairs": 164,
+  "raw": {
+   "sister": 0.4418,
+   "other": 0.0564,
+   "id_top1": 0.8171,
+   "id_chance": 0.0061
+  },
+  "centred": {
+   "sister": 0.4072,
+   "other": 0.0001,
+   "id_top1": 0.7927,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.3827,
+  "reliable_pr": 25.31,
+  "reliable_share_top": [
+   0.0319,
+   0.0319,
+   0.0313,
+   0.0301,
+   0.0174,
+   0.0176,
+   0.0176,
+   0.0118,
+   0.0113,
+   0.009,
+   0.0096,
+   0.0085,
+   0.0074,
+   0.0056,
+   0.0073,
+   0.0056,
+   0.0051,
+   0.0041,
+   0.0044,
+   0.0043
+  ],
+  "n_pc_reliable_gt_1pct": 21,
+  "total_pr_half": 43.73,
+  "test": {
+   "positions": 4679,
+   "maia_acc": 55.18,
+   "half0_own": 1.069,
+   "half1_own": 1.731,
+   "sister_swap": 1.731,
+   "other_player_swap": -2.073
+  }
+ },
+ "1500": {
+  "band": 1500,
+  "pairs": 163,
+  "raw": {
+   "sister": 0.4179,
+   "other": 0.0574,
+   "id_top1": 0.7853,
+   "id_chance": 0.0061
+  },
+  "centred": {
+   "sister": 0.3846,
+   "other": 0.0002,
+   "id_top1": 0.773,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.3686,
+  "reliable_pr": 22.58,
+  "reliable_share_top": [
+   0.0327,
+   0.0405,
+   0.0341,
+   0.0259,
+   0.0179,
+   0.0147,
+   0.014,
+   0.0098,
+   0.0096,
+   0.0082,
+   0.0082,
+   0.0077,
+   0.0064,
+   0.0053,
+   0.005,
+   0.0058,
+   0.0046,
+   0.004,
+   0.0044,
+   0.004
+  ],
+  "n_pc_reliable_gt_1pct": 22,
+  "total_pr_half": 45.14,
+  "test": {
+   "positions": 5160,
+   "maia_acc": 56.36,
+   "half0_own": 1.066,
+   "half1_own": 0.504,
+   "sister_swap": 0.504,
+   "other_player_swap": -2.752
+  }
+ },
+ "1900": {
+  "band": 1900,
+  "pairs": 159,
+  "raw": {
+   "sister": 0.3757,
+   "other": 0.0645,
+   "id_top1": 0.6918,
+   "id_chance": 0.0063
+  },
+  "centred": {
+   "sister": 0.334,
+   "other": 0.001,
+   "id_top1": 0.7421,
+   "id_chance": 0.0063
+  },
+  "reliable_share": 0.3043,
+  "reliable_pr": 27.39,
+  "reliable_share_top": [
+   0.026,
+   0.0283,
+   0.0199,
+   0.0165,
+   0.0183,
+   0.0124,
+   0.0131,
+   0.0114,
+   0.0082,
+   0.0059,
+   0.006,
+   0.0062,
+   0.0051,
+   0.0051,
+   0.0046,
+   0.0044,
+   0.0038,
+   0.003,
+   0.0037,
+   0.0028
+  ],
+  "n_pc_reliable_gt_1pct": 18,
+  "total_pr_half": 47.89,
+  "test": {
+   "positions": 5277,
+   "maia_acc": 58.33,
+   "half0_own": 0.076,
+   "half1_own": 0.929,
+   "sister_swap": 0.929,
+   "other_player_swap": -2.312
+  }
+ },
+ "2300": {
+  "band": 2300,
+  "pairs": 121,
+  "raw": {
+   "sister": 0.2985,
+   "other": 0.0717,
+   "id_top1": 0.4876,
+   "id_chance": 0.0083
+  },
+  "centred": {
+   "sister": 0.2477,
+   "other": 0.0016,
+   "id_top1": 0.4959,
+   "id_chance": 0.0083
+  },
+  "reliable_share": 0.2367,
+  "reliable_pr": 19.61,
+  "reliable_share_top": [
+   0.0284,
+   0.0323,
+   0.0157,
+   0.0137,
+   0.0126,
+   0.0061,
+   0.0069,
+   0.0074,
+   0.0062,
+   0.0039,
+   0.0063,
+   0.0044,
+   0.0039,
+   0.0034,
+   0.0024,
+   0.0026,
+   0.0026,
+   0.0029,
+   0.0022,
+   0.0028
+  ],
+  "n_pc_reliable_gt_1pct": 22,
+  "total_pr_half": 37.96,
+  "test": {
+   "positions": 5576,
+   "maia_acc": 61.53,
+   "half0_own": 0.466,
+   "half1_own": 0.359,
+   "sister_swap": 0.359,
+   "other_player_swap": -1.345
+  }
+ }
+}

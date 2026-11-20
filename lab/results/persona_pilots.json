@@ -1,0 +1,1240 @@
+{
+ "tag": "_ctx200",
+ "bands": [
+  {
+   "band": 700,
+   "positions": 108121,
+   "policy_coverage": 1.0,
+   "argmax_agrees_maia_hit": 0.9999,
+   "overall": {
+    "maia_acc": 50.51,
+    "own_gain": 1.275,
+    "ctrl_gain": -2.411,
+    "own_norm": 2.58
+   },
+   "12d": {
+    "maia_entropy_mean": 1.5586,
+    "maia_p1_mean": 0.506,
+    "margin_median": 0.2361,
+    "n_legal_mean": 29.51,
+    "swap_cost": -2.411,
+    "swap_cost_norm": -4.87
+   },
+   "12f": {
+    "margin_quintile_edges": [
+     0.0676,
+     0.1678,
+     0.3237,
+     0.5962
+    ],
+    "by_margin_quintile": [
+     {
+      "margin_q": 0,
+      "n": 21624,
+      "maia_acc": 26.32,
+      "own_gain": 4.019,
+      "ctrl_gain": -2.294,
+      "own_norm": 5.45,
+      "personal": 6.312
+     },
+     {
+      "margin_q": 1,
+      "n": 21624,
+      "maia_acc": 34.26,
+      "own_gain": 2.303,
+      "ctrl_gain": -3.371,
+      "own_norm": 3.5,
+      "personal": 5.674
+     },
+     {
+      "margin_q": 2,
+      "n": 21624,
+      "maia_acc": 44.8,
+      "own_gain": 0.305,
+      "ctrl_gain": -3.584,
+      "own_norm": 0.55,
+      "personal": 3.889
+     },
+     {
+      "margin_q": 3,
+      "n": 21624,
+      "maia_acc": 60.43,
+      "own_gain": -0.143,
+      "ctrl_gain": -2.178,
+      "own_norm": -0.36,
+      "personal": 2.035
+     },
+     {
+      "margin_q": 4,
+      "n": 21625,
+      "maia_acc": 86.74,
+      "own_gain": -0.106,
+      "ctrl_gain": -0.629,
+      "own_norm": -0.8,
+      "personal": 0.523
+     }
+    ],
+    "margin_cuts": [
+     0.1,
+     0.25,
+     0.5,
+     0.75
+    ],
+    "by_margin_fixed": [
+     {
+      "margin_bin": 0,
+      "n": 29676,
+      "maia_acc": 27.63,
+      "own_gain": 3.791,
+      "ctrl_gain": -2.497,
+      "own_norm": 5.24,
+      "personal": 6.288
+     },
+     {
+      "margin_bin": 1,
+      "n": 26329,
+      "maia_acc": 39.08,
+      "own_gain": 1.181,
+      "ctrl_gain": -3.475,
+      "own_norm": 1.94,
+      "personal": 4.656
+     },
+     {
+      "margin_bin": 2,
+      "n": 24273,
+      "maia_acc": 54.16,
+      "own_gain": -0.008,
+      "ctrl_gain": -2.954,
+      "own_norm": -0.02,
+      "personal": 2.946
+     },
+     {
+      "margin_bin": 3,
+      "n": 14454,
+      "maia_acc": 73.02,
+      "own_gain": -0.346,
+      "ctrl_gain": -1.425,
+      "own_norm": -1.28,
+      "personal": 1.079
+     },
+     {
+      "margin_bin": 4,
+      "n": 13389,
+      "maia_acc": 92.79,
+      "own_gain": -0.037,
+      "ctrl_gain": -0.209,
+      "own_norm": -0.52,
+      "personal": 0.172
+     }
+    ],
+    "entropy_quintile_edges": [
+     0.897,
+     1.4346,
+     1.8436,
+     2.2058
+    ],
+    "by_entropy_quintile": [
+     {
+      "entropy_q": 0,
+      "n": 21624,
+      "maia_acc": 85.11,
+      "own_gain": 0.162,
+      "ctrl_gain": -1.031,
+      "own_norm": 1.09,
+      "personal": 1.193
+     },
+     {
+      "entropy_q": 1,
+      "n": 21624,
+      "maia_acc": 60.22,
+      "own_gain": 0.62,
+      "ctrl_gain": -2.039,
+      "own_norm": 1.56,
+      "personal": 2.659
+     },
+     {
+      "entropy_q": 2,
+      "n": 21624,
+      "maia_acc": 46.8,
+      "own_gain": 0.953,
+      "ctrl_gain": -2.793,
+      "own_norm": 1.79,
+      "personal": 3.746
+     },
+     {
+      "entropy_q": 3,
+      "n": 21624,
+      "maia_acc": 35.15,
+      "own_gain": 2.317,
+      "ctrl_gain": -3.034,
+      "own_norm": 3.57,
+      "personal": 5.351
+     },
+     {
+      "entropy_q": 4,
+      "n": 21625,
+      "maia_acc": 25.27,
+      "own_gain": 2.326,
+      "ctrl_gain": -3.158,
+      "own_norm": 3.11,
+      "personal": 5.484
+     }
+    ]
+   },
+   "12e": {
+    "ply_cuts": [
+     20,
+     40,
+     60
+    ],
+    "by_ply": [
+     {
+      "ply_bin": 0,
+      "n": 25994,
+      "maia_acc": 47.24,
+      "own_gain": 2.57,
+      "ctrl_gain": -3.031,
+      "own_norm": 4.87,
+      "personal": 5.601
+     },
+     {
+      "ply_bin": 1,
+      "n": 41903,
+      "maia_acc": 49.3,
+      "own_gain": 1.06,
+      "ctrl_gain": -2.706,
+      "own_norm": 2.09,
+      "personal": 3.766
+     },
+     {
+      "ply_bin": 2,
+      "n": 24249,
+      "maia_acc": 51.69,
+      "own_gain": 0.759,
+      "ctrl_gain": -2.116,
+      "own_norm": 1.57,
+      "personal": 2.874
+     },
+     {
+      "ply_bin": 3,
+      "n": 15975,
+      "maia_acc": 57.23,
+      "own_gain": 0.52,
+      "ctrl_gain": -1.077,
+      "own_norm": 1.21,
+      "personal": 1.596
+     }
+    ],
+    "hist_coverage": 0.628,
+    "by_hist": [
+     {
+      "hist": false,
+      "n": 67772,
+      "maia_acc": 48.5,
+      "own_gain": 1.63,
+      "ctrl_gain": -2.83,
+      "own_norm": 3.17,
+      "personal": 4.461
+     },
+     {
+      "hist": true,
+      "n": 125,
+      "maia_acc": 54.4,
+      "own_gain": 5.6,
+      "ctrl_gain": -3.2,
+      "own_norm": 12.28,
+      "personal": 8.8
+     }
+    ]
+   }
+  },
+  {
+   "band": 1100,
+   "positions": 184599,
+   "policy_coverage": 1.0,
+   "argmax_agrees_maia_hit": 0.9999,
+   "overall": {
+    "maia_acc": 54.4,
+    "own_gain": 1.179,
+    "ctrl_gain": -2.518,
+    "own_norm": 2.59
+   },
+   "12d": {
+    "maia_entropy_mean": 1.3945,
+    "maia_p1_mean": 0.5467,
+    "margin_median": 0.2813,
+    "n_legal_mean": 29.81,
+    "swap_cost": -2.518,
+    "swap_cost_norm": -5.52
+   },
+   "12f": {
+    "margin_quintile_edges": [
+     0.0823,
+     0.2009,
+     0.3803,
+     0.6664
+    ],
+    "by_margin_quintile": [
+     {
+      "margin_q": 0,
+      "n": 36920,
+      "maia_acc": 29.29,
+      "own_gain": 4.41,
+      "ctrl_gain": -2.622,
+      "own_norm": 6.24,
+      "personal": 7.031
+     },
+     {
+      "margin_q": 1,
+      "n": 36920,
+      "maia_acc": 37.64,
+      "own_gain": 1.736,
+      "ctrl_gain": -3.982,
+      "own_norm": 2.78,
+      "personal": 5.718
+     },
+     {
+      "margin_q": 2,
+      "n": 36919,
+      "maia_acc": 49.03,
+      "own_gain": 0.436,
+      "ctrl_gain": -3.646,
+      "own_norm": 0.86,
+      "personal": 4.082
+     },
+     {
+      "margin_q": 3,
+      "n": 36920,
+      "maia_acc": 65.7,
+      "own_gain": -0.515,
+      "ctrl_gain": -2.01,
+      "own_norm": -1.5,
+      "personal": 1.495
+     },
+     {
+      "margin_q": 4,
+      "n": 36920,
+      "maia_acc": 90.32,
+      "own_gain": -0.171,
+      "ctrl_gain": -0.33,
+      "own_norm": -1.76,
+      "personal": 0.16
+     }
+    ],
+    "margin_cuts": [
+     0.1,
+     0.25,
+     0.5,
+     0.75
+    ],
+    "by_margin_fixed": [
+     {
+      "margin_bin": 0,
+      "n": 43419,
+      "maia_acc": 29.88,
+      "own_gain": 4.143,
+      "ctrl_gain": -2.87,
+      "own_norm": 5.91,
+      "personal": 7.013
+     },
+     {
+      "margin_bin": 1,
+      "n": 42086,
+      "maia_acc": 40.18,
+      "own_gain": 1.445,
+      "ctrl_gain": -4.032,
+      "own_norm": 2.42,
+      "personal": 5.477
+     },
+     {
+      "margin_bin": 2,
+      "n": 42830,
+      "maia_acc": 55.07,
+      "own_gain": -0.17,
+      "ctrl_gain": -3.017,
+      "own_norm": -0.38,
+      "personal": 2.846
+     },
+     {
+      "margin_bin": 3,
+      "n": 27538,
+      "maia_acc": 73.07,
+      "own_gain": -0.461,
+      "ctrl_gain": -1.318,
+      "own_norm": -1.71,
+      "personal": 0.857
+     },
+     {
+      "margin_bin": 4,
+      "n": 28726,
+      "maia_acc": 93.36,
+      "own_gain": -0.104,
+      "ctrl_gain": -0.174,
+      "own_norm": -1.57,
+      "personal": 0.07
+     }
+    ],
+    "entropy_quintile_edges": [
+     0.7486,
+     1.2561,
+     1.6557,
+     2.0246
+    ],
+    "by_entropy_quintile": [
+     {
+      "entropy_q": 0,
+      "n": 36920,
+      "maia_acc": 88.82,
+      "own_gain": -0.092,
+      "ctrl_gain": -0.466,
+      "own_norm": -0.82,
+      "personal": 0.374
+     },
+     {
+      "entropy_q": 1,
+      "n": 36920,
+      "maia_acc": 65.12,
+      "own_gain": 0.423,
+      "ctrl_gain": -2.264,
+      "own_norm": 1.21,
+      "personal": 2.687
+     },
+     {
+      "entropy_q": 2,
+      "n": 36919,
+      "maia_acc": 50.79,
+      "own_gain": 1.01,
+      "ctrl_gain": -3.272,
+      "own_norm": 2.05,
+      "personal": 4.282
+     },
+     {
+      "entropy_q": 3,
+      "n": 36920,
+      "maia_acc": 39.46,
+      "own_gain": 1.877,
+      "ctrl_gain": -3.142,
+      "own_norm": 3.1,
+      "personal": 5.019
+     },
+     {
+      "entropy_q": 4,
+      "n": 36920,
+      "maia_acc": 27.79,
+      "own_gain": 2.679,
+      "ctrl_gain": -3.445,
+      "own_norm": 3.71,
+      "personal": 6.124
+     }
+    ]
+   },
+   "12e": {
+    "ply_cuts": [
+     20,
+     40,
+     60
+    ],
+    "by_ply": [
+     {
+      "ply_bin": 0,
+      "n": 39432,
+      "maia_acc": 51.12,
+      "own_gain": 3.342,
+      "ctrl_gain": -3.266,
+      "own_norm": 6.84,
+      "personal": 6.609
+     },
+     {
+      "ply_bin": 1,
+      "n": 68352,
+      "maia_acc": 52.97,
+      "own_gain": 1.075,
+      "ctrl_gain": -2.456,
+      "own_norm": 2.29,
+      "personal": 3.532
+     },
+     {
+      "ply_bin": 2,
+      "n": 44043,
+      "maia_acc": 55.2,
+      "own_gain": 0.297,
+      "ctrl_gain": -2.334,
+      "own_norm": 0.66,
+      "personal": 2.632
+     },
+     {
+      "ply_bin": 3,
+      "n": 32772,
+      "maia_acc": 60.24,
+      "own_gain": -0.021,
+      "ctrl_gain": -1.993,
+      "own_norm": -0.05,
+      "personal": 1.971
+     }
+    ],
+    "hist_coverage": 0.5839,
+    "by_hist": [
+     {
+      "hist": false,
+      "n": 106909,
+      "maia_acc": 52.28,
+      "own_gain": 1.813,
+      "ctrl_gain": -2.733,
+      "own_norm": 3.8,
+      "personal": 4.546
+     },
+     {
+      "hist": true,
+      "n": 875,
+      "maia_acc": 53.14,
+      "own_gain": 13.143,
+      "ctrl_gain": -5.143,
+      "own_norm": 28.05,
+      "personal": 18.286
+     }
+    ]
+   }
+  },
+  {
+   "band": 1500,
+   "positions": 97306,
+   "policy_coverage": 1.0,
+   "argmax_agrees_maia_hit": 0.9999,
+   "overall": {
+    "maia_acc": 56.63,
+    "own_gain": 1.009,
+    "ctrl_gain": -2.699,
+    "own_norm": 2.33
+   },
+   "12d": {
+    "maia_entropy_mean": 1.3207,
+    "maia_p1_mean": 0.5648,
+    "margin_median": 0.303,
+    "n_legal_mean": 30.62,
+    "swap_cost": -2.699,
+    "swap_cost_norm": -6.22
+   },
+   "12f": {
+    "margin_quintile_edges": [
+     0.0899,
+     0.2174,
+     0.407,
+     0.6996
+    ],
+    "by_margin_quintile": [
+     {
+      "margin_q": 0,
+      "n": 19461,
+      "maia_acc": 31.07,
+      "own_gain": 4.275,
+      "ctrl_gain": -2.878,
+      "own_norm": 6.2,
+      "personal": 7.153
+     },
+     {
+      "margin_q": 1,
+      "n": 19461,
+      "maia_acc": 39.96,
+      "own_gain": 1.485,
+      "ctrl_gain": -4.537,
+      "own_norm": 2.47,
+      "personal": 6.022
+     },
+     {
+      "margin_q": 2,
+      "n": 19461,
+      "maia_acc": 51.4,
+      "own_gain": -0.175,
+      "ctrl_gain": -3.864,
+      "own_norm": -0.36,
+      "personal": 3.689
+     },
+     {
+      "margin_q": 3,
+      "n": 19461,
+      "maia_acc": 68.51,
+      "own_gain": -0.432,
+      "ctrl_gain": -1.983,
+      "own_norm": -1.37,
+      "personal": 1.552
+     },
+     {
+      "margin_q": 4,
+      "n": 19462,
+      "maia_acc": 92.21,
+      "own_gain": -0.108,
+      "ctrl_gain": -0.231,
+      "own_norm": -1.38,
+      "personal": 0.123
+     }
+    ],
+    "margin_cuts": [
+     0.1,
+     0.25,
+     0.5,
+     0.75
+    ],
+    "by_margin_fixed": [
+     {
+      "margin_bin": 0,
+      "n": 21286,
+      "maia_acc": 31.59,
+      "own_gain": 4.219,
+      "ctrl_gain": -3.091,
+      "own_norm": 6.17,
+      "personal": 7.31
+     },
+     {
+      "margin_bin": 1,
+      "n": 21548,
+      "maia_acc": 41.28,
+      "own_gain": 1.174,
+      "ctrl_gain": -4.427,
+      "own_norm": 2.0,
+      "personal": 5.601
+     },
+     {
+      "margin_bin": 2,
+      "n": 22696,
+      "maia_acc": 55.81,
+      "own_gain": -0.489,
+      "ctrl_gain": -3.45,
+      "own_norm": -1.11,
+      "personal": 2.961
+     },
+     {
+      "margin_bin": 3,
+      "n": 14983,
+      "maia_acc": 73.88,
+      "own_gain": -0.32,
+      "ctrl_gain": -1.382,
+      "own_norm": -1.23,
+      "personal": 1.061
+     },
+     {
+      "margin_bin": 4,
+      "n": 16793,
+      "maia_acc": 93.77,
+      "own_gain": -0.06,
+      "ctrl_gain": -0.143,
+      "own_norm": -0.96,
+      "personal": 0.083
+     }
+    ],
+    "entropy_quintile_edges": [
+     0.6889,
+     1.1826,
+     1.5746,
+     1.9375
+    ],
+    "by_entropy_quintile": [
+     {
+      "entropy_q": 0,
+      "n": 19461,
+      "maia_acc": 91.33,
+      "own_gain": -0.242,
+      "ctrl_gain": -0.468,
+      "own_norm": -2.78,
+      "personal": 0.226
+     },
+     {
+      "entropy_q": 1,
+      "n": 19461,
+      "maia_acc": 67.16,
+      "own_gain": 0.257,
+      "ctrl_gain": -2.333,
+      "own_norm": 0.78,
+      "personal": 2.59
+     },
+     {
+      "entropy_q": 2,
+      "n": 19461,
+      "maia_acc": 53.71,
+      "own_gain": 0.529,
+      "ctrl_gain": -3.402,
+      "own_norm": 1.14,
+      "personal": 3.931
+     },
+     {
+      "entropy_q": 3,
+      "n": 19461,
+      "maia_acc": 41.36,
+      "own_gain": 1.439,
+      "ctrl_gain": -3.535,
+      "own_norm": 2.45,
+      "personal": 4.974
+     },
+     {
+      "entropy_q": 4,
+      "n": 19462,
+      "maia_acc": 29.6,
+      "own_gain": 3.062,
+      "ctrl_gain": -3.756,
+      "own_norm": 4.35,
+      "personal": 6.818
+     }
+    ]
+   },
+   "12e": {
+    "ply_cuts": [
+     20,
+     40,
+     60
+    ],
+    "by_ply": [
+     {
+      "ply_bin": 0,
+      "n": 19695,
+      "maia_acc": 52.95,
+      "own_gain": 3.59,
+      "ctrl_gain": -3.539,
+      "own_norm": 7.63,
+      "personal": 7.129
+     },
+     {
+      "ply_bin": 1,
+      "n": 34990,
+      "maia_acc": 55.22,
+      "own_gain": 0.697,
+      "ctrl_gain": -2.606,
+      "own_norm": 1.56,
+      "personal": 3.304
+     },
+     {
+      "ply_bin": 2,
+      "n": 24237,
+      "maia_acc": 57.26,
+      "own_gain": 0.429,
+      "ctrl_gain": -2.315,
+      "own_norm": 1.0,
+      "personal": 2.744
+     },
+     {
+      "ply_bin": 3,
+      "n": 18384,
+      "maia_acc": 62.43,
+      "own_gain": -0.397,
+      "ctrl_gain": -2.48,
+      "own_norm": -1.06,
+      "personal": 2.083
+     }
+    ],
+    "hist_coverage": 0.562,
+    "by_hist": [
+     {
+      "hist": false,
+      "n": 53880,
+      "maia_acc": 54.39,
+      "own_gain": 1.594,
+      "ctrl_gain": -2.929,
+      "own_norm": 3.5,
+      "personal": 4.523
+     },
+     {
+      "hist": true,
+      "n": 805,
+      "maia_acc": 55.03,
+      "own_gain": 11.429,
+      "ctrl_gain": -3.851,
+      "own_norm": 25.41,
+      "personal": 15.28
+     }
+    ]
+   }
+  },
+  {
+   "band": 1900,
+   "positions": 213192,
+   "policy_coverage": 1.0,
+   "argmax_agrees_maia_hit": 0.9999,
+   "overall": {
+    "maia_acc": 57.81,
+    "own_gain": 0.925,
+    "ctrl_gain": -2.356,
+    "own_norm": 2.19
+   },
+   "12d": {
+    "maia_entropy_mean": 1.2524,
+    "maia_p1_mean": 0.5815,
+    "margin_median": 0.3248,
+    "n_legal_mean": 31.52,
+    "swap_cost": -2.356,
+    "swap_cost_norm": -5.59
+   },
+   "12f": {
+    "margin_quintile_edges": [
+     0.0973,
+     0.2348,
+     0.434,
+     0.7265
+    ],
+    "by_margin_quintile": [
+     {
+      "margin_q": 0,
+      "n": 42639,
+      "maia_acc": 31.34,
+      "own_gain": 4.308,
+      "ctrl_gain": -2.387,
+      "own_norm": 6.27,
+      "personal": 6.696
+     },
+     {
+      "margin_q": 1,
+      "n": 42638,
+      "maia_acc": 40.75,
+      "own_gain": 1.37,
+      "ctrl_gain": -4.015,
+      "own_norm": 2.31,
+      "personal": 5.385
+     },
+     {
+      "margin_q": 2,
+      "n": 42638,
+      "maia_acc": 53.35,
+      "own_gain": -0.523,
+      "ctrl_gain": -3.396,
+      "own_norm": -1.12,
+      "personal": 2.873
+     },
+     {
+      "margin_q": 3,
+      "n": 42638,
+      "maia_acc": 70.51,
+      "own_gain": -0.399,
+      "ctrl_gain": -1.717,
+      "own_norm": -1.35,
+      "personal": 1.318
+     },
+     {
+      "margin_q": 4,
+      "n": 42639,
+      "maia_acc": 93.12,
+      "own_gain": -0.129,
+      "ctrl_gain": -0.265,
+      "own_norm": -1.87,
+      "personal": 0.136
+     }
+    ],
+    "margin_cuts": [
+     0.1,
+     0.25,
+     0.5,
+     0.75
+    ],
+    "by_margin_fixed": [
+     {
+      "margin_bin": 0,
+      "n": 43651,
+      "maia_acc": 31.43,
+      "own_gain": 4.293,
+      "ctrl_gain": -2.417,
+      "own_norm": 6.26,
+      "personal": 6.71
+     },
+     {
+      "margin_bin": 1,
+      "n": 45529,
+      "maia_acc": 41.41,
+      "own_gain": 1.166,
+      "ctrl_gain": -4.059,
+      "own_norm": 1.99,
+      "personal": 5.225
+     },
+     {
+      "margin_bin": 2,
+      "n": 49940,
+      "maia_acc": 55.98,
+      "own_gain": -0.527,
+      "ctrl_gain": -3.122,
+      "own_norm": -1.2,
+      "personal": 2.595
+     },
+     {
+      "margin_bin": 3,
+      "n": 34185,
+      "maia_acc": 74.03,
+      "own_gain": -0.363,
+      "ctrl_gain": -1.357,
+      "own_norm": -1.4,
+      "personal": 0.995
+     },
+     {
+      "margin_bin": 4,
+      "n": 39887,
+      "maia_acc": 93.82,
+      "own_gain": -0.113,
+      "ctrl_gain": -0.243,
+      "own_norm": -1.82,
+      "personal": 0.13
+     }
+    ],
+    "entropy_quintile_edges": [
+     0.6468,
+     1.1121,
+     1.493,
+     1.8514
+    ],
+    "by_entropy_quintile": [
+     {
+      "entropy_q": 0,
+      "n": 42639,
+      "maia_acc": 92.74,
+      "own_gain": -0.181,
+      "ctrl_gain": -0.478,
+      "own_norm": -2.49,
+      "personal": 0.298
+     },
+     {
+      "entropy_q": 1,
+      "n": 42638,
+      "maia_acc": 68.68,
+      "own_gain": -0.049,
+      "ctrl_gain": -2.106,
+      "own_norm": -0.16,
+      "personal": 2.057
+     },
+     {
+      "entropy_q": 2,
+      "n": 42638,
+      "maia_acc": 54.51,
+      "own_gain": 0.542,
+      "ctrl_gain": -2.744,
+      "own_norm": 1.19,
+      "personal": 3.286
+     },
+     {
+      "entropy_q": 3,
+      "n": 42638,
+      "maia_acc": 42.83,
+      "own_gain": 1.6,
+      "ctrl_gain": -3.225,
+      "own_norm": 2.8,
+      "personal": 4.824
+     },
+     {
+      "entropy_q": 4,
+      "n": 42639,
+      "maia_acc": 30.31,
+      "own_gain": 2.716,
+      "ctrl_gain": -3.227,
+      "own_norm": 3.9,
+      "personal": 5.943
+     }
+    ]
+   },
+   "12e": {
+    "ply_cuts": [
+     20,
+     40,
+     60
+    ],
+    "by_ply": [
+     {
+      "ply_bin": 0,
+      "n": 40931,
+      "maia_acc": 54.54,
+      "own_gain": 4.046,
+      "ctrl_gain": -2.819,
+      "own_norm": 8.9,
+      "personal": 6.865
+     },
+     {
+      "ply_bin": 1,
+      "n": 75943,
+      "maia_acc": 56.56,
+      "own_gain": 0.678,
+      "ctrl_gain": -2.433,
+      "own_norm": 1.56,
+      "personal": 3.112
+     },
+     {
+      "ply_bin": 2,
+      "n": 55344,
+      "maia_acc": 58.51,
+      "own_gain": -0.11,
+      "ctrl_gain": -2.239,
+      "own_norm": -0.27,
+      "personal": 2.129
+     },
+     {
+      "ply_bin": 3,
+      "n": 40974,
+      "maia_acc": 62.47,
+      "own_gain": -0.334,
+      "ctrl_gain": -1.909,
+      "own_norm": -0.89,
+      "personal": 1.574
+     }
+    ],
+    "hist_coverage": 0.5482,
+    "by_hist": [
+     {
+      "hist": false,
+      "n": 114063,
+      "maia_acc": 55.85,
+      "own_gain": 1.64,
+      "ctrl_gain": -2.578,
+      "own_norm": 3.72,
+      "personal": 4.218
+     },
+     {
+      "hist": true,
+      "n": 2811,
+      "maia_acc": 55.85,
+      "own_gain": 10.672,
+      "ctrl_gain": -2.206,
+      "own_norm": 24.17,
+      "personal": 12.878
+     }
+    ]
+   }
+  },
+  {
+   "band": 2300,
+   "positions": 280831,
+   "policy_coverage": 1.0,
+   "argmax_agrees_maia_hit": 1.0,
+   "overall": {
+    "maia_acc": 61.01,
+    "own_gain": 0.038,
+    "ctrl_gain": -1.977,
+    "own_norm": 0.1
+   },
+   "12d": {
+    "maia_entropy_mean": 1.1312,
+    "maia_p1_mean": 0.6132,
+    "margin_median": 0.3708,
+    "n_legal_mean": 32.74,
+    "swap_cost": -1.977,
+    "swap_cost_norm": -5.07
+   },
+   "12f": {
+    "margin_quintile_edges": [
+     0.1129,
+     0.2701,
+     0.49,
+     0.7812
+    ],
+    "by_margin_quintile": [
+     {
+      "margin_q": 0,
+      "n": 56166,
+      "maia_acc": 34.2,
+      "own_gain": 1.953,
+      "ctrl_gain": -2.514,
+      "own_norm": 2.97,
+      "personal": 4.467
+     },
+     {
+      "margin_q": 1,
+      "n": 56166,
+      "maia_acc": 43.75,
+      "own_gain": -0.253,
+      "ctrl_gain": -3.217,
+      "own_norm": -0.45,
+      "personal": 2.964
+     },
+     {
+      "margin_q": 2,
+      "n": 56166,
+      "maia_acc": 56.97,
+      "own_gain": -0.887,
+      "ctrl_gain": -2.781,
+      "own_norm": -2.06,
+      "personal": 1.894
+     },
+     {
+      "margin_q": 3,
+      "n": 56166,
+      "maia_acc": 75.33,
+      "own_gain": -0.541,
+      "ctrl_gain": -1.207,
+      "own_norm": -2.19,
+      "personal": 0.666
+     },
+     {
+      "margin_q": 4,
+      "n": 56167,
+      "maia_acc": 94.79,
+      "own_gain": -0.084,
+      "ctrl_gain": -0.164,
+      "own_norm": -1.6,
+      "personal": 0.08
+     }
+    ],
+    "margin_cuts": [
+     0.1,
+     0.25,
+     0.5,
+     0.75
+    ],
+    "by_margin_fixed": [
+     {
+      "margin_bin": 0,
+      "n": 50727,
+      "maia_acc": 33.76,
+      "own_gain": 2.153,
+      "ctrl_gain": -2.37,
+      "own_norm": 3.25,
+      "personal": 4.522
+     },
+     {
+      "margin_bin": 1,
+      "n": 55490,
+      "maia_acc": 42.45,
+      "own_gain": -0.115,
+      "ctrl_gain": -3.273,
+      "own_norm": -0.2,
+      "personal": 3.157
+     },
+     {
+      "margin_bin": 2,
+      "n": 64501,
+      "maia_acc": 56.69,
+      "own_gain": -0.91,
+      "ctrl_gain": -2.812,
+      "own_norm": -2.1,
+      "personal": 1.902
+     },
+     {
+      "margin_bin": 3,
+      "n": 48477,
+      "maia_acc": 74.64,
+      "own_gain": -0.571,
+      "ctrl_gain": -1.227,
+      "own_norm": -2.25,
+      "personal": 0.656
+     },
+     {
+      "margin_bin": 4,
+      "n": 61636,
+      "maia_acc": 93.93,
+      "own_gain": -0.094,
+      "ctrl_gain": -0.201,
+      "own_norm": -1.55,
+      "personal": 0.107
+     }
+    ],
+    "entropy_quintile_edges": [
+     0.5443,
+     0.9818,
+     1.3462,
+     1.7034
+    ],
+    "by_entropy_quintile": [
+     {
+      "entropy_q": 0,
+      "n": 56166,
+      "maia_acc": 94.62,
+      "own_gain": -0.176,
+      "ctrl_gain": -0.276,
+      "own_norm": -3.27,
+      "personal": 0.1
+     },
+     {
+      "entropy_q": 1,
+      "n": 56166,
+      "maia_acc": 73.21,
+      "own_gain": -0.591,
+      "ctrl_gain": -1.622,
+      "own_norm": -2.21,
+      "personal": 1.031
+     },
+     {
+      "entropy_q": 2,
+      "n": 56166,
+      "maia_acc": 58.3,
+      "own_gain": -0.205,
+      "ctrl_gain": -2.507,
+      "own_norm": -0.49,
+      "personal": 2.302
+     },
+     {
+      "entropy_q": 3,
+      "n": 56166,
+      "maia_acc": 45.97,
+      "own_gain": 0.456,
+      "ctrl_gain": -2.81,
+      "own_norm": 0.84,
+      "personal": 3.265
+     },
+     {
+      "entropy_q": 4,
+      "n": 56167,
+      "maia_acc": 32.93,
+      "own_gain": 0.705,
+      "ctrl_gain": -2.669,
+      "own_norm": 1.05,
+      "personal": 3.374
+     }
+    ]
+   },
+   "12e": {
+    "ply_cuts": [
+     20,
+     40,
+     60
+    ],
+    "by_ply": [
+     {
+      "ply_bin": 0,
+      "n": 52302,
+      "maia_acc": 60.43,
+      "own_gain": 2.874,
+      "ctrl_gain": -2.029,
+      "own_norm": 7.26,
+      "personal": 4.902
+     },
+     {
+      "ply_bin": 1,
+      "n": 99847,
+      "maia_acc": 59.35,
+      "own_gain": -0.168,
+      "ctrl_gain": -1.933,
+      "own_norm": -0.41,
+      "personal": 1.765
+     },
+     {
+      "ply_bin": 2,
+      "n": 76159,
+      "maia_acc": 61.54,
+      "own_gain": -0.865,
+      "ctrl_gain": -2.055,
+      "own_norm": -2.25,
+      "personal": 1.19
+     },
+     {
+      "ply_bin": 3,
+      "n": 52523,
+      "maia_acc": 63.95,
+      "own_gain": -1.085,
+      "ctrl_gain": -1.894,
+      "own_norm": -3.01,
+      "personal": 0.809
+     }
+    ],
+    "hist_coverage": 0.5418,
+    "by_hist": [
+     {
+      "hist": false,
+      "n": 144736,
+      "maia_acc": 59.42,
+      "own_gain": 0.543,
+      "ctrl_gain": -1.953,
+      "own_norm": 1.34,
+      "personal": 2.496
+     },
+     {
+      "hist": true,
+      "n": 7413,
+      "maia_acc": 65.55,
+      "own_gain": 7.406,
+      "ctrl_gain": -2.226,
+      "own_norm": 21.5,
+      "personal": 9.632
+     }
+    ]
+   }
+  }
+ ]
+}

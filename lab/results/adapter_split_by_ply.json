@@ -1,0 +1,167 @@
+{
+ "700_10_20": {
+  "pairs": 141,
+  "centred": {
+   "sister": 0.5659,
+   "other": -0.0018,
+   "id_top1": 0.8865,
+   "id_chance": 0.0071
+  },
+  "reliable_share": 0.5667,
+  "reliable_pr": 13.43
+ },
+ "1100_10_20": {
+  "pairs": 164,
+  "centred": {
+   "sister": 0.5185,
+   "other": -0.0011,
+   "id_top1": 0.8232,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.5193,
+  "reliable_pr": 13.92
+ },
+ "1500_10_20": {
+  "pairs": 163,
+  "centred": {
+   "sister": 0.5067,
+   "other": -0.0007,
+   "id_top1": 0.8098,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.5034,
+  "reliable_pr": 15.86
+ },
+ "1900_10_20": {
+  "pairs": 159,
+  "centred": {
+   "sister": 0.4551,
+   "other": -0.0001,
+   "id_top1": 0.7799,
+   "id_chance": 0.0063
+  },
+  "reliable_share": 0.443,
+  "reliable_pr": 19.11
+ },
+ "2300_10_20": {
+  "pairs": 121,
+  "centred": {
+   "sister": 0.3432,
+   "other": 0.002,
+   "id_top1": 0.5041,
+   "id_chance": 0.0083
+  },
+  "reliable_share": 0.3494,
+  "reliable_pr": 14.8
+ },
+ "700_20_30": {
+  "pairs": 141,
+  "centred": {
+   "sister": 0.514,
+   "other": -0.0013,
+   "id_top1": 0.8227,
+   "id_chance": 0.0071
+  },
+  "reliable_share": 0.5063,
+  "reliable_pr": 14.86
+ },
+ "1100_20_30": {
+  "pairs": 164,
+  "centred": {
+   "sister": 0.4474,
+   "other": -0.0002,
+   "id_top1": 0.7744,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.431,
+  "reliable_pr": 19.67
+ },
+ "1500_20_30": {
+  "pairs": 163,
+  "centred": {
+   "sister": 0.4272,
+   "other": -0.0,
+   "id_top1": 0.7301,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.4165,
+  "reliable_pr": 18.08
+ },
+ "1900_20_30": {
+  "pairs": 159,
+  "centred": {
+   "sister": 0.3735,
+   "other": 0.0008,
+   "id_top1": 0.6667,
+   "id_chance": 0.0063
+  },
+  "reliable_share": 0.3475,
+  "reliable_pr": 22.03
+ },
+ "2300_20_30": {
+  "pairs": 121,
+  "centred": {
+   "sister": 0.2692,
+   "other": 0.0019,
+   "id_top1": 0.4215,
+   "id_chance": 0.0083
+  },
+  "reliable_share": 0.2637,
+  "reliable_pr": 16.33
+ },
+ "700_30_999": {
+  "pairs": 141,
+  "centred": {
+   "sister": 0.4264,
+   "other": -0.001,
+   "id_top1": 0.8014,
+   "id_chance": 0.0071
+  },
+  "reliable_share": 0.4019,
+  "reliable_pr": 17.13
+ },
+ "1100_30_999": {
+  "pairs": 164,
+  "centred": {
+   "sister": 0.3451,
+   "other": 0.0011,
+   "id_top1": 0.6829,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.3133,
+  "reliable_pr": 25.66
+ },
+ "1500_30_999": {
+  "pairs": 163,
+  "centred": {
+   "sister": 0.318,
+   "other": 0.001,
+   "id_top1": 0.6748,
+   "id_chance": 0.0061
+  },
+  "reliable_share": 0.299,
+  "reliable_pr": 21.32
+ },
+ "1900_30_999": {
+  "pairs": 159,
+  "centred": {
+   "sister": 0.2709,
+   "other": 0.0018,
+   "id_top1": 0.5031,
+   "id_chance": 0.0063
+  },
+  "reliable_share": 0.2389,
+  "reliable_pr": 24.97
+ },
+ "2300_30_999": {
+  "pairs": 121,
+  "centred": {
+   "sister": 0.205,
+   "other": 0.0017,
+   "id_top1": 0.3554,
+   "id_chance": 0.0083
+  },
+  "reliable_share": 0.1919,
+  "reliable_pr": 17.82
+ }
+}
