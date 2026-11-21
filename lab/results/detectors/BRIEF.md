@@ -24,14 +24,20 @@ You may also analyse the dev data directly with your own scripts (put them in yo
       in Maia-3's mirrored frame: real square = chess.square_mirror(token) when black is to move, else token.
   Rows of the .npy align with meta rows. NEVER read or score rows with split == "test"; they are the held-out set.
 
+Concept library: lab/doppel_lab/chess_concepts.py (`Pos.of(board, info)`: side-to-move frame, who guards a square,
+"guarded only by", x-rays and lines, pawn structure by file, Maia move-target mass, Stockfish PV, rating / phase /
+eval context, `gelu` output). Read it first and build on it; worked example: lab/results/detectors/b5.210/detector_lib.py.
+If you need a reusable concept it lacks, write it in your detector as a small function with a docstring, and list it
+under "new concepts" in notes.md (do not edit the library; the orchestrator merges them).
+
 Rules
-- python-chess and the `info` dict only inside detect() (no engine calls; it runs on ~380k tokens).
+- python-chess, doppel_lab.chess_concepts and the `info` dict only inside detect() (no engine calls; it runs on ~380k tokens).
 - Prefer an explanation a chess player could read: a clear rule (maybe with a few graded terms) beats an opaque fit.
   No lookup tables keyed on exact FENs, no fitted models with more than ~10 parameters.
 - Iterate: hypothesis -> code -> score -> look at the failures (false positives and misses on dev) -> refine.
   Stop when improvements flatten, or after about 12 scoring runs.
 - notes.md: (1) one-sentence description of what the neuron detects in chess terms, (2) a short paragraph of the
-  evidence and what you tried, (3) final dev metrics, (4) honest caveats: what it misses, whether it looks
+  evidence and what you tried, (3) final dev metrics, (4) new concepts (reusable helpers you wrote, one line each), (5) honest caveats: what it misses, whether it looks
   polysemantic (several unrelated triggers), confidence low/medium/high.
 - Final reply to the orchestrator: the one-sentence description, final dev Spearman / AUROC / F1, and confidence.
   Under 120 words.
