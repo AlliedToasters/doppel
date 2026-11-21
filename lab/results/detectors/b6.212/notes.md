@@ -1,0 +1,13 @@
+# b6.212 notes
+
+**(1) Description.** A broad "contact" neuron: it fires on squares where the two armies touch. That means our men under attack (especially advanced or passed ones, and ones that attack enemy men themselves), enemy men we hit, and empty squares that both sides contest, that Maia wants to move to, or that lie on a passed pawn's road. It is much stronger in endgames, later in the game and at ratings of 1500 and above.
+
+**(2) Evidence and what I tried.** Built token tables on dev (piece/side on the square, attacker counts and kinds, rank, Maia to/from mass, PV, pawn paths, band/ply/material). Fire rate by occupancy: own man attacked by them 17% (rising to 30-60% with 2-3 attackers), own man not attacked 2.7%, enemy man we attack 7%, contested empty 2.5%, other empty 0.5%. The kind of attacker matters little; the number of attackers matters more than the number of defenders. Further signals: own man's relative rank (rank 4+ ~19% even when not attacked), passed pawns, blockading an enemy pawn (17-31%), Maia's move-to mass on empty squares, empty squares 1-2 steps ahead of a passed pawn (4-9% vs 1%), and the endgame. The rating effect saturates: firing rises about 5x from 700 to 1500, then stays flat. Iterations: v1 tension rule (AUROC 0.81 / F1 0.22); v2 per-occupancy graded terms (weights from a logistic fit) (0.890 / 0.285); +passer road and blockade (0.898 / 0.287); +attacker count, ply (0.899 / 0.291); saturating band term (0.902 / 0.299). An endgame "our king is active" bonus hurt, so I reverted it. Position-level normalisation did not help. A gradient-boosted model on the same features reaches only AUROC 0.913 / F1 0.33 on held-out dev positions, so this rule is close to what these concepts can explain.
+
+**(3) Final dev metrics.** Spearman -0.265 (the GELU dip on near-misses), spearman_pos 0.219, AUROC 0.902, F1 0.299 (baseline pair 0.190). 8 scoring runs.
+
+**(4) New concepts.**
+- `threats_made(p, sq)`: how many enemy men the piece on sq attacks.
+- `passer_path(p, sq, max_dist=2)`: sq is on the clear file ahead of a passed pawn of either colour (2 = next square, 1 = two steps on).
+
+**(5) Caveats.** Precision is low. Many obvious contact squares stay silent, so the true trigger is narrower and probably depends on context these concepts lack (perhaps which exchange or threat matters to the coming move). It misses king-endgame squares near the kings (opposition squares, squares the enemy king covers), and some empty squares on pawn roads that lie further ahead. Several triggers (attacked men, contested empties, pawn roads) share one theme but are not one crisp rule, so it is mildly polysemantic, or a diffuse feature. Confidence: low-medium.

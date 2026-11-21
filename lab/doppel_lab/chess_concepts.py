@@ -55,6 +55,7 @@ class Pos:
         self._att: dict = {}
         self._to_mass = None
         self._legal_to = None
+        self._x: dict = {}
 
     # -------------------------------------------------- frame
     def rel_rank(self, sq: int) -> int:
@@ -316,3 +317,123 @@ class Pos:
         """Maia-3's top-move probability: near 1 when there is one obvious move."""
         p = self.info.get("maia_p5") or [0.0]
         return float(p[0])
+
+    # -------------------------------------------------- material
+    def side_material(self, ours: bool = True) -> int:
+        """Material of one side in pawns (P1 N3 B3 R5 Q9, king not counted); ours=True for the side to move."""
+        c = self.us if ours else self.them
+        return sum(VALUE[t] * len(self.b.pieces(t, c)) for t in (chess.PAWN, chess.KNIGHT, chess.BISHOP,
+                                                                  chess.ROOK, chess.QUEEN))
+
+    def material_balance(self) -> int:
+        """Our material minus theirs, in pawns: + when the side to move is ahead."""
+        return self.side_material(True) - self.side_material(False)
+
+    def n_hanging(self, ours: bool = True) -> int:
+        """How many of one side's pieces are attacked and undefended (loose material on the board)."""
+        k = ("n_hanging", ours)
+        if k not in self._x:
+            c = self.us if ours else self.them
+            self._x[k] = sum(self.hanging(s) for s, pc in self.b.piece_map().items() if pc.color == c)
+        return self._x[k]
+
+    # -------------------------------------------------- piece activity
+    def piece_mobility(self, sq: int) -> int:
+        """Squares the piece on sq attacks that its own side does not occupy (pseudo-mobility, pins ignored)."""
+        pc = self.b.piece_at(sq)
+        if pc is None:
+            return 0
+        return chess.popcount(self.b.attacks_mask(sq) & ~self.b.occupied_co[pc.color])
+
+    def threats_made(self, sq: int) -> int:
+        """How many men of the other side the piece on sq attacks (0 for an empty square)."""
+        pc = self.b.piece_at(sq)
+        if pc is None:
+            return 0
+        return chess.popcount(self.b.attacks_mask(sq) & self.b.occupied_co[not pc.color])
+
+    # -------------------------------------------------- king safety and castling
+    def king_ring_attacked(self, ours: bool = True) -> int:
+        """Squares next to one side's king that the other side attacks (pressure on the king's neighbourhood)."""
+        k = ("ring", ours)
+        if k not in self._x:
+            ksq = self.b.king(self.us if ours else self.them)
+            self._x[k] = 0 if ksq is None else sum(
+                self.n_guards(s, by_us=not ours) > 0 for s in chess.SquareSet(chess.BB_KING_ATTACKS[ksq]))
+        return self._x[k]
+
+    def still_castleable(self, sq: int) -> bool:
+        """The king or rook on sq still holds a castling right (it has not moved; castling is still a plan)."""
+        pt = self.b.piece_type_at(sq)
+        if pt == chess.KING:
+            return self.b.has_castling_rights(self.b.color_at(sq))
+        return pt == chess.ROOK and bool(self.b.castling_rights & chess.BB_SQUARES[sq])
+
+    # -------------------------------------------------- pawns
+    def advanced_enemy_pawn_attacks(self, max_rel_rank: int = 4) -> chess.SquareSet:
+        """Squares hit by enemy pawns standing on our relative rank <= max_rel_rank (pawns pressing into our half)."""
+        k = ("adv_pawn_att", max_rel_rank)
+        if k not in self._x:
+            s = chess.SquareSet()
+            for x in self.b.pieces(chess.PAWN, self.them):
+                if self.rel_rank(x) <= max_rel_rank:
+                    s |= self.b.attacks(x)
+            self._x[k] = s
+        return self._x[k]
+
+    def passer_path(self, sq: int, max_dist: int = 2) -> int:
+        """sq is on the clear file ahead of a passed pawn (either side) within max_dist steps: max_dist + 1 - steps
+        (2 = the very next square with the default), 0 otherwise. The road a passed pawn wants to run."""
+        f, r = chess.square_file(sq), chess.square_rank(sq)
+        best = 0
+        for col, step in ((chess.WHITE, -1), (chess.BLACK, 1)):  # walk back from sq towards the pawn
+            rr, dist = r + step, 1
+            while 0 <= rr < 8 and dist <= max_dist:
+                x = chess.square(f, rr)
+                pc = self.b.piece_at(x)
+                if pc is not None:
+                    if pc.piece_type == chess.PAWN and pc.color == col and self.passed(x):
+                        best = max(best, max_dist + 1 - dist)
+                    break
+                rr += step
+                dist += 1
+        return best
+
+    # -------------------------------------------------- rank geometry
+    def rank_neighbours(self, sq: int) -> tuple[int | None, int | None]:
+        """Nearest occupied square to the left (towards the a-file) and right of sq on its rank (None to the edge)."""
+        out = []
+        r = chess.square_rank(sq)
+        for df in (-1, 1):
+            f, hit = chess.square_file(sq) + df, None
+            while 0 <= f < 8:
+                if self.b.piece_at(chess.square(f, r)) is not None:
+                    hit = chess.square(f, r)
+                    break
+                f += df
+            out.append(hit)
+        return out[0], out[1]
+
+    def rooks_connected(self, ours: bool = True) -> bool:
+        """Two rooks of one side on the same rank with nothing between them (the back rank is cleared)."""
+        rs = list(self.b.pieces(chess.ROOK, self.us if ours else self.them))
+        return any(chess.square_rank(a) == chess.square_rank(b) and not (chess.between(a, b) & self.b.occupied)
+                   for i, a in enumerate(rs) for b in rs[i + 1:])
+
+    # -------------------------------------------------- Maia context (precomputed in info)
+    def maia_entropy(self) -> float:
+        """Entropy (nats) of Maia-3's top-5 move probabilities: ~0 when one move is obvious, ~1.6 when spread."""
+        return -sum(q * math.log(q) for q in (self.info.get("maia_p5") or []) if q > 0)
+
+    def maia_move_distance(self, sq: int) -> float:
+        """Probability-weighted king-step distance from sq to Maia-3's top-5 moves (nearer of from/to square):
+        0 when sq is on the move everyone expects, large when it is away from the action (3 with no Maia data)."""
+        if "maia_moves" not in self._x:
+            self._x["maia_moves"] = [(chess.Move.from_uci(u), q) for u, q in
+                                     zip(self.info.get("maia_top5") or [], self.info.get("maia_p5") or [])]
+        ms = self._x["maia_moves"]
+        if not ms:
+            return 3.0
+        tot = sum(q for _, q in ms) or 1.0
+        return sum(q * min(chess.square_distance(sq, m.from_square), chess.square_distance(sq, m.to_square))
+                   for m, q in ms) / tot

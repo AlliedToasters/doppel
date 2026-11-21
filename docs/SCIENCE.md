@@ -2639,6 +2639,15 @@ evidence packs, scoring), brief `data/allie/neuron_atlas/detect/BRIEF.md`. Resul
   F1 0.10, b6.1655 0.22). Several depend on rating band, a direct handle for the doppel work.
 - **Against the Lc0 result** that raw neurons are illegible (Lin et al., 2.05 of 5): here the gap looks like
   python-chess's thin vocabulary more than messy neurons. n = 8, and subagent confidence is mostly low to medium.
+- **Batch 2 (8 more random neurons, via a workflow, agents building on `chess_concepts`).** All 8 beat the best
+  pair again: median test F1 0.40 vs 0.24 (ratio 1.6×), median AUROC 0.88. Over **16 random neurons: 16/16 beat
+  the baseline, median F1 0.42 vs 0.22 (1.7×), median AUROC 0.87**. The second batch reads as more diffuse: 5 of 8
+  flagged as possibly polysemantic, mostly low-medium confidence. Examples: a king-camp neuron gated by rating
+  (b5.64); loose or stranded enemy men (b6.1012); "contact where the armies touch" (b6.212); unconnected back-rank
+  rook lanes (b6.1900); and a position-level "the move is settled" neuron that fires widely when Maia is confident
+  (b7.946). A merge agent turned 13 of the agents' helpers into library methods (material, hanging counts,
+  mobility, threats, king-ring attacks, castling rights, passer paths, connected rooks, Maia entropy, distance to
+  Maia's candidate moves) and rejected 2 one-neuron hacks. About 980k tokens for 9 agents, 18 minutes.
 - **Caveats.** One rule (b7.1015) uses about 17 fitted weights, over the ~10 limit. Raw Spearman is distorted by
   GELU's negative dip, so `spearman_pos` (activations clipped at 0) is the comparable number. About 110k tokens and
   7–9 minutes per neuron.
