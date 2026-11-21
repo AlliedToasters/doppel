@@ -2511,6 +2511,138 @@ does not show them). This is the published form of v0g's `--kl-per-player`.
   wrong-player history, recency, repertoire table); coverage and history-size strata; validation-only tuning;
   release game IDs and fetch cutoffs.
 
+### Lit review 2026-11-21: neuron-level interpretability, chess concepts, automated interpretation
+
+Motivation: tie chess knowledge, model internals and player behaviour together through the doppel adapters. Our LoRA
+sits on `linear1`/`linear2` of Maia-3's MLPs, so each adapter is already a per-neuron change: rows of ΔW₁ change what
+a neuron reads, columns of ΔW₂ how strongly it writes. Papers were read through a fetch summariser (full text cut at
+~40k characters; the rest model-summarised), so numbers marked (unverified) need a direct check.
+
+**Maia-3-79M MLPs (checked locally).** 8 post-LN blocks, d_model 1024, d_ff 2048, GELU (not SwiGLU). The adapted
+blocks 5–8 hold 4 × 2,048 = 8,192 MLP neurons, 16,384 in the whole model: a neuron atlas of the entire network is
+small enough to build. GELU's negative side bottoms out near −0.17, so the "two poles per neuron" of SwiGLU models is
+mostly one pole here.
+
+**Neurons as the basis (Goodfire).**
+- Cammarata, *Neural Networks Are Already Clean*, essay ([already-clean.goodfire.com](https://already-clean.goodfire.com/)).
+  Argues neurons are far more legible than the superposition story implied. A preliminary Qwen3-32B audit finds
+  about 90% of neuron poles with "one main job", 7% with two related jobs and 2–4% not understood, called "a broad
+  pointer" that depends on thresholds. Vision aside: SAEs on a last layer found mostly near-copies of single
+  neurons (88% of SAE activity), and splicing a 640-feature SAE into a squeezed layer cut top-1 from 58.8% to
+  43.0% (unverified). Essay read via summary.
+- Tigges, Kowal, McGrath, Lewis, Cammarata, *Neurons as an Interpretable Basis*, Goodfire, 2026-11-10
+  ([page](https://www.goodfire.com/research/neurons-as-an-interpretable-basis)). Qwen3.6-35B-A3B (MoE, SwiGLU).
+  Unit: the neuron pole, the positive or negative extreme of a neuron. Ablating the weakest 92.2% of activations
+  per token costs 1.2–2.2 points of log-likelihood on non-reasoning benchmarks. Web-text loss goes 1.886 → 1.940
+  keeping the top 320 neurons, vs 4.214 for a random 64 (unverified). Median pole: 1.0 mode (mean 2.82); 69% of
+  poles have ≥ 90% of their ablation KL damage in one mode, and 47% have a single computational function.
+  Pipeline: subcircuits from up- and downstream contributions, Leiden clustering, then an LLM judge (Claude) writes
+  descriptions and groups subcircuits into modes. 2,734 neurons (5,468 poles), 14,000 examples each across 14
+  percentile bands. Scores: detection 95% vs random text (89% vs same-expert text, chance 50%); simulation
+  recovers 73% of the perfect-reader KL ceiling at p99.9+; synthesised inputs beat the 10B-token corpus maximum
+  for 94% of neurons. Limitations: weak activations and negative quadrants were not analysed, and some neurons
+  are genuinely polysemantic. No adapter or fine-tuning analysis. Partly read.
+
+**Chess networks: internals and concepts.**
+- McGrath et al., *Acquisition of Chess Knowledge in AlphaZero*, PNAS 2022
+  ([arXiv:2111.09259](https://arxiv.org/abs/2111.09259)). Sparse linear probes on the residual torso. Concepts are
+  Stockfish 8 eval sub-terms (mobility, king safety, threats, …) plus 116 hand-written ones (forks, pins, pawn
+  structure). Stockfish's total score is decodable at r² > 0.75 by layer 10. A section on single-neuron covariance
+  was not read. Partly read.
+- Schut et al., *Bridging the Human–AI Knowledge Gap*, PNAS 2025
+  ([arXiv:2310.16410](https://arxiv.org/abs/2310.16410)). Sparse concept vectors by convex optimisation, mostly at
+  layer 19. Filters: teachable to another agent (removes 97.6% of candidates), then novel against human games
+  (another 27.1%). Four grandmasters improved on concept-prototype puzzles (e.g. 0% → 42%, 33% → 58%) on small
+  puzzle sets. No LLM involved. Partly read.
+- Lin et al. 2026, *Tracing the Thought of a Grandmaster-level Chess-Playing Transformer*
+  ([arXiv:2604.10158](https://arxiv.org/abs/2604.10158), code github.com/JacklE0niden/Leela-SAEs). Transcoders
+  and low-rank sparse attention (Lorsa) on Lc0 BT4, with features checked against hand-written chess rules
+  (precision and recall over 1,000 activations: e.g. opponent knight 100% / 100%, target square 99.2% / 78.7%).
+  Three human raters scored consistency: transcoder 4.15, Lorsa 3.73, **raw MLP neurons 2.05** of 5. In Lc0,
+  neurons were much less legible than transcoder features, against Goodfire's LLM finding. No LLM used. Partly read.
+- Poupart 2024, *Contrastive SAEs for chess planning* ([arXiv:2406.04028](https://arxiv.org/abs/2406.04028)). SAEs
+  on Lc0, with cherry-picked examples read by hand. The author deliberately avoids LLM interpreters as "yet another
+  black box". Probe F1 0.54–0.58. Partly read.
+- Kim et al., *Concept-guided chess commentary*, NAACL 2025 ([arXiv:2410.20811](https://arxiv.org/abs/2410.20811)).
+  SVM probes on Lc0 layer 40, labelled with Stockfish 8 terms (probe accuracy about 0.91), feed GPT-4o commentary.
+  Human-rated correctness rises 0.36 → 0.60 with concepts. Illegal or nonexistent pieces drop 0.46 → 0.20, but
+  wrong positional judgement stays about 0.28 in every condition. Partly read.
+- Not found: any neuron-level or concept-level study of a human-imitation model (Maia, Allie, Chessformer), or of
+  per-player variation in internals.
+
+**Can an LLM read chess?**
+- Hebbar et al. 2026, *Hallucinations on the Board* (ACT-Eval, [arXiv:2608.04240](https://arxiv.org/abs/2608.04240)).
+  Commentary is split into atomic claims and checked with a Stockfish and python-chess tool suite. GPT-5.4 sub-claim
+  error is 22.0% without tools and 9.2% with. Recall of expert gold points: Claude Opus 4.7 45.3 → 58.3 with tools,
+  GPT-5.4 unchanged at about 44. Style and strategic claims are treated as unverifiable and left out of scoring.
+  Partly read.
+- Wen, Tang, Anderson 2025, *ChessQA* ([arXiv:2510.23948](https://arxiv.org/abs/2510.23948)). GPT-5 with thinking
+  scores 79.3% overall, about 97% on board structure, about 40% on judging an eval bucket and 17.4% on short
+  tactics. The bottleneck is reading the board. Partly read.
+- Not found: any test of an LLM naming the style or concept behind a *set* of a player's moves.
+
+**Automated interpretation loops.**
+- Bills et al. 2023, *Language models can explain neurons in language models*
+  ([page](https://openaipublic.blob.core.windows.net/neuron-explainer/paper/index.html)). The explain → simulate →
+  score loop, including ablation and human scoring. Only the table of contents came through, so it is unread.
+- Paulo et al., *Automatically Interpreting Millions of Features*, ICML 2025
+  ([arXiv:2410.13928](https://arxiv.org/abs/2410.13928)). Cheap scores: detection, fuzzing, embedding,
+  intervention. Agreement with humans: fuzzing 0.69, simulation 0.60, detection 0.59 (unverified). Pitfall:
+  explanations drawn only from top activations miss the rest of the distribution. Use several scores. Partly read.
+- Shaham et al. 2024, *MAIA* ([arXiv:2404.14394](https://arxiv.org/abs/2404.14394); the name clashes with Maia).
+  A GPT-4V agent writes Python that calls tools (exemplars, image synthesis and editing, describers) and runs its
+  own experiments. Scoring is predictive: generated positive vs neutral inputs, compared by activation. Vision only.
+  Partly read.
+- NeuronScope 2026 ([arXiv:2601.03671](https://arxiv.org/abs/2601.03671)). A multi-agent loop of hypothesis,
+  decomposition into atomic conditions, clustering and refinement. Simulation correlation 0.45 → 0.51 and
+  0.60 → 0.66 with refinement, no variance reported. Partly read.
+- Gap: no paper writes the explanation itself as executable code. MAIA writes code to run experiments; its labels
+  are still text.
+
+**What this means for the doppel program.**
+1. **The gap is real.** Nobody has studied internals of a human-imitation chess model, or how individual players
+   differ in them. Player differences living in a low-rank MLP change are a new, natively mechanistic object.
+2. **Whether neurons or features are the right basis is open in chess.** In Lc0 raw MLP neurons rated 2.05 of 5 vs
+   4.15 for transcoders, while Goodfire finds LLM neurons mostly clean. Maia-3 is small (16k neurons), so test
+   both: describe neurons directly, and fit transcoders on blocks 5–8 if neurons look messy.
+3. **Concept sources stack.** Rules (python-chess) and Stockfish eval terms (McGrath, Kim) are verified and cheap.
+   Discovered concept vectors (Schut) and transcoder features (Lin) come from the network. LLM-written concepts
+   are the new layer.
+4. **Make LLM explanations executable and score them.** LLMs misread boards (ChessQA) and hallucinate tactics, but
+   tools cut errors by more than half (ACT-Eval). Explanations written as python-chess + Stockfish detectors, scored
+   by detection and fuzzing (Paulo) on held-out positions sampled across the activation range, remove board reading
+   from the LLM's job and cost no LLM calls to score. That is new relative to every paper here.
+5. **Style naming is untested.** ACT-Eval explicitly leaves style claims unscored. A held-out discrimination test
+   (which of two players made this deviation from Maia) is the missing measurement and an easy first experiment.
+
+### Pilot 2026-11-21: neuron atlas and executable neuron explanations
+
+Code: `lab/doppel_lab/neuron_atlas.py` (atlas, per-player modulation), `lab/doppel_lab/detectors.py` (eval set,
+evidence packs, scoring), brief `data/allie/neuron_atlas/detect/BRIEF.md`. Results: `lab/results/neuron_atlas.json`,
+`lab/results/detector_pilot.json`.
+
+- **python-chess explains little.** Units: the 8,192 GELU neurons of blocks 5–8 on the 2,560 probe positions × 64
+  square tokens. A neuron fires (activation > 0.1) on a median 4.2% of tokens. The best single concept or AND-pair
+  of 47 binary python-chess concepts predicts firing with a median F1 of 0.20; 2.3% of neurons pass 0.5. A ridge
+  fit on all concepts explains a median R² of 0.08, and the square alone explains a median 2% of a neuron's
+  variance. Adding Maia's top move and the played move (from/to squares) changes nothing.
+- **Per-player modulation, CPU smoke on 2 adapters.** An adapter's change is spread over about 1,300–1,500
+  effective neurons of 8,192, and the top 1% of neurons carry about 17% of it. The full-bank run is queued (GPU).
+- **Subagent-written detectors** (8 random neurons, firing on ≥ 0.5% of tokens; one Claude Code subagent each).
+  Each wrote `detect(board, square, info)` in python-chess with Maia and Stockfish depth-12 info, iterating about 10
+  times on a dev split. The eval set is 12,000 positions from 1,200 Allie test games, none of them probe games.
+  Scored on held-out test games with the threshold fixed on dev. **All 8 beat the best concept pair: median F1 0.42
+  vs 0.18 (median ratio 1.8×), median AUROC 0.85; dev and test within 0.02 F1 for every neuron.**
+- **The readable neurons encode relations, not primitives.** Examples: squares guarded only by an enemy bishop
+  (b5.210, F1 0.43 vs 0.16); rook lanes behind our wing pawns (b8.751); quiet home-side structure in low-rated games
+  (b7.1015); our bishops and the safe squares they hit (b6.849). Two of the 8 stay diffuse or polysemantic (b5.633
+  F1 0.10, b6.1655 0.22). Several depend on rating band, a direct handle for the doppel work.
+- **Against the Lc0 result** that raw neurons are illegible (Lin et al., 2.05 of 5): here the gap looks like
+  python-chess's thin vocabulary more than messy neurons. n = 8, and subagent confidence is mostly low to medium.
+- **Caveats.** One rule (b7.1015) uses about 17 fitted weights, over the ~10 limit. Raw Spearman is distorted by
+  GELU's negative dip, so `spearman_pos` (activations clipped at 0) is the comparable number. About 110k tokens and
+  7–9 minutes per neuron.
+
 ### Registered: n = 1 coaching study (2026-11-15)
 
 `docs/PROTOCOL_N1.md`: does simulation-based coaching speed up one player's improvement? The primary outcomes are

@@ -1,0 +1,68 @@
+{
+ "rows": [
+  {
+   "neuron": "b6.1655",
+   "test_auroc": 0.8848,
+   "test_f1": 0.2238,
+   "baseline_f1": 0.0827,
+   "spearman_pos": 0.1623,
+   "always_on_f1": 0.020977637047298634
+  },
+  {
+   "neuron": "b5.633",
+   "test_auroc": 0.8418,
+   "test_f1": 0.1047,
+   "baseline_f1": 0.0841,
+   "spearman_pos": 0.1202,
+   "always_on_f1": 0.014691284494738931
+  },
+  {
+   "neuron": "b7.1015",
+   "test_auroc": 0.8981,
+   "test_f1": 0.4336,
+   "baseline_f1": 0.2456,
+   "spearman_pos": 0.3649,
+   "always_on_f1": 0.10048437648399659
+  },
+  {
+   "neuron": "b8.751",
+   "test_auroc": 0.8293,
+   "test_f1": 0.4326,
+   "baseline_f1": 0.2706,
+   "spearman_pos": 0.3271,
+   "always_on_f1": 0.13293502613890965
+  },
+  {
+   "neuron": "b5.210",
+   "test_auroc": 0.8533,
+   "test_f1": 0.429,
+   "baseline_f1": 0.1553,
+   "spearman_pos": 0.2252,
+   "always_on_f1": 0.05787531559526121
+  },
+  {
+   "neuron": "b5.1419",
+   "test_auroc": 0.8703,
+   "test_f1": 0.4195,
+   "baseline_f1": 0.1919,
+   "spearman_pos": 0.2846,
+   "always_on_f1": 0.07210333526123
+  },
+  {
+   "neuron": "b6.849",
+   "test_auroc": 0.8361,
+   "test_f1": 0.4637,
+   "baseline_f1": 0.3002,
+   "spearman_pos": 0.2981,
+   "always_on_f1": 0.10749432248296746
+  },
+  {
+   "neuron": "b6.890",
+   "test_auroc": 0.849,
+   "test_f1": 0.3043,
+   "baseline_f1": 0.164,
+   "spearman_pos": 0.2741,
+   "always_on_f1": 0.0691253137671365
+  }
+ ]
+}

@@ -462,6 +462,109 @@ def swap(tag: str, device: str, workers: int, bands: list[int], limit: int = 0):
         out.write_text(json.dumps(rep, indent=1))
     print(f"-> {out}")
 
+KSWAP_OUT = ROOT / "lab/results/adapter_kswap.json"
+KSWAP_KS = (2, 4, 8, 16, 32, 64, 128)
+
+
+def kswap(tag: str, device: str, workers: int, bands: list[int], draws: int = 6, limit: int = 0):
+    """GPU: choose k by member swaps. For each k, k-means on the band's function-space PCs (as in swap); each side's
+    test game is scored with a random other member of its own cluster ('same') and a random member of another cluster
+    ('other'), `draws` independent draws each. Clusters depend only on context games (probe positions), never on test
+    games, and no side is ever scored with its own adapter, so no cross-fit is needed. Per k:
+      gap     = same - other (top-1 pts): what the cluster label alone predicts about a player
+      capture = (same - random) / (own - random): share of the own-vs-random personal signal a cluster mate keeps
+    A k is 'good' where gap and capture stop growing with k (each doubling of k costs one more bit to store)."""
+    import torch
+    from sklearn.cluster import KMeans
+
+    from doppel_lab.engines import Maia3
+    from doppel_lab.lora_probe import Lora, per_position
+    model = Maia3("79m", device).model.eval()
+    for p in model.parameters():
+        p.requires_grad_(False)
+    out = KSWAP_OUT.with_name("adapter_kswap_smoke.json") if limit else KSWAP_OUT
+    rep = json.loads(out.read_text()) if out.exists() else {}
+    t0 = time.time()
+    for band in bands:
+        if str(band) in rep and not limit:                   # resumable: one band per checkpoint
+            print(band, "done already", flush=True)
+            continue
+        f = fs_load(band)
+        a = load(band, tag)
+        idx = {int(p): i for i, p in enumerate(a["pid"])}
+        rows = np.array([idx[int(p)] for p in f["pid"]])
+        if limit:
+            rows, f = rows[:limit], {k: v[:limit] for k, v in f.items()}
+        d = {k: v[rows] for k, v in a.items() if k not in ("A", "B")}
+        n = len(rows)
+        G = f["V"].astype(np.float64) @ f["V"].T.astype(np.float64)
+        _, _, sc, _ = kpca(G, 64)
+        X = sc / np.linalg.norm(sc, axis=1, keepdims=True)
+        rng = np.random.default_rng(band)
+        P, te = test_positions(d, band, workers)
+        own_pid = P.pid
+        lora = Lora(model, n, device)
+        with torch.no_grad():
+            for l in range(NL):
+                lora.params[2 * l].copy_(torch.from_numpy(a["A"][l][rows]).to(device))
+                lora.params[2 * l + 1].copy_(torch.from_numpy(a["B"][l][rows]).to(device))
+
+        def side_hits(mapping):                  # mean hit per side (sides with no scored position -> nan)
+            _, h = per_position(model, lora, P, te, None if mapping is None else (lambda ix: mapping[own_pid[ix]]),
+                                device, torch.float16)
+            s = np.bincount(own_pid[te], h.astype(np.float64), n)
+            return s, np.bincount(own_pid[te], minlength=n)
+
+        maia, cnt = side_hits(None)
+        own, _ = side_hits(np.arange(n))
+        rnd = np.mean([side_hits((np.arange(n) + rng.integers(1, n, n)) % n)[0] for _ in range(draws)], 0)
+        tot = cnt.sum()
+        pts = lambda s: 100 * (s.sum() - maia.sum()) / tot
+        res = {"n_sides": n, "n_pos": int(tot), "draws": draws, "maia_acc": round(100 * maia.sum() / tot, 2),
+               "own": round(pts(own), 3), "random": round(pts(rnd), 3), "k": {}}
+
+        def boot(x, y):                          # side-level bootstrap SE of pts(x) - pts(y)
+            diff = 100 * (x - y)
+            bs = [diff[ii].sum() / cnt[ii].sum() for ii in rng.integers(0, n, (400, n))]
+            return round(float(np.std(bs)), 3)
+
+        for k in KSWAP_KS:
+            if k > n // 4:
+                continue
+            lab = KMeans(k, n_init=10, random_state=0).fit_predict(X)
+            mem = [np.flatnonzero(lab == ci) for ci in range(k)]
+            same, other = np.zeros(n), np.zeros(n)
+            ok = np.array([len(mem[lab[i]]) > 1 for i in range(n)])
+            for _ in range(draws):
+                ms, mo = np.arange(n), np.arange(n)
+                for i in range(n):
+                    m = mem[lab[i]]
+                    if len(m) > 1:
+                        mm = m[m != i]
+                        ms[i] = mm[rng.integers(len(mm))]
+                    nm = np.flatnonzero(lab != lab[i])
+                    mo[i] = nm[rng.integers(len(nm))]
+                same += side_hits(ms)[0] / draws
+                other += side_hits(mo)[0] / draws
+            w = ok & (cnt > 0)
+            sz = np.bincount(lab, minlength=k)
+            g_same = 100 * (same[w].sum() - maia[w].sum()) / cnt[w].sum()
+            g_other = 100 * (other[w].sum() - maia[w].sum()) / cnt[w].sum()
+            g_own = 100 * (own[w].sum() - maia[w].sum()) / cnt[w].sum()
+            g_rnd = 100 * (rnd[w].sum() - maia[w].sum()) / cnt[w].sum()
+            res["k"][k] = {"sizes": [int(sz.min()), int(np.median(sz)), int(sz.max())], "sides_used": int(w.sum()),
+                           "same": round(g_same, 3), "other": round(g_other, 3), "gap": round(g_same - g_other, 3),
+                           "gap_se": boot(np.where(w, same, 0), np.where(w, other, 0)),
+                           "capture": round((g_same - g_rnd) / (g_own - g_rnd), 4)}
+            print(band, k, json.dumps(res["k"][k]), f"{time.time() - t0:.0f}s", flush=True)
+        for hk in lora.hooks:
+            hk.remove()
+        rep[str(band)] = res
+        print(band, json.dumps({kk: v for kk, v in res.items() if kk != "k"}), flush=True)
+        out.write_text(json.dumps(rep, indent=1))
+    print(f"-> {out}")
+
+
 SPLIT_TAG = "_ctx200_fit0_s200_split"
 SPLIT_OUT = ROOT / "lab/results/adapter_split.json"
 
@@ -640,6 +743,13 @@ def main():
     w.add_argument("--bands", default=",".join(map(str, BANDS)))
     w.add_argument("--gpu-ok", action="store_true")
     w.add_argument("--limit", type=int, default=0, help="CPU smoke: first N probed sides per band")
+    ks = s.add_parser("kswap")
+    ks.add_argument("--tag", default="_ctx200_restore")
+    ks.add_argument("--workers", type=int, default=12)
+    ks.add_argument("--bands", default=",".join(map(str, BANDS)))
+    ks.add_argument("--draws", type=int, default=6)
+    ks.add_argument("--gpu-ok", action="store_true")
+    ks.add_argument("--limit", type=int, default=0, help="CPU smoke: first N probed sides per band")
     sp = s.add_parser("split")
     sp.add_argument("--tag", default=SPLIT_TAG)
     tr = s.add_parser("traits")
@@ -653,6 +763,8 @@ def main():
         fs_geom(a.own_band)
     elif a.cmd == "swap":
         swap(a.tag, "cuda" if a.gpu_ok else "cpu", a.workers, [int(x) for x in a.bands.split(",")], a.limit)
+    elif a.cmd == "kswap":
+        kswap(a.tag, "cuda" if a.gpu_ok else "cpu", a.workers, [int(x) for x in a.bands.split(",")], a.draws, a.limit)
     elif a.cmd == "geom":
         geom(a.tag)
     elif a.cmd == "probe":
