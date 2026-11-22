@@ -2652,6 +2652,68 @@ evidence packs, scoring), brief `data/allie/neuron_atlas/detect/BRIEF.md`. Resul
   GELU's negative dip, so `spearman_pos` (activations clipped at 0) is the comparable number. About 110k tokens and
   7–9 minutes per neuron.
 
+### Pilot 2026-11-21/22: which neurons carry the differences between players
+
+Code: `lab/doppel_lab/adapter_space.py kswap`, `lab/doppel_lab/neuron_players.py`, `lab/doppel_lab/neuron_attrib.py`
+(Tier 1 `metric`, Tier 2 `attrib`/`report`); drivers `lab/scripts/kswap_chain.sh`, `atlas_chain.sh`,
+`attrib_chain.sh`. Results: `lab/results/adapter_kswap.json`, `neuron_players.json`, `neuron_metric.json`,
+`neuron_attrib.json`, `detector_pilot.json` (batch 3).
+
+- **Choosing k by member swaps (kswap, full restore bank, ~2,100–2,700 sides per band).** k-means on 64 kernel-PCA
+  components of function space. Each side's test game is scored with a random same-cluster adapter and a random
+  other-cluster adapter, 4 draws each. The gap (same − other, top-1 points, SE ≈ 0.09) is significant from k = 8 in
+  every band but 2300, and from k = 2 at 700–1500. It grows with k, as it must: a finer partition gives a closer
+  mate, and the k → N limit is the nearest neighbour. At k = 128 the gap is +1.08 / +0.96 / +0.80 / +0.69 / +0.30
+  for bands 700…2300. Capture, (same − random)/(own − random), is 0.21 / 0.17 / 0.13 / 0.12 / 0.11 at k = 32 and at
+  most 0.23. A rate-distortion read ("smallest k reaching 80% of the best capture") gives k ≈ 32 (16 at 1100, 64 at
+  1500). That is about 5 bits per player and evidence for a good metric, not for 32 archetypes. **Main
+  conclusion: function-space distance on probe positions predicts transfer on unseen games.** Untested: the
+  nearest-neighbour ceiling on this bank, pairwise distance-vs-gain, and the boundary test (equal-distance pairs
+  within vs across clusters).
+- **Players in neuron space (full banks).** Each adapter changes about 1,400–2,000 effective neurons. The band-wide
+  shared component is 2–5%. Neuron-space vs function-space RSA is 0.29–0.35 per band. Split halves (the same
+  player's two disjoint game halves) identify each other at top-1 in 10–25% vs about 0.7% chance. **Reliability is
+  early.** Median per-neuron split r is 0.075 / 0.081 / 0.045 / 0.006 in b5–b8. The most reliable neurons are b5/b6
+  (r up to 0.50).
+- **Tier 1, a learned diagonal metric (correlational).** Positive lasso of pairwise function-space squared
+  distance on per-neuron squared differences of mean modulation. Fit, validation and test use disjoint players, and
+  features are winsorized at the 99.5th percentile. Test R² is 0.26–0.36 (Spearman 0.58–0.67) vs 0.21–0.25 for
+  uniform weights. An earlier R² of 0.77 was leakage from validating on the fit players. It puts 44–90% of the
+  weight on b8. Mean modulation is a weak proxy: Tier 1 vs Tier 2 rank agreement is 0.13 / 0.05.
+- **Tier 2, exact local decomposition plus attribution patching (causal, bands 700 and 1900).** In each block the
+  adapter's MLP-output change is exactly Σ_j W2[:, j](h'_j − hb_j) ("write": the neuron fires differently, hb from
+  the same input without the linear1 adapter) plus (B2A2)[:, j] h'_j ("read": linear2 reads it differently). Each
+  term is projected on dL/d(MLP out), with L_i = ⟨V_i, V_i − V̄⟩, so the sum over players is the band's
+  function-space variance (= half the mean pairwise squared distance). The objective reproduces the stored probe
+  target to 4 digits. Credit sums to 110% / 113% of the actual effect, per-side r 0.95–0.96.
+  - **No block dominates.** b5–b8 carry 0.30 / 0.25 / 0.22 / 0.32.
+  - **Read > write:** 0.66 vs 0.44. Adapters mostly change how existing features are used.
+  - **Very diffuse:** about 1,700 neurons carry 50% and about 4,300 carry 80%.
+  - **Most:** empty squares, squares the opponent attacks, our pawns, legal destinations.
+  - **Least:** passed pawns, castling, edge files, rank 5.
+  - **The top single carriers, identical at 700 and 1900, are always-on b8 neurons** (b8.1728, b8.1140, b8.165,
+    b8.868…) whose activation tracks the player's rating (r ≈ −0.7). They have moderate split reliability (r
+    0.13–0.20, 3× the median).
+  - Attribution share and split reliability barely correlate (Spearman 0.15).
+- **Detector batch 3 (8 neurons chosen by Tier 2; workflow, about 800k tokens, 7 minutes).** All hold on test (within 0.01 of
+  dev).
+  - **Always-on b8 carriers** (b8.1728, b8.1140, b8.165, b8.738): rating alone gives Spearman about 0.38, the
+    full detectors 0.73–0.76. Each is a rating-scaled map of where the move happens: high on the from/to squares of
+    Maia's candidates, our active men and our legal destinations, low on enemy-guarded squares and around our king.
+    It is louder for weaker players, when the top move is unclear, and when the side to move is worse. Adapters
+    moving these neurons reads as retuning how sharply the model focuses on candidate moves, as it would for a
+    different strength.
+  - **Split-reliable carriers** are crisp relations, test F1 vs best concept pair:
+    - enemy-held, uncontested territory with our pawn as veto (b5.690, 0.86 vs 0.64);
+    - developed enemy pieces in contact (b5.1515, 0.80 vs 0.41);
+    - squares our pawns attack, strongest when a capture is on (b5.406, 0.70 vs 0.34);
+    - where to challenge their queen or rook with a doubly covered square (b7.1147, 0.52 vs 0.28).
+  - None is flagged polysemantic. Ten new helpers were merged into `chess_concepts.Pos`, e.g. `on_home_square`,
+    `pawn_guards`, `n_officers`, `neighbour_control`, `offers_trade`, `in_our_pv`.
+- **Reading.** The biggest player-to-player differences run through a rating-scaled attention field over
+  candidate moves. The stable within-player fingerprint sits in crisp b5/b6 square-control relations. Those are the
+  candidates for explainable style axes.
+
 ### Registered: n = 1 coaching study (2026-11-15)
 
 `docs/PROTOCOL_N1.md`: does simulation-based coaching speed up one player's improvement? The primary outcomes are

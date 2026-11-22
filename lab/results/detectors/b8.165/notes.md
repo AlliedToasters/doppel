@@ -1,0 +1,11 @@
+# b8.165 notes
+
+1. **Description.** An always-on "move-relevance x weak-player" neuron. A rating prior lifts every square (higher for weaker bands; also higher when Maia's prediction is spread out, the board is full, or the side to move is worse). On top of that it marks where our move happens: the from/to squares of Maia's candidate moves, our pieces (minor pieces most, our king least), squares we can legally move to, and squares we control more than the opponent does.
+
+2. **Evidence and what I tried.** It fires above 0.1 on 100% of dev tokens (mean 3.7, sd 1.0). About 31% of the variance is between positions and 69% within a position. Band means fall steadily from 4.23 (700) to 3.15 (2300), and a band-only detector gets dev spearman **0.3805**. Within a position the residual tracks att_us (+0.49), att_them (-0.37), Maia move distance (-0.39), Maia to/from mass (+0.36/+0.29), legal moves to the square (+0.39) and our piece on the square (+0.32). I fitted a small linear model on dev features (about 15 readable terms) and then checked the residuals. sqrt(Maia mass) plus an "on any candidate move" indicator beat linear mass. Extra signal came from our own Stockfish PV squares (+), the side-to-move eval (worse means higher), our king square (-) and our back rank (-). Two things hurt: down-weighting king moves in the Maia mass, and a Maia-distance term. Scoring runs: 11.
+
+3. **Final dev metrics.** Spearman 0.7428 (band-only 0.3805). AUROC NaN and F1 1.0 carry no meaning (fire rate 100%).
+
+4. **New concepts.** `our_pv_square(p, sq, moves=3)`: sq is a from/to square of one of our first `moves` Stockfish PV moves.
+
+5. **Caveats.** The position-level residual is still about a third of what is left (residual variance after the fit is about 0.14 between positions and 0.28 within). Some of it tracks eval and material balance beyond the linear term. The square map is graded, not a crisp rule. Maia candidate mass partly restates the model's own output. King-move target squares are overpredicted in endgames. It looks like one diffuse "activity / relevance" map scaled by a rating prior rather than several unrelated triggers, so it is not clearly polysemantic. Confidence: medium.

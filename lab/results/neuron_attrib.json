@@ -1,0 +1,1298 @@
+{
+ "bands": {
+  "700": {
+   "n_sides": 2441,
+   "completeness": {
+    "credit_over_actual": 1.0965,
+    "per_side_r": 0.9546
+   },
+   "channels": {
+    "write": 0.4412,
+    "read": 0.6553
+   },
+   "by_block_channel": [
+    [
+     0.1168,
+     0.0862,
+     0.0562,
+     0.1819
+    ],
+    [
+     0.184,
+     0.1653,
+     0.1684,
+     0.1375
+    ]
+   ],
+   "negative_share": -0.0044,
+   "concentration": {
+    "n_for_50pct": 1681,
+    "n_for_80pct": 4338,
+    "n_for_90pct": 5641
+   },
+   "by_block": [
+    0.3009,
+    0.2515,
+    0.2247,
+    0.3194
+   ],
+   "by_concept": [
+    {
+     "concept": "empty",
+     "n": 827,
+     "share": 0.177,
+     "per_neuron_x_uniform": 1.6
+    },
+    {
+     "concept": "att_them>=1",
+     "n": 516,
+     "share": 0.0968,
+     "per_neuron_x_uniform": 1.4
+    },
+    {
+     "concept": "our_P",
+     "n": 585,
+     "share": 0.0723,
+     "per_neuron_x_uniform": 0.92
+    },
+    {
+     "concept": "legal_to",
+     "n": 502,
+     "share": 0.0687,
+     "per_neuron_x_uniform": 1.02
+    },
+    {
+     "concept": "their_P",
+     "n": 337,
+     "share": 0.0429,
+     "per_neuron_x_uniform": 0.95
+    },
+    {
+     "concept": "capture_to",
+     "n": 346,
+     "share": 0.0407,
+     "per_neuron_x_uniform": 0.88
+    },
+    {
+     "concept": "att_them>=2",
+     "n": 312,
+     "share": 0.0403,
+     "per_neuron_x_uniform": 0.97
+    },
+    {
+     "concept": "their_kzone",
+     "n": 362,
+     "share": 0.0387,
+     "per_neuron_x_uniform": 0.8
+    },
+    {
+     "concept": "rank1",
+     "n": 332,
+     "share": 0.0385,
+     "per_neuron_x_uniform": 0.87
+    },
+    {
+     "concept": "our_kzone",
+     "n": 294,
+     "share": 0.0359,
+     "per_neuron_x_uniform": 0.91
+    },
+    {
+     "concept": "rank8",
+     "n": 286,
+     "share": 0.0337,
+     "per_neuron_x_uniform": 0.88
+    },
+    {
+     "concept": "att_us>=2",
+     "n": 220,
+     "share": 0.0305,
+     "per_neuron_x_uniform": 1.03
+    },
+    {
+     "concept": "att_us>=1",
+     "n": 124,
+     "share": 0.0286,
+     "per_neuron_x_uniform": 1.72
+    },
+    {
+     "concept": "their_R",
+     "n": 223,
+     "share": 0.0265,
+     "per_neuron_x_uniform": 0.89
+    },
+    {
+     "concept": "in_check",
+     "n": 337,
+     "share": 0.026,
+     "per_neuron_x_uniform": 0.58
+    },
+    {
+     "concept": "top_to",
+     "n": 241,
+     "share": 0.0258,
+     "per_neuron_x_uniform": 0.8
+    },
+    {
+     "concept": "legal_from",
+     "n": 163,
+     "share": 0.025,
+     "per_neuron_x_uniform": 1.15
+    },
+    {
+     "concept": "our_R",
+     "n": 247,
+     "share": 0.0243,
+     "per_neuron_x_uniform": 0.74
+    },
+    {
+     "concept": "our_N",
+     "n": 199,
+     "share": 0.0199,
+     "per_neuron_x_uniform": 0.75
+    },
+    {
+     "concept": "our_B",
+     "n": 168,
+     "share": 0.0199,
+     "per_neuron_x_uniform": 0.89
+    },
+    {
+     "concept": "our_K",
+     "n": 160,
+     "share": 0.0179,
+     "per_neuron_x_uniform": 0.84
+    },
+    {
+     "concept": "rank4",
+     "n": 113,
+     "share": 0.0146,
+     "per_neuron_x_uniform": 0.97
+    },
+    {
+     "concept": "their_N",
+     "n": 97,
+     "share": 0.014,
+     "per_neuron_x_uniform": 1.08
+    },
+    {
+     "concept": "our_Q",
+     "n": 119,
+     "share": 0.013,
+     "per_neuron_x_uniform": 0.81
+    },
+    {
+     "concept": "top_from",
+     "n": 109,
+     "share": 0.0121,
+     "per_neuron_x_uniform": 0.83
+    },
+    {
+     "concept": "rank3",
+     "n": 97,
+     "share": 0.0118,
+     "per_neuron_x_uniform": 0.91
+    },
+    {
+     "concept": "their_K",
+     "n": 88,
+     "share": 0.0113,
+     "per_neuron_x_uniform": 0.96
+    },
+    {
+     "concept": "their_B",
+     "n": 99,
+     "share": 0.0108,
+     "per_neuron_x_uniform": 0.81
+    },
+    {
+     "concept": "their_Q",
+     "n": 98,
+     "share": 0.0104,
+     "per_neuron_x_uniform": 0.79
+    },
+    {
+     "concept": "rank6",
+     "n": 78,
+     "share": 0.0101,
+     "per_neuron_x_uniform": 0.97
+    },
+    {
+     "concept": "rank2",
+     "n": 76,
+     "share": 0.0087,
+     "per_neuron_x_uniform": 0.85
+    },
+    {
+     "concept": "rank7",
+     "n": 74,
+     "share": 0.0084,
+     "per_neuron_x_uniform": 0.85
+    },
+    {
+     "concept": "their_hanging",
+     "n": 74,
+     "share": 0.0069,
+     "per_neuron_x_uniform": 0.7
+    },
+    {
+     "concept": "our_hanging",
+     "n": 48,
+     "share": 0.0067,
+     "per_neuron_x_uniform": 1.04
+    },
+    {
+     "concept": "rank5",
+     "n": 49,
+     "share": 0.0058,
+     "per_neuron_x_uniform": 0.88
+    },
+    {
+     "concept": "filea",
+     "n": 52,
+     "share": 0.0055,
+     "per_neuron_x_uniform": 0.8
+    },
+    {
+     "concept": "castle_us",
+     "n": 20,
+     "share": 0.0043,
+     "per_neuron_x_uniform": 1.61
+    },
+    {
+     "concept": "fileh",
+     "n": 30,
+     "share": 0.0033,
+     "per_neuron_x_uniform": 0.82
+    },
+    {
+     "concept": "our_passed",
+     "n": 24,
+     "share": 0.0029,
+     "per_neuron_x_uniform": 0.91
+    },
+    {
+     "concept": "played_to",
+     "n": 18,
+     "share": 0.0018,
+     "per_neuron_x_uniform": 0.73
+    },
+    {
+     "concept": "our_pinned",
+     "n": 18,
+     "share": 0.0015,
+     "per_neuron_x_uniform": 0.64
+    },
+    {
+     "concept": "castle_them",
+     "n": 9,
+     "share": 0.0012,
+     "per_neuron_x_uniform": 1.02
+    },
+    {
+     "concept": "played_from",
+     "n": 10,
+     "share": 0.0007,
+     "per_neuron_x_uniform": 0.54
+    },
+    {
+     "concept": "their_passed",
+     "n": 6,
+     "share": 0.0006,
+     "per_neuron_x_uniform": 0.78
+    },
+    {
+     "concept": "filee",
+     "n": 4,
+     "share": 0.0003,
+     "per_neuron_x_uniform": 0.48
+    },
+    {
+     "concept": "filef",
+     "n": 1,
+     "share": 0.0001,
+     "per_neuron_x_uniform": 0.42
+    }
+   ],
+   "top": [
+    {
+     "neuron": "b8.165",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.6721,
+     "active": 1.0,
+     "share": 0.00596,
+     "write": 0.00309,
+     "read": 0.00286
+    },
+    {
+     "neuron": "b8.1728",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.6955,
+     "active": 1.0,
+     "share": 0.00576,
+     "write": 0.00303,
+     "read": 0.00273
+    },
+    {
+     "neuron": "b8.1140",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.7032,
+     "active": 1.0,
+     "share": 0.00568,
+     "write": 0.00311,
+     "read": 0.00257
+    },
+    {
+     "neuron": "b8.868",
+     "single": "empty",
+     "f1_single": 0.797,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5077,
+     "pos": "elo_self",
+     "pos_r": -0.6629,
+     "active": 0.9994,
+     "share": 0.00527,
+     "write": 0.00292,
+     "read": 0.00235
+    },
+    {
+     "neuron": "b8.74",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.6858,
+     "active": 1.0,
+     "share": 0.00509,
+     "write": 0.00277,
+     "read": 0.00232
+    },
+    {
+     "neuron": "b8.675",
+     "single": "empty",
+     "f1_single": 0.7966,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.7463,
+     "active": 0.9998,
+     "share": 0.00473,
+     "write": 0.00274,
+     "read": 0.00199
+    },
+    {
+     "neuron": "b8.738",
+     "single": "empty",
+     "f1_single": 0.7049,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4895,
+     "pos": "elo_self",
+     "pos_r": -0.6247,
+     "active": 0.8291,
+     "share": 0.00388,
+     "write": 0.00259,
+     "read": 0.00129
+    },
+    {
+     "neuron": "b8.411",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5077,
+     "pos": "elo_self",
+     "pos_r": -0.7079,
+     "active": 0.9979,
+     "share": 0.00369,
+     "write": 0.00253,
+     "read": 0.00116
+    },
+    {
+     "neuron": "b7.1016",
+     "single": "our_P",
+     "f1_single": 0.8844,
+     "pair": "our_P & att_us>=1",
+     "f1_pair": 0.7839,
+     "pos": "ply",
+     "pos_r": -0.8207,
+     "active": 0.1093,
+     "share": 0.00365,
+     "write": 0.00014,
+     "read": 0.00351
+    },
+    {
+     "neuron": "b8.1176",
+     "single": "empty",
+     "f1_single": 0.6701,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5022,
+     "pos": "ply",
+     "pos_r": -0.6721,
+     "active": 0.7337,
+     "share": 0.00248,
+     "write": 0.00093,
+     "read": 0.00156
+    },
+    {
+     "neuron": "b5.1907",
+     "single": "their_N",
+     "f1_single": 0.9964,
+     "pair": "their_N & att_them>=1",
+     "f1_pair": 0.9206,
+     "pos": "phase",
+     "pos_r": 0.5994,
+     "active": 0.0152,
+     "share": 0.00229,
+     "write": 0.00056,
+     "read": 0.00173
+    },
+    {
+     "neuron": "b7.1433",
+     "single": "their_P",
+     "f1_single": 0.6677,
+     "pair": "their_P & att_them>=1",
+     "f1_pair": 0.567,
+     "pos": "n_captures",
+     "pos_r": 0.478,
+     "active": 0.1538,
+     "share": 0.00218,
+     "write": 0.0008,
+     "read": 0.00138
+    },
+    {
+     "neuron": "b8.1267",
+     "single": "empty",
+     "f1_single": 0.7267,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5612,
+     "pos": "n_legal",
+     "pos_r": 0.6389,
+     "active": 0.754,
+     "share": 0.00214,
+     "write": 0.00086,
+     "read": 0.00128
+    },
+    {
+     "neuron": "b7.1507",
+     "single": "rank8",
+     "f1_single": 0.4076,
+     "pair": "att_them>=1 & rank8",
+     "f1_pair": 0.3547,
+     "pos": "phase",
+     "pos_r": 0.8184,
+     "active": 0.1255,
+     "share": 0.00196,
+     "write": 0.0006,
+     "read": 0.00136
+    },
+    {
+     "neuron": "b7.1364",
+     "single": "att_them>=1",
+     "f1_single": 0.8441,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.7388,
+     "pos": "n_captures",
+     "pos_r": 0.4426,
+     "active": 0.474,
+     "share": 0.00195,
+     "write": 0.00049,
+     "read": 0.00146
+    },
+    {
+     "neuron": "b8.680",
+     "single": "att_us>=1",
+     "f1_single": 0.5399,
+     "pair": "att_us>=1 & legal_to",
+     "f1_pair": 0.4182,
+     "pos": "elo_self",
+     "pos_r": -0.5374,
+     "active": 0.2856,
+     "share": 0.00191,
+     "write": 0.00115,
+     "read": 0.00077
+    },
+    {
+     "neuron": "b8.1511",
+     "single": "empty",
+     "f1_single": 0.6223,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4743,
+     "pos": "ply",
+     "pos_r": -0.7319,
+     "active": 0.6878,
+     "share": 0.00186,
+     "write": 0.00094,
+     "read": 0.00092
+    },
+    {
+     "neuron": "b8.1994",
+     "single": "empty",
+     "f1_single": 0.656,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.4833,
+     "pos": "maia_entropy",
+     "pos_r": 0.54,
+     "active": 0.6455,
+     "share": 0.00177,
+     "write": 0.0008,
+     "read": 0.00096
+    },
+    {
+     "neuron": "b5.63",
+     "single": "att_them>=2",
+     "f1_single": 0.8105,
+     "pair": "att_them>=1 & att_them>=2",
+     "f1_pair": 0.8105,
+     "pos": "phase",
+     "pos_r": 0.5962,
+     "active": 0.1453,
+     "share": 0.0016,
+     "write": 0.00059,
+     "read": 0.00101
+    },
+    {
+     "neuron": "b8.1352",
+     "single": "empty",
+     "f1_single": 0.7914,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5667,
+     "pos": "ply",
+     "pos_r": -0.5815,
+     "active": 0.7277,
+     "share": 0.00157,
+     "write": 0.00062,
+     "read": 0.00095
+    },
+    {
+     "neuron": "b8.667",
+     "single": "empty",
+     "f1_single": 0.6732,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4843,
+     "pos": "elo_self",
+     "pos_r": -0.3203,
+     "active": 0.4754,
+     "share": 0.00156,
+     "write": 0.00062,
+     "read": 0.00094
+    },
+    {
+     "neuron": "b8.1499",
+     "single": "att_us>=1",
+     "f1_single": 0.514,
+     "pair": "att_us>=1 & legal_to",
+     "f1_pair": 0.3755,
+     "pos": "elo_self",
+     "pos_r": -0.6541,
+     "active": 0.3169,
+     "share": 0.00151,
+     "write": 0.00092,
+     "read": 0.00059
+    },
+    {
+     "neuron": "b8.2028",
+     "single": "empty",
+     "f1_single": 0.6733,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5037,
+     "pos": "ply",
+     "pos_r": -0.5391,
+     "active": 0.5806,
+     "share": 0.00151,
+     "write": 0.00062,
+     "read": 0.00089
+    },
+    {
+     "neuron": "b8.1874",
+     "single": "empty",
+     "f1_single": 0.7338,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4783,
+     "pos": "maia_entropy",
+     "pos_r": 0.4072,
+     "active": 0.7686,
+     "share": 0.0015,
+     "write": 0.00041,
+     "read": 0.00109
+    },
+    {
+     "neuron": "b5.1912",
+     "single": "empty",
+     "f1_single": 0.8712,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.7,
+     "pos": "phase",
+     "pos_r": -0.5817,
+     "active": 0.5135,
+     "share": 0.00149,
+     "write": 0.00012,
+     "read": 0.00138
+    }
+   ],
+   "least": {
+    "share_below_1e-5_abs": 0.0187,
+    "bottom_half_abs_share": 0.24821
+   },
+   "spearman_vs_tier1": 0.1311
+  },
+  "1900": {
+   "n_sides": 2702,
+   "completeness": {
+    "credit_over_actual": 1.1323,
+    "per_side_r": 0.9593
+   },
+   "channels": {
+    "write": 0.4301,
+    "read": 0.7021
+   },
+   "by_block_channel": [
+    [
+     0.0973,
+     0.075,
+     0.0528,
+     0.205
+    ],
+    [
+     0.1898,
+     0.1692,
+     0.1965,
+     0.1466
+    ]
+   ],
+   "negative_share": -0.0066,
+   "concentration": {
+    "n_for_50pct": 1728,
+    "n_for_80pct": 4313,
+    "n_for_90pct": 5573
+   },
+   "by_block": [
+    0.2871,
+    0.2442,
+    0.2493,
+    0.3516
+   ],
+   "by_concept": [
+    {
+     "concept": "empty",
+     "n": 827,
+     "share": 0.187,
+     "per_neuron_x_uniform": 1.64
+    },
+    {
+     "concept": "att_them>=1",
+     "n": 516,
+     "share": 0.0971,
+     "per_neuron_x_uniform": 1.36
+    },
+    {
+     "concept": "our_P",
+     "n": 585,
+     "share": 0.0753,
+     "per_neuron_x_uniform": 0.93
+    },
+    {
+     "concept": "legal_to",
+     "n": 502,
+     "share": 0.0718,
+     "per_neuron_x_uniform": 1.04
+    },
+    {
+     "concept": "their_P",
+     "n": 337,
+     "share": 0.0423,
+     "per_neuron_x_uniform": 0.91
+    },
+    {
+     "concept": "att_them>=2",
+     "n": 312,
+     "share": 0.0418,
+     "per_neuron_x_uniform": 0.97
+    },
+    {
+     "concept": "rank1",
+     "n": 332,
+     "share": 0.0398,
+     "per_neuron_x_uniform": 0.87
+    },
+    {
+     "concept": "their_kzone",
+     "n": 362,
+     "share": 0.0398,
+     "per_neuron_x_uniform": 0.8
+    },
+    {
+     "concept": "capture_to",
+     "n": 346,
+     "share": 0.0394,
+     "per_neuron_x_uniform": 0.82
+    },
+    {
+     "concept": "rank8",
+     "n": 286,
+     "share": 0.0354,
+     "per_neuron_x_uniform": 0.9
+    },
+    {
+     "concept": "our_kzone",
+     "n": 294,
+     "share": 0.0338,
+     "per_neuron_x_uniform": 0.83
+    },
+    {
+     "concept": "att_us>=2",
+     "n": 220,
+     "share": 0.0332,
+     "per_neuron_x_uniform": 1.09
+    },
+    {
+     "concept": "top_to",
+     "n": 241,
+     "share": 0.0301,
+     "per_neuron_x_uniform": 0.9
+    },
+    {
+     "concept": "att_us>=1",
+     "n": 124,
+     "share": 0.029,
+     "per_neuron_x_uniform": 1.69
+    },
+    {
+     "concept": "in_check",
+     "n": 337,
+     "share": 0.0282,
+     "per_neuron_x_uniform": 0.6
+    },
+    {
+     "concept": "their_R",
+     "n": 223,
+     "share": 0.0264,
+     "per_neuron_x_uniform": 0.86
+    },
+    {
+     "concept": "our_R",
+     "n": 247,
+     "share": 0.0263,
+     "per_neuron_x_uniform": 0.77
+    },
+    {
+     "concept": "legal_from",
+     "n": 163,
+     "share": 0.024,
+     "per_neuron_x_uniform": 1.06
+    },
+    {
+     "concept": "our_N",
+     "n": 199,
+     "share": 0.0212,
+     "per_neuron_x_uniform": 0.77
+    },
+    {
+     "concept": "our_B",
+     "n": 168,
+     "share": 0.0208,
+     "per_neuron_x_uniform": 0.9
+    },
+    {
+     "concept": "our_K",
+     "n": 160,
+     "share": 0.0185,
+     "per_neuron_x_uniform": 0.84
+    },
+    {
+     "concept": "rank4",
+     "n": 113,
+     "share": 0.0149,
+     "per_neuron_x_uniform": 0.95
+    },
+    {
+     "concept": "our_Q",
+     "n": 119,
+     "share": 0.0145,
+     "per_neuron_x_uniform": 0.88
+    },
+    {
+     "concept": "rank3",
+     "n": 97,
+     "share": 0.0134,
+     "per_neuron_x_uniform": 1.0
+    },
+    {
+     "concept": "top_from",
+     "n": 109,
+     "share": 0.0134,
+     "per_neuron_x_uniform": 0.89
+    },
+    {
+     "concept": "their_N",
+     "n": 97,
+     "share": 0.0122,
+     "per_neuron_x_uniform": 0.91
+    },
+    {
+     "concept": "their_K",
+     "n": 88,
+     "share": 0.011,
+     "per_neuron_x_uniform": 0.9
+    },
+    {
+     "concept": "their_B",
+     "n": 99,
+     "share": 0.0107,
+     "per_neuron_x_uniform": 0.78
+    },
+    {
+     "concept": "their_Q",
+     "n": 98,
+     "share": 0.0104,
+     "per_neuron_x_uniform": 0.77
+    },
+    {
+     "concept": "rank6",
+     "n": 78,
+     "share": 0.0088,
+     "per_neuron_x_uniform": 0.81
+    },
+    {
+     "concept": "rank2",
+     "n": 76,
+     "share": 0.0088,
+     "per_neuron_x_uniform": 0.84
+    },
+    {
+     "concept": "rank7",
+     "n": 74,
+     "share": 0.0081,
+     "per_neuron_x_uniform": 0.79
+    },
+    {
+     "concept": "their_hanging",
+     "n": 74,
+     "share": 0.0078,
+     "per_neuron_x_uniform": 0.76
+    },
+    {
+     "concept": "our_hanging",
+     "n": 48,
+     "share": 0.0069,
+     "per_neuron_x_uniform": 1.03
+    },
+    {
+     "concept": "rank5",
+     "n": 49,
+     "share": 0.0062,
+     "per_neuron_x_uniform": 0.92
+    },
+    {
+     "concept": "filea",
+     "n": 52,
+     "share": 0.0054,
+     "per_neuron_x_uniform": 0.75
+    },
+    {
+     "concept": "castle_us",
+     "n": 20,
+     "share": 0.0046,
+     "per_neuron_x_uniform": 1.67
+    },
+    {
+     "concept": "fileh",
+     "n": 30,
+     "share": 0.004,
+     "per_neuron_x_uniform": 0.97
+    },
+    {
+     "concept": "our_passed",
+     "n": 24,
+     "share": 0.0031,
+     "per_neuron_x_uniform": 0.95
+    },
+    {
+     "concept": "played_to",
+     "n": 18,
+     "share": 0.0022,
+     "per_neuron_x_uniform": 0.9
+    },
+    {
+     "concept": "our_pinned",
+     "n": 18,
+     "share": 0.0018,
+     "per_neuron_x_uniform": 0.71
+    },
+    {
+     "concept": "castle_them",
+     "n": 9,
+     "share": 0.0011,
+     "per_neuron_x_uniform": 0.9
+    },
+    {
+     "concept": "played_from",
+     "n": 10,
+     "share": 0.0009,
+     "per_neuron_x_uniform": 0.64
+    },
+    {
+     "concept": "their_passed",
+     "n": 6,
+     "share": 0.0007,
+     "per_neuron_x_uniform": 0.85
+    },
+    {
+     "concept": "filee",
+     "n": 4,
+     "share": 0.0002,
+     "per_neuron_x_uniform": 0.44
+    },
+    {
+     "concept": "filef",
+     "n": 1,
+     "share": 0.0,
+     "per_neuron_x_uniform": 0.19
+    }
+   ],
+   "top": [
+    {
+     "neuron": "b8.1728",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.6955,
+     "active": 1.0,
+     "share": 0.00657,
+     "write": 0.00387,
+     "read": 0.00269
+    },
+    {
+     "neuron": "b8.1140",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.7032,
+     "active": 1.0,
+     "share": 0.0064,
+     "write": 0.00396,
+     "read": 0.00244
+    },
+    {
+     "neuron": "b8.74",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.6858,
+     "active": 1.0,
+     "share": 0.00614,
+     "write": 0.00366,
+     "read": 0.00247
+    },
+    {
+     "neuron": "b8.165",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.6721,
+     "active": 1.0,
+     "share": 0.00607,
+     "write": 0.00382,
+     "read": 0.00226
+    },
+    {
+     "neuron": "b8.868",
+     "single": "empty",
+     "f1_single": 0.797,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5077,
+     "pos": "elo_self",
+     "pos_r": -0.6629,
+     "active": 0.9994,
+     "share": 0.00595,
+     "write": 0.00377,
+     "read": 0.00218
+    },
+    {
+     "neuron": "b8.675",
+     "single": "empty",
+     "f1_single": 0.7966,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5074,
+     "pos": "elo_self",
+     "pos_r": -0.7463,
+     "active": 0.9998,
+     "share": 0.00533,
+     "write": 0.00353,
+     "read": 0.00179
+    },
+    {
+     "neuron": "b8.411",
+     "single": "empty",
+     "f1_single": 0.7967,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5077,
+     "pos": "elo_self",
+     "pos_r": -0.7079,
+     "active": 0.9979,
+     "share": 0.00483,
+     "write": 0.00342,
+     "read": 0.00141
+    },
+    {
+     "neuron": "b8.738",
+     "single": "empty",
+     "f1_single": 0.7049,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4895,
+     "pos": "elo_self",
+     "pos_r": -0.6247,
+     "active": 0.8291,
+     "share": 0.00481,
+     "write": 0.00333,
+     "read": 0.00148
+    },
+    {
+     "neuron": "b7.1016",
+     "single": "our_P",
+     "f1_single": 0.8844,
+     "pair": "our_P & att_us>=1",
+     "f1_pair": 0.7839,
+     "pos": "ply",
+     "pos_r": -0.8207,
+     "active": 0.1093,
+     "share": 0.00449,
+     "write": 0.0001,
+     "read": 0.00439
+    },
+    {
+     "neuron": "b8.1176",
+     "single": "empty",
+     "f1_single": 0.6701,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5022,
+     "pos": "ply",
+     "pos_r": -0.6721,
+     "active": 0.7337,
+     "share": 0.00247,
+     "write": 0.00118,
+     "read": 0.00128
+    },
+    {
+     "neuron": "b8.1267",
+     "single": "empty",
+     "f1_single": 0.7267,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5612,
+     "pos": "n_legal",
+     "pos_r": 0.6389,
+     "active": 0.754,
+     "share": 0.00244,
+     "write": 0.00111,
+     "read": 0.00133
+    },
+    {
+     "neuron": "b8.680",
+     "single": "att_us>=1",
+     "f1_single": 0.5399,
+     "pair": "att_us>=1 & legal_to",
+     "f1_pair": 0.4182,
+     "pos": "elo_self",
+     "pos_r": -0.5374,
+     "active": 0.2856,
+     "share": 0.00213,
+     "write": 0.00135,
+     "read": 0.00078
+    },
+    {
+     "neuron": "b8.1511",
+     "single": "empty",
+     "f1_single": 0.6223,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4743,
+     "pos": "ply",
+     "pos_r": -0.7319,
+     "active": 0.6878,
+     "share": 0.00195,
+     "write": 0.00116,
+     "read": 0.00079
+    },
+    {
+     "neuron": "b7.1433",
+     "single": "their_P",
+     "f1_single": 0.6677,
+     "pair": "their_P & att_them>=1",
+     "f1_pair": 0.567,
+     "pos": "n_captures",
+     "pos_r": 0.478,
+     "active": 0.1538,
+     "share": 0.00184,
+     "write": 0.0007,
+     "read": 0.00114
+    },
+    {
+     "neuron": "b7.1364",
+     "single": "att_them>=1",
+     "f1_single": 0.8441,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.7388,
+     "pos": "n_captures",
+     "pos_r": 0.4426,
+     "active": 0.474,
+     "share": 0.00184,
+     "write": 0.00037,
+     "read": 0.00147
+    },
+    {
+     "neuron": "b8.1994",
+     "single": "empty",
+     "f1_single": 0.656,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.4833,
+     "pos": "maia_entropy",
+     "pos_r": 0.54,
+     "active": 0.6455,
+     "share": 0.00173,
+     "write": 0.00098,
+     "read": 0.00075
+    },
+    {
+     "neuron": "b8.1499",
+     "single": "att_us>=1",
+     "f1_single": 0.514,
+     "pair": "att_us>=1 & legal_to",
+     "f1_pair": 0.3755,
+     "pos": "elo_self",
+     "pos_r": -0.6541,
+     "active": 0.3169,
+     "share": 0.00172,
+     "write": 0.00089,
+     "read": 0.00083
+    },
+    {
+     "neuron": "b8.1874",
+     "single": "empty",
+     "f1_single": 0.7338,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4783,
+     "pos": "maia_entropy",
+     "pos_r": 0.4072,
+     "active": 0.7686,
+     "share": 0.00164,
+     "write": 0.00053,
+     "read": 0.0011
+    },
+    {
+     "neuron": "b7.840",
+     "single": "att_us>=1",
+     "f1_single": 0.6053,
+     "pair": "empty & legal_to",
+     "f1_pair": 0.5035,
+     "pos": "material",
+     "pos_r": 0.3473,
+     "active": 0.4286,
+     "share": 0.00152,
+     "write": 6e-05,
+     "read": 0.00147
+    },
+    {
+     "neuron": "b8.667",
+     "single": "empty",
+     "f1_single": 0.6732,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.4843,
+     "pos": "elo_self",
+     "pos_r": -0.3203,
+     "active": 0.4754,
+     "share": 0.00147,
+     "write": 0.00076,
+     "read": 0.00071
+    },
+    {
+     "neuron": "b8.2028",
+     "single": "empty",
+     "f1_single": 0.6733,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5037,
+     "pos": "ply",
+     "pos_r": -0.5391,
+     "active": 0.5806,
+     "share": 0.00144,
+     "write": 0.00073,
+     "read": 0.00071
+    },
+    {
+     "neuron": "b8.1352",
+     "single": "empty",
+     "f1_single": 0.7914,
+     "pair": "empty & att_us>=1",
+     "f1_pair": 0.5667,
+     "pos": "ply",
+     "pos_r": -0.5815,
+     "active": 0.7277,
+     "share": 0.00141,
+     "write": 0.00081,
+     "read": 0.00061
+    },
+    {
+     "neuron": "b8.1596",
+     "single": "att_them>=1",
+     "f1_single": 0.7482,
+     "pair": "empty & att_them>=1",
+     "f1_pair": 0.5991,
+     "pos": "phase",
+     "pos_r": 0.5915,
+     "active": 0.5218,
+     "share": 0.00139,
+     "write": 0.00038,
+     "read": 0.00101
+    },
+    {
+     "neuron": "b5.1907",
+     "single": "their_N",
+     "f1_single": 0.9964,
+     "pair": "their_N & att_them>=1",
+     "f1_pair": 0.9206,
+     "pos": "phase",
+     "pos_r": 0.5994,
+     "active": 0.0152,
+     "share": 0.00138,
+     "write": 0.00029,
+     "read": 0.0011
+    },
+    {
+     "neuron": "b5.63",
+     "single": "att_them>=2",
+     "f1_single": 0.8105,
+     "pair": "att_them>=1 & att_them>=2",
+     "f1_pair": 0.8105,
+     "pos": "phase",
+     "pos_r": 0.5962,
+     "active": 0.1453,
+     "share": 0.00135,
+     "write": 0.00043,
+     "read": 0.00092
+    }
+   ],
+   "least": {
+    "share_below_1e-5_abs": 0.0262,
+    "bottom_half_abs_share": 0.25684
+   },
+   "spearman_vs_tier1": 0.0467
+  }
+ }
+}

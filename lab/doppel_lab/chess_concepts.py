@@ -23,6 +23,8 @@ VALUE = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.Q
 SLIDERS = (chess.BISHOP, chess.ROOK, chess.QUEEN)
 DIAG = ((1, 1), (1, -1), (-1, 1), (-1, -1))
 ORTH = ((1, 0), (-1, 0), (0, 1), (0, -1))
+_START = chess.Board()
+_OFFICERS = (chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN)
 
 
 def gelu(s: float, k: float = 1.0, c: float = 0.0) -> float:
@@ -437,3 +439,68 @@ class Pos:
         tot = sum(q for _, q in ms) or 1.0
         return sum(q * min(chess.square_distance(sq, m.from_square), chess.square_distance(sq, m.to_square))
                    for m, q in ms) / tot
+
+    # ================================================== merged from detector batch 3 (2026-11-22)
+    # -------------------------------------------------- development and game phase
+    def on_home_square(self, sq: int, include_pawns: bool = True) -> bool:
+        """The man on sq (either side) stands on its own starting square: an undeveloped piece, an unpushed pawn."""
+        pc = self.b.piece_at(sq)
+        if pc is None or (not include_pawns and pc.piece_type == chess.PAWN):
+            return False
+        return _START.piece_at(sq) == pc
+
+    def opening_phase(self, span: int = 40) -> float:
+        """1 at the first move, falling linearly with ply to 0 by ply `span` (default: 20 moves each)."""
+        return max(0.0, 1.0 - self.ply() / span)
+
+    def n_officers(self, ours: bool = True) -> int:
+        """Knights, bishops, rooks and queens one side still has (7 at the start)."""
+        c = self.us if ours else self.them
+        return sum(len(self.b.pieces(t, c)) for t in _OFFICERS)
+
+    # -------------------------------------------------- control
+    def pawn_guards(self, sq: int, by_us: bool = True) -> int:
+        """How many of one side's pawns attack sq (0, 1 or 2)."""
+        return sum(self.b.piece_type_at(a) == chess.PAWN for a in self.attackers(sq, by_us))
+
+    def weighted_control(self, sq: int, by_us: bool, w: dict[int, float]) -> float:
+        """Sum of a per-piece-type weight over one side's attackers of sq (how firmly that side holds the square)."""
+        return sum(w.get(self.b.piece_type_at(a), 0.0) for a in self.attackers(sq, by_us))
+
+    def neighbour_control(self, sq: int, by_us: bool) -> float:
+        """Fraction of the king-step neighbours of sq that one side attacks (who holds the area around sq)."""
+        nb = chess.SquareSet(chess.BB_KING_ATTACKS[sq])
+        return sum(self.n_guards(x, by_us) > 0 for x in nb) / len(nb)
+
+    # -------------------------------------------------- pawns
+    def pawn_blocked_by_own(self, sq: int) -> bool:
+        """The pawn on sq (either side) has one of its own men directly in front of it: it cannot advance."""
+        pc = self.b.piece_at(sq)
+        if pc is None or pc.piece_type != chess.PAWN:
+            return False
+        front = sq + (8 if pc.color == chess.WHITE else -8)
+        return 0 <= front < 64 and self.b.color_at(front) == pc.color
+
+    # -------------------------------------------------- moves and plans
+    def legal_from_count(self, sq: int) -> int:
+        """Number of our legal moves that start on sq (true mobility of our man there; 0 for empty/enemy squares)."""
+        if "legal_from" not in self._x:
+            d: dict[int, int] = {}
+            for m in self.b.legal_moves:
+                d[m.from_square] = d.get(m.from_square, 0) + 1
+            self._x["legal_from"] = d
+        return self._x["legal_from"].get(sq, 0)
+
+    def offers_trade(self, sq: int) -> bool:
+        """We can move a knight/bishop/rook/queen to sq that an enemy piece of the same type attacks (a like-for-like
+        trade offer)."""
+        tt = self.guard_types(sq, by_us=False) - {chess.PAWN, chess.KING}
+        return bool(tt) and any(self.b.piece_type_at(m.from_square) in tt for m in self.legal_to().get(sq, []))
+
+    def in_our_pv(self, sq: int, moves: int = 3) -> bool:
+        """sq is a from- or to-square of one of OUR first `moves` moves in Stockfish's PV (our plan, not their replies)."""
+        for u in (self.info.get("sf_pv") or [])[0:2 * moves:2]:
+            m = chess.Move.from_uci(u)
+            if sq in (m.from_square, m.to_square):
+                return True
+        return False
