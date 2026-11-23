@@ -323,6 +323,139 @@ def attrib_report(tag: str = TAG):
     print(f"-> {ATTRIB_OUT}")
 
 
+# ------------------------------------------------------------------ causal test (GPU)
+CAUSAL_OUT = ROOT / "lab/results/neuron_causal.json"
+CAUSAL_NS = (16, 64, 256, 1024)
+
+
+def _neuron_sets(band: int, rng):
+    """Fixed neuron sets (flat index over 4 x 2048): most split-reliable, top Tier 2 attribution (this band's share
+    if present, else the mean over bands), and random, at each size; plus whole blocks."""
+    r = np.load(AT / "split_r.npy")
+    fs = [AT / f"attrib_share_{b}.npy" for b in BANDS]
+    own = AT / f"attrib_share_{band}.npy"
+    sh = (np.load(own) if own.exists() else np.mean([np.load(f) for f in fs if f.exists()], 0)).sum(0)
+    sets = {}
+    for n in CAUSAL_NS:
+        sets[f"reliable{n}"] = np.argsort(-r)[:n]
+        sets[f"attrib{n}"] = np.argsort(-sh)[:n]
+        sets[f"random{n}"] = rng.choice(NB * DFF, n, replace=False)
+    for l in range(NB):
+        sets[f"block{l + 5}"] = np.arange(l * DFF, (l + 1) * DFF)
+    return sets
+
+
+def causal(tag: str, device: str, workers: int, bands, limit: int = 0):
+    """Interventions on each player's own adapter, scored on its test game (Allie protocol, as kswap):
+      keep:S  remove the adapter's local write+read change on every neuron outside S (see module doc)
+      ko:S    remove it on the neurons in S only
+    Downstream blocks see the consequences (a real forward). Retained = (cond - Maia) / (own - Maia), top-1 and
+    log-prob of the played move. Resumable per band -> lab/results/neuron_causal.json"""
+    import torch
+    import torch.nn.functional as Fn
+
+    from doppel_lab.adapter_space import NL, fs_load as _fs, load, test_positions
+    from doppel_lab.engines import Maia3
+    from doppel_lab.lora_probe import BLOCKS, Lora, per_position
+    model = Maia3("79m", device).model.eval()
+    for q in model.parameters():
+        q.requires_grad_(False)
+    layers = [model.transformer.layers[bi] for bi in BLOCKS]
+    out = CAUSAL_OUT.with_name("neuron_causal_smoke.json") if limit else CAUSAL_OUT
+    rep = json.loads(out.read_text()) if out.exists() else {}
+    t0 = time.time()
+    for band in bands:
+        if str(band) in rep and not limit:
+            print(band, "done already", flush=True)
+            continue
+        f = _fs(band, tag=tag)
+        a = load(band, tag)
+        idx = {int(p): i for i, p in enumerate(a["pid"])}
+        rows = np.array([idx[int(p)] for p in f["pid"]])[: limit or None]
+        d = {k: v[rows] for k, v in a.items() if k not in ("A", "B")}
+        n = len(rows)
+        P, te = test_positions(d, band, workers)
+        own_pid = P.pid
+        lora = Lora(model, n, device)
+        with torch.no_grad():
+            for l in range(NL):
+                lora.params[2 * l].copy_(torch.from_numpy(a["A"][l][rows]).to(device))
+                lora.params[2 * l + 1].copy_(torch.from_numpy(a["B"][l][rows]).to(device))
+        st = {"R": None}
+
+        def h1(l):
+            def f_(mod, inp, o):
+                st[l] = inp[0]
+            return f_
+
+        def h2(l):
+            def f_(mod, inp, o):
+                if st["R"] is None or lora.cur is None:
+                    return o
+                R = st["R"][l]
+                if R is None:
+                    return o
+                hp = inp[0].float()
+                hb = Fn.gelu(Fn.linear(st[l].float(), W1[l][0], W1[l][1]))
+                rm = Fn.linear((hp - hb) * R, mod.weight.float())
+                A2, B2 = lora.params[4 * l + 2][lora.cur], lora.params[4 * l + 3][lora.cur]
+                rm = rm + torch.einsum("bsr,bor->bso", torch.einsum("bsd,brd->bsr", hp * R, A2), B2)
+                return o - rm.to(o.dtype)
+            return f_
+
+        W1 = [(ly.linear1.weight.float(), ly.linear1.bias.float()) for ly in layers]
+        hs = [ly.linear1.register_forward_hook(h1(l)) for l, ly in enumerate(layers)]
+        hs += [ly.linear2.register_forward_hook(h2(l)) for l, ly in enumerate(layers)]
+
+        def score(remove):                       # remove: flat bool (8192,) of neurons whose change is removed
+            if remove is None:
+                st["R"] = None
+            else:
+                m = torch.from_numpy(remove.reshape(NB, DFF).astype(np.float32)).to(device)
+                st["R"] = [m[l] if remove.reshape(NB, DFF)[l].any() else None for l in range(NB)]
+            lp, h = per_position(model, lora, P, te, lambda ix: np.arange(n)[own_pid[ix]], device, torch.float16)
+            st["R"] = None
+            return (np.bincount(own_pid[te], h.astype(np.float64), n), np.bincount(own_pid[te], lp.astype(np.float64), n))
+
+        cnt = np.bincount(own_pid[te], minlength=n)
+        lp0, h0 = per_position(model, lora, P, te, None, device, torch.float16)
+        maia = (np.bincount(own_pid[te], h0.astype(np.float64), n), np.bincount(own_pid[te], lp0.astype(np.float64), n))
+        own = score(None)
+        rng = np.random.default_rng(band)
+        res = {"n_sides": n, "n_pos": int(cnt.sum()),
+               "own_pts": round(100 * (own[0].sum() - maia[0].sum()) / cnt.sum(), 3),
+               "own_lp": round(float((own[1].sum() - maia[1].sum()) / cnt.sum()), 5), "conds": {}}
+        allr = score(np.ones(NB * DFF, bool))      # exactness check: removing every change must give Maia-3
+        res["remove_all_minus_maia_pts"] = round(100 * (allr[0].sum() - maia[0].sum()) / cnt.sum(), 4)
+        res["remove_all_minus_maia_lp"] = round(float((allr[1].sum() - maia[1].sum()) / cnt.sum()), 6)
+        print(band, "exactness", res["remove_all_minus_maia_pts"], res["remove_all_minus_maia_lp"], flush=True)
+
+        def boot(x):
+            dh, dm = x - maia[0], own[0] - maia[0]
+            bs = []
+            for ii in rng.integers(0, n, (300, n)):
+                bs.append(dh[ii].sum() / dm[ii].sum())
+            return round(float(np.nanstd(np.array(bs)[np.isfinite(bs)])), 4)
+        for name, S in _neuron_sets(band, rng).items():
+            inS = np.zeros(NB * DFF, bool)
+            inS[S] = True
+            for mode, rem in (("keep", ~inS), ("ko", inS)):
+                hh, ll = score(rem)
+                res["conds"][f"{mode}:{name}"] = {
+                    "pts": round(100 * (hh.sum() - maia[0].sum()) / cnt.sum(), 3),
+                    "retained_top1": round(float((hh.sum() - maia[0].sum()) / (own[0].sum() - maia[0].sum())), 4),
+                    "retained_top1_se": boot(hh),
+                    "retained_lp": round(float((ll.sum() - maia[1].sum()) / (own[1].sum() - maia[1].sum())), 4)}
+            print(band, name, json.dumps({k: v for k, v in res["conds"].items() if k.endswith(":" + name)}),
+                  f"{time.time() - t0:.0f}s", flush=True)
+        for h in hs + lora.hooks:
+            h.remove()
+        rep[str(band)] = res
+        out.write_text(json.dumps(rep, indent=1))
+        print(band, json.dumps({k: v for k, v in res.items() if k != "conds"}), flush=True)
+    print(f"-> {out}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     s = ap.add_subparsers(dest="cmd", required=True)
@@ -338,12 +471,20 @@ def main():
     a.add_argument("--bs", type=int, default=256)
     a.add_argument("--gpu-ok", action="store_true")
     s.add_parser("report")
+    c = s.add_parser("causal")
+    c.add_argument("--tag", default=TAG)
+    c.add_argument("--workers", type=int, default=12)
+    c.add_argument("--bands", type=int, nargs="+", default=list(BANDS))
+    c.add_argument("--limit", type=int, default=0)
+    c.add_argument("--gpu-ok", action="store_true")
     x = ap.parse_args()
     if x.cmd == "metric":
         metric(bands=x.bands)
     elif x.cmd == "attrib":
         assert x.gpu_ok or not x.device.startswith("cuda"), "GPU work goes through the warden (--gpu-ok)"
         attrib(x.tag, x.device, x.workers, x.bands, x.limit, x.max_minutes, x.bs)
+    elif x.cmd == "causal":
+        causal(x.tag, "cuda" if x.gpu_ok else "cpu", x.workers, x.bands, x.limit)
     else:
         attrib_report()
 

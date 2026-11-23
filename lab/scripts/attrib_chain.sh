@@ -5,7 +5,7 @@ cd /home/alliedtoasters/projects/chess/bot
 W=~/projects/clearwood/warden/.venv/bin/warden
 while pgrep -f "atlas_chain.sh" > /dev/null; do sleep 60; done
 R="uv run --project lab python -m doppel_lab.neuron_attrib"
-for b in 700 1900; do
+for b in ${BANDS:-700 1900}; do
   for i in 1 2 3 4; do
     out=$($W run --vram 20000 --max-runtime 6600 --label doppel:neuron_attrib_$b --cwd $PWD --wait -- \
           $R attrib --bands $b --max-minutes 95 --gpu-ok 2>&1)

@@ -2714,6 +2714,41 @@ Code: `lab/doppel_lab/adapter_space.py kswap`, `lab/doppel_lab/neuron_players.py
   candidate moves. The stable within-player fingerprint sits in crisp b5/b6 square-control relations. Those are the
   candidates for explainable style axes.
 
+### Pilot 2026-11-22: continuum, causal neurons, shrinkage
+
+All on the ctx200_restore adapters, 5 bands, scored on each side's test game (top-1 points over Maia-3).
+Tier 2 attribution now covers all 5 bands with the same picture as above (credit/actual 1.10–1.13).
+
+- **Distance vs transfer (`adapter_space kpair`, `lab/results/adapter_kpair.json`).** Donors at log-spaced
+  distance ranks in the normalized 64-PC kernel space.
+  - Gain falls smoothly with distance (700: −1.31 for the nearest neighbour to −3.81 for the farthest bin),
+    no plateau or step.
+  - The nearest neighbour keeps 0.38 / 0.34 / 0.28 / 0.22 / 0.24 of own-vs-random gain; k = 32 clusters keep
+    about half of that.
+  - Boundary test: at matched distance a same-cluster donor is no better than a cross-cluster one (k = 8:
+    within ±0.08, SE 0.05–0.07; k = 32 mixed signs). **Player space is a continuum; k is a compression choice.**
+  - Per-pair Spearman of distance vs gain is only 0.05–0.10 (one test game per side is noisy); binned means are
+    clear.
+- **Causal keep/knock-out (`neuron_attrib causal`, `lab/results/neuron_causal.json`).** A linear2 hook removes
+  the local write+read change of a neuron set; removing all neurons reproduces Maia exactly. Share of own log-prob
+  gain retained when only the set keeps its adapter change (700 / 1100 / 1500 / 1900):
+  - top-1024 by Tier 2: 0.88 / 0.99 / 0.93 / 1.26; top-1024 by split reliability: 0.76 / 0.85 / 0.81 / 1.30;
+    random 1024: 0.40 / 0.46 / 0.49 / 0.69. Both rankings beat random about 2× at every size (16–1024).
+  - Block 5 alone: 1.01 / 1.19 / 1.21 / 1.83; block 8 alone: 0.38 / 0.33 / 0.31 / 0.32. **Blocks partly cancel:
+    later blocks undo some of block 5.** Tier 1's b8 weighting does not hold causally.
+  - 2300 is unreadable (own gain 0.08 points, the ratios divide by about 0).
+- **Cold start and shrinkage (`adapter_space coldstart`, `lab/results/adapter_coldstart.json`).** Each side scored
+  with averaged donor adapters (exact: concatenated LoRAs at weight 1/k), shrunk by s in {0.25, 0.5, 1}; s chosen on
+  one crc32 half, reported on the other.
+  - **Own adapter at s = 0.5 beats s = 1 in every band:** +1.96 / 1.77 / 1.49 / 1.59 / 0.99 vs
+    +1.75 / 1.38 / 1.20 / 1.14 / 0.08 (cross-fit +1.70 / 1.76 / 1.48 / 1.59 / 0.99). The shipped adapters are
+    over-scaled; 2300 looked useless only for that reason. Product candidate: scale ≈ 0.5 at inference (grid is
+    coarse; optimum may be about 0.6). Not shipped.
+  - Averaging the 16 nearest sides (oracle location, uses the side's own adapter) at s = 1: +1.09 / 0.87 / 0.71 /
+    0.65 / 0.13, about 60% of own full-scale gain. One neighbour at s = 1 reproduces kpair (−1.31 at 700).
+  - Realistic cold start fails: 16/64 rating-nearest sides and the band-mean adapter are within ±0.07 of Maia.
+    Maia already conditions on rating. A locator has to come from the player's games.
+
 ### Registered: n = 1 coaching study (2026-11-15)
 
 `docs/PROTOCOL_N1.md`: does simulation-based coaching speed up one player's improvement? The primary outcomes are

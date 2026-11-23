@@ -565,6 +565,173 @@ def kswap(tag: str, device: str, workers: int, bands: list[int], draws: int = 6,
     print(f"-> {out}")
 
 
+KPAIR_DIR = ROOT / "data/allie/kpair"
+KPAIR_OUT = ROOT / "lab/results/adapter_kpair.json"
+
+
+def kpair(tag: str, device: str, workers: int, bands: list[int], n_bins: int = 14, limit: int = 0, draws: int = 4):
+    """GPU: transfer gain as a function of function-space distance, per donor-recipient pair. For each side, donors
+    are drawn at log-spaced distance ranks (rank 1 = nearest neighbour, the k -> N ceiling of kswap), one donor per
+    rank bin per side, in the same normalized kernel-PCA space kswap clusters in. Raw per-pass hits are saved to
+    data/allie/kpair/<band>.npz; kpair_report (CPU) does the analysis. Resumable per band."""
+    import torch
+
+    from doppel_lab.engines import Maia3
+    from doppel_lab.lora_probe import Lora, per_position
+    model = Maia3("79m", device).model.eval()
+    for p in model.parameters():
+        p.requires_grad_(False)
+    KPAIR_DIR.mkdir(parents=True, exist_ok=True)
+    t0 = time.time()
+    for band in bands:
+        dst = KPAIR_DIR / (f"{band}_smoke.npz" if limit else f"{band}.npz")
+        if dst.exists():
+            print(band, "done already", flush=True)
+            continue
+        f = fs_load(band)
+        a = load(band, tag)
+        idx = {int(p): i for i, p in enumerate(a["pid"])}
+        rows = np.array([idx[int(p)] for p in f["pid"]])
+        if limit:
+            rows, f = rows[:limit], {k: v[:limit] for k, v in f.items()}
+        d = {k: v[rows] for k, v in a.items() if k not in ("A", "B")}
+        n = len(rows)
+        G = f["V"].astype(np.float64) @ f["V"].T.astype(np.float64)
+        sq = np.diag(G)
+        _, _, sc, _ = kpca(G, 64)
+        X = sc / np.linalg.norm(sc, axis=1, keepdims=True)
+        D = np.sqrt(np.maximum(2 - 2 * X @ X.T, 0))              # distance in the clustering space
+        np.fill_diagonal(D, np.inf)
+        order = np.argsort(D, 1)                                 # order[i, r - 1] = donor at rank r
+        rng = np.random.default_rng(band + 7)
+        P, te = test_positions(d, band, workers)
+        own_pid = P.pid
+        lora = Lora(model, n, device)
+        with torch.no_grad():
+            for l in range(NL):
+                lora.params[2 * l].copy_(torch.from_numpy(a["A"][l][rows]).to(device))
+                lora.params[2 * l + 1].copy_(torch.from_numpy(a["B"][l][rows]).to(device))
+
+        def side_hits(mapping):
+            _, h = per_position(model, lora, P, te, None if mapping is None else (lambda ix: mapping[own_pid[ix]]),
+                                device, torch.float16)
+            return np.bincount(own_pid[te], h.astype(np.float64), n)
+
+        cnt = np.bincount(own_pid[te], minlength=n)
+        maia = side_hits(None)
+        own = side_hits(np.arange(n))
+        edges = np.unique(np.round(np.geomspace(2, n - 1, n_bins)).astype(int))
+        donors, hits, pbin = [order[:, 0]], [side_hits(order[:, 0])], [-1]
+        print(band, f"n {n}, nn pass done, {time.time() - t0:.0f}s", flush=True)
+        for _ in range(draws):
+            for bi, (lo, hi) in enumerate(zip(edges[:-1], edges[1:])):
+                r = rng.integers(lo, hi, n)                      # rank in [lo, hi)
+                dn = order[np.arange(n), r - 1]
+                donors.append(dn)
+                hits.append(side_hits(dn))
+                pbin.append(bi)
+            print(band, f"draw done, {time.time() - t0:.0f}s", flush=True)
+        for hk in lora.hooks:
+            hk.remove()
+        tmp = dst.with_suffix(".tmp")
+        with open(tmp, "wb") as fh:
+            np.savez(fh, donors=np.array(donors), hits=np.array(hits), maia=maia, own=own, cnt=cnt, X=X.astype(np.float32), pbin=np.array(pbin),
+                     fisher_sq=sq, G=G.astype(np.float32), edges=edges)
+        tmp.rename(dst)
+    print("kpair done", flush=True)
+
+
+def kpair_report(ks=(8, 32), boots: int = 400):
+    """CPU: (1) gain vs distance rank, (2) nearest-neighbour capture ceiling, (3) per-pair Spearman of distance vs gain,
+    (4) boundary test: at matched distance, does a donor in the recipient's k-means cluster transfer better than one
+    across a boundary? Within each rank bin, same - cross gain, averaged over bins (weights = min count); bootstrap
+    over recipients. A continuum predicts 0."""
+    from sklearn.cluster import KMeans
+    rep = {}
+    for f in sorted(KPAIR_DIR.glob("*.npz")):
+        if "smoke" in f.stem:
+            continue
+        z = np.load(f)
+        dn, H, maia, own, cnt, X = z["donors"], z["hits"], z["maia"], z["own"], z["cnt"], z["X"].astype(np.float64)
+        n = len(maia)
+        w = cnt > 0
+        G = z["G"].astype(np.float64)
+        sq = np.diag(G)
+        tot = cnt[w].sum()
+        gain = lambda h, m=w: 100 * (h[m].sum() - maia[m].sum()) / cnt[m].sum()
+        g_own = gain(own)
+        rng = np.random.default_rng(0)
+        # per pair: gain of donor on recipient, in pts, and distances
+        pg = 100 * (H - maia[None]) / np.maximum(cnt[None], 1)        # (passes, n)
+        rec = np.broadcast_to(np.arange(n), dn.shape)
+        dcl = np.sqrt(np.maximum(2 - 2 * (X[rec] * X[dn]).sum(-1), 0))
+        dfi = np.sqrt(np.maximum(sq[rec] + sq[dn] - 2 * G[rec, dn], 0))
+        ww = np.broadcast_to(cnt, dn.shape)
+        m = ww > 0
+        r = {"n_sides": int(n), "own": round(g_own, 3), "nn": round(gain(H[0]), 3),
+             "by_rank_bin": []}
+        pbin = z["pbin"]
+        bin_gain = lambda bi: 100 * (H[pbin == bi][:, w].sum() - (pbin == bi).sum() * maia[w].sum()) / ((pbin == bi).sum() * tot)
+        for i, (a, b) in enumerate(zip(z["edges"][:-1], z["edges"][1:])):
+            r["by_rank_bin"].append({"ranks": [int(a), int(b)], "gain": round(bin_gain(i), 3)})
+        far = bin_gain(int(pbin.max()))
+        r["nn_capture_vs_farthest_bin"] = round((r["nn"] - far) / (g_own - far), 4)
+
+        def wspear(x, y, wt):                                    # Spearman, pairs with >= 10 positions
+            k = wt >= 10
+            return round(spearman(x[k], y[k]), 4)
+        r["pair_spearman"] = {"cluster_space_dist": wspear(-dcl[m], pg[m], ww[m]),
+                              "fisher_dist": wspear(-dfi[m], pg[m], ww[m])}
+        # pooled gain vs distance: binned means (weighted by positions)
+        r["boundary"] = {}
+        for k in ks:
+            lab = KMeans(k, n_init=10, random_state=0).fit_predict(X)
+            same = lab[rec] == lab[dn]
+
+            def effect(sel):
+                diffs, wts = [], []
+                for p_ in range(1, len(dn)):                     # rank bins only (nn is almost always same)
+                    s_ = same[p_] & w & sel
+                    c_ = ~same[p_] & w & sel
+                    if s_.sum() < 20 or c_.sum() < 20:
+                        continue
+                    gs = (pg[p_][s_] * cnt[s_]).sum() / cnt[s_].sum()
+                    gc = (pg[p_][c_] * cnt[c_]).sum() / cnt[c_].sum()
+                    # matched distance within the bin: regress out the distance difference
+                    diffs.append(gs - gc)
+                    wts.append(min(s_.sum(), c_.sum()))
+                return (float(np.average(diffs, weights=wts)) if diffs else float("nan")), len(diffs)
+            est, nb = effect(np.ones(n, bool))
+            bs = []
+            for _ in range(boots):
+                sel = np.zeros(n, bool)
+                sel[np.unique(rng.integers(0, n, n))] = True
+                bs.append(effect(sel)[0])
+            # distance confound check: mean distance same vs cross within mixed bins
+            dd = []
+            for p_ in range(1, len(dn)):
+                s_, c_ = same[p_] & w, ~same[p_] & w
+                if s_.sum() >= 20 and c_.sum() >= 20:
+                    dd.append(float(dcl[p_][s_].mean() - dcl[p_][c_].mean()))
+            # regression: pair gain ~ bin fixed effects + distance + same
+            rows_ = [(p_, i) for p_ in range(1, len(dn)) for i in np.flatnonzero(w)]
+            pi = np.array([a for a, _ in rows_])
+            ii = np.array([b for _, b in rows_])
+            Xr = np.column_stack([np.eye(int(pbin.max()) + 1)[pbin[pi]], dcl[pi, ii], same[pi, ii].astype(float)])
+            yr = pg[pi, ii]
+            wr = cnt[ii].astype(float)
+            beta = np.linalg.lstsq(Xr * np.sqrt(wr)[:, None], yr * np.sqrt(wr), rcond=None)[0]
+            r["boundary"][k] = {"same_minus_cross_in_bin": round(est, 3),
+                                "se": round(float(np.nanstd(bs)), 3), "bins_used": nb,
+                                "dist_diff_same_minus_cross": [round(x, 4) for x in dd],
+                                "regression_same_coef": round(float(beta[-1]), 3),
+                                "regression_dist_coef": round(float(beta[-2]), 3)}
+        rep[f.stem] = r
+        print(f.stem, json.dumps(r), flush=True)
+    KPAIR_OUT.write_text(json.dumps(rep, indent=1))
+    print(f"-> {KPAIR_OUT}")
+
+
 SPLIT_TAG = "_ctx200_fit0_s200_split"
 SPLIT_OUT = ROOT / "lab/results/adapter_split.json"
 
@@ -725,6 +892,146 @@ def traits(tag: str = "_ctx200_restore"):
     print(f"-> {out}")
 
 
+COLD_DIR = ROOT / "data/allie/coldstart"
+COLD_OUT = ROOT / "lab/results/adapter_coldstart.json"
+COLD_SCALES = (0.25, 0.5, 1.0)
+
+
+def coldstart(tag: str, device: str, workers: int, bands: list[int], limit: int = 0):
+    """GPU: can a player with no adapter of their own beat Maia with other players' adapters? Each side's test game
+    is scored with the average of k donor adapters (exact: the k rank-8 LoRAs concatenated with weight 1/k), shrunk
+    by a scale s in COLD_SCALES. Donors:
+      - oracle{k}: the k nearest sides in kpair's normalized kernel-PCA space. Locating the side needs its own
+        adapter, so this is an upper bound for any cold-start locator (k=1 at s=1 reproduces kpair's NN pass);
+      - elo{k}: the k sides of nearest rating (realistic: needs only the rating);
+      - bandmean: mean dW of every side in the band (SVD, rank 256; the side's own 1/n share is left in).
+    Scale is chosen on one crc32 half of the sides and reported on the other (as in swap). Raw hits ->
+    data/allie/coldstart/<band>.npz; resumable per band."""
+    import zlib
+
+    import torch
+
+    from doppel_lab.engines import Maia3
+    from doppel_lab.lora_probe import Lora, per_position
+    model = Maia3("79m", device).model.eval()
+    for p in model.parameters():
+        p.requires_grad_(False)
+    COLD_DIR.mkdir(parents=True, exist_ok=True)
+    out = COLD_OUT.with_name("adapter_coldstart_smoke.json") if limit else COLD_OUT
+    rep = json.loads(out.read_text()) if out.exists() else {}
+    t0 = time.time()
+    for band in bands:
+        dst = COLD_DIR / (f"{band}_smoke.npz" if limit else f"{band}.npz")
+        if not dst.exists():
+            f = fs_load(band)
+            a = load(band, tag)
+            idx = {int(p): i for i, p in enumerate(a["pid"])}
+            rows = np.array([idx[int(p)] for p in f["pid"]])
+            if limit:
+                rows, f = rows[:limit], {k: v[:limit] for k, v in f.items()}
+            d = {k: v[rows] for k, v in a.items() if k not in ("A", "B")}
+            A = [torch.from_numpy(a["A"][l][rows]) for l in range(NL)]
+            B = [torch.from_numpy(a["B"][l][rows]) for l in range(NL)]
+            n = len(rows)
+            G = f["V"].astype(np.float64) @ f["V"].T.astype(np.float64)
+            _, _, sc, _ = kpca(G, 64)
+            X = sc / np.linalg.norm(sc, axis=1, keepdims=True)
+            D = np.sqrt(np.maximum(2 - 2 * X @ X.T, 0))
+            np.fill_diagonal(D, np.inf)
+            elo = side_meta(d)["elo"].to_numpy().astype(np.float64)
+            rng = np.random.default_rng(band)
+            E = np.abs(elo[:, None] - elo[None, :]) + rng.random((n, n)) * 1e-3     # random tie-break
+            np.fill_diagonal(E, np.inf)
+            nbr = {"oracle": np.argsort(D, 1), "elo": np.argsort(E, 1)}
+            P, te = test_positions(d, band, workers)
+            tp = P.pid[te]
+            H, L = {}, {}
+
+            def run(lora, rowmap, sel_mask, key, bs):
+                lp, h = per_position(model, lora, P, te[sel_mask], lambda ix: rowmap(P.pid[ix]), device,
+                                     torch.float16, bs=bs)
+                H.setdefault(key, np.zeros(len(te), bool))[sel_mask] = h
+                L.setdefault(key, np.zeros(len(te)))[sel_mask] = lp
+
+            def scaled_passes(lora, rowmap, sel_mask, name, bs):
+                with torch.no_grad():
+                    for p in lora.params[1::2]:
+                        p.mul_(COLD_SCALES[0])
+                for si, s in enumerate(COLD_SCALES):
+                    if si:
+                        with torch.no_grad():
+                            for p in lora.params[1::2]:
+                                p.mul_(s / COLD_SCALES[si - 1])
+                    run(lora, rowmap, sel_mask, f"{name}_x{s}", bs)
+                for hk in lora.hooks:
+                    hk.remove()
+
+            m0 = Lora(model, 1, device)
+            lp0, h0 = per_position(model, m0, P, te, None, device, torch.float16)
+            for hk in m0.hooks:
+                hk.remove()
+            H["maia"], L["maia"] = h0, lp0
+            own = Lora(model, n, device)
+            with torch.no_grad():
+                for l in range(NL):
+                    own.params[2 * l].copy_(A[l].to(device))
+                    own.params[2 * l + 1].copy_(B[l].to(device))
+            scaled_passes(own, lambda p: p, np.ones(len(te), bool), "own", 1024)
+            del own
+            for src, ks in (("oracle", (1, 4, 16, 64)), ("elo", (16, 64))):
+                for k in ks:
+                    k = min(k, n - 1)
+                    m = max(1, int(3e9 / (k * 8 * 24576 * 4)))          # sides per chunk, ~3 GB of factors
+                    for s in range(0, n, m):
+                        e = min(n, s + m)
+                        lo = Lora(model, e - s, device, r=8 * k)
+                        nb = torch.from_numpy(nbr[src][s:e, :k].copy())
+                        with torch.no_grad():
+                            for l in range(NL):
+                                lo.params[2 * l].copy_(A[l][nb].reshape(e - s, 8 * k, -1).to(device))
+                                lo.params[2 * l + 1].copy_(
+                                    (B[l][nb].permute(0, 2, 1, 3).reshape(e - s, B[l].shape[1], 8 * k) / k).to(device))
+                        scaled_passes(lo, lambda p, s=s: p - s, (tp >= s) & (tp < e), f"{src}{k}",
+                                      max(64, min(1024, 2 ** 16 // k)))
+                        del lo
+                    print(band, f"{src}{k} done, {time.time() - t0:.0f}s", flush=True)
+            bm = Lora(model, 1, device, r=256)
+            with torch.no_grad():
+                for l in range(NL):
+                    W = torch.einsum("nor,nri->oi", B[l].to(device), A[l].to(device)) / n
+                    U, S_, Vh = torch.linalg.svd(W, full_matrices=False)
+                    rr = min(256, S_.shape[0])
+                    bm.params[2 * l][0].zero_()
+                    bm.params[2 * l + 1][0].zero_()
+                    bm.params[2 * l][0, :rr] = Vh[:rr]
+                    bm.params[2 * l + 1][0, :, :rr] = U[:, :rr] * S_[:rr]
+            scaled_passes(bm, lambda p: np.zeros_like(p), np.ones(len(te), bool), "bandmean", 1024)
+            half = np.array([zlib.crc32(g.encode()) & 1 for g in d["test_game_id"]])[tp]
+            tmp = dst.with_suffix(".tmp")
+            with open(tmp, "wb") as fh:
+                np.savez(fh, keys=np.array(list(H)), H=np.array([H[k] for k in H]), L=np.array([L[k] for k in H]),
+                         pid=tp, half=half)
+            tmp.rename(dst)
+        z = np.load(dst)
+        keys, Hs, Ls, half = list(z["keys"]), z["H"].astype(np.float64), z["L"], z["half"]
+        i0 = keys.index("maia")
+        gain = {k: round(100 * (Hs[i].mean() - Hs[i0].mean()), 3) for i, k in enumerate(keys) if k != "maia"}
+        lpg = {k: round(float(Ls[i].mean() - Ls[i0].mean()), 4) for i, k in enumerate(keys) if k != "maia"}
+        cv = {}
+        for name in sorted({k.rsplit("_x", 1)[0] for k in keys if "_x" in k}):
+            cand = [keys.index(f"{name}_x{s}") for s in COLD_SCALES]
+            g = []
+            for tr in (0, 1):
+                best = max(cand, key=lambda i: Hs[i][half == tr].mean())
+                g.append(100 * (Hs[best][half != tr].mean() - Hs[i0][half != tr].mean()))
+            cv[name] = round(float(np.mean(g)), 3)
+        rep[str(band)] = {"n_pos": int(Hs.shape[1]), "maia_acc": round(100 * Hs[i0].mean(), 2), "gain_pts": gain,
+                          "gain_lp": lpg, "cv_best_scale_pts": cv}
+        print(band, json.dumps(rep[str(band)]["cv_best_scale_pts"]), flush=True)
+        out.write_text(json.dumps(rep, indent=1))
+    print(f"-> {out}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     s = ap.add_subparsers(dest="cmd", required=True)
@@ -750,6 +1057,19 @@ def main():
     ks.add_argument("--draws", type=int, default=6)
     ks.add_argument("--gpu-ok", action="store_true")
     ks.add_argument("--limit", type=int, default=0, help="CPU smoke: first N probed sides per band")
+    kp = s.add_parser("kpair")
+    kp.add_argument("--tag", default="_ctx200_restore")
+    kp.add_argument("--workers", type=int, default=12)
+    kp.add_argument("--bands", default=",".join(map(str, BANDS)))
+    kp.add_argument("--gpu-ok", action="store_true")
+    kp.add_argument("--limit", type=int, default=0)
+    s.add_parser("kpair_report")
+    cs = s.add_parser("coldstart")
+    cs.add_argument("--tag", default="_ctx200_restore")
+    cs.add_argument("--workers", type=int, default=12)
+    cs.add_argument("--bands", default=",".join(map(str, BANDS)))
+    cs.add_argument("--gpu-ok", action="store_true")
+    cs.add_argument("--limit", type=int, default=0)
     sp = s.add_parser("split")
     sp.add_argument("--tag", default=SPLIT_TAG)
     tr = s.add_parser("traits")
@@ -765,6 +1085,13 @@ def main():
         swap(a.tag, "cuda" if a.gpu_ok else "cpu", a.workers, [int(x) for x in a.bands.split(",")], a.limit)
     elif a.cmd == "kswap":
         kswap(a.tag, "cuda" if a.gpu_ok else "cpu", a.workers, [int(x) for x in a.bands.split(",")], a.draws, a.limit)
+    elif a.cmd == "kpair":
+        kpair(a.tag, "cuda" if a.gpu_ok else "cpu", a.workers, [int(x) for x in a.bands.split(",")], limit=a.limit,
+              draws=1 if a.limit else 4)
+    elif a.cmd == "coldstart":
+        coldstart(a.tag, "cuda" if a.gpu_ok else "cpu", a.workers, [int(x) for x in a.bands.split(",")], a.limit)
+    elif a.cmd == "kpair_report":
+        kpair_report()
     elif a.cmd == "geom":
         geom(a.tag)
     elif a.cmd == "probe":
