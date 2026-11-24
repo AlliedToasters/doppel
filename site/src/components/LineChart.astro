@@ -12,7 +12,7 @@ interface Series { name: string; values: number[]; slot?: number }
 interface Props {
   title: string;
   note?: string;
-  x: { label: string; values: number[]; log?: boolean; labels?: string[] };
+  x: { label: string; values: number[]; log?: boolean; labels?: string[]; ticks?: string[] };
   y: { label: string; min?: number; max?: number; format?: 'pct' | 'num' | 'num1'; ticks?: number[] };
   series: Series[];
 }
@@ -29,6 +29,8 @@ const [xa, xb] = [tx(xs[0]), tx(xs[xs.length - 1])];
 const pxv = (v: number) => M.l + ((tx(v) - xa) / (xb - xa)) * iw;
 const px = (v: number) => pxv(xs[x.values.indexOf(v)]);
 const xlab = (j: number) => (x.labels ? x.labels[j] : String(x.values[j]));
+// Optional shorter axis-only labels ('' hides a tick); the tooltip and table keep `labels`.
+const xtick = (j: number) => (x.ticks ? x.ticks[j] : xlab(j));
 const py = (v: number) => M.t + (1 - (v - y0) / (y1 - y0)) * ih;
 const fmt = (v: number) => (y.format === 'pct' ? `${(v * 100).toFixed(v < 0.1 ? 1 : 0)}%` : y.format === 'num1' ? v.toFixed(1) : v.toFixed(2));
 const tickFmt = (v: number) => (y.format === 'pct' ? `${Math.round(v * 100)}%` : y.format === 'num1' ? v.toFixed(0) : v.toFixed(2));
@@ -67,7 +69,7 @@ const data = JSON.stringify({
         </g>
       ))}
       {x.values.map((v, j) => (
-        <text class="tick" x={px(v)} y={M.t + ih + 20} text-anchor="middle">{xlab(j)}</text>
+        <text class="tick" x={px(v)} y={M.t + ih + 20} text-anchor="middle">{xtick(j)}</text>
       ))}
       <text class="axis" x={M.l + iw / 2} y={H - 6} text-anchor="middle">{x.label}</text>
       <text class="axis" transform={`translate(14 ${M.t + ih / 2}) rotate(-90)`} text-anchor="middle">{y.label}</text>

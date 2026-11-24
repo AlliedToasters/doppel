@@ -1,0 +1,119 @@
+---
+title: Players on a continuum
+description: "Each player's adapter is a point in a big space. We asked whether players fall into types. They don't. Transfer between players fades smoothly with distance, with no borders. Averaging a player's neighbours recovers most of their gain, and one early layer of Maia-3 carries all of it."
+date: 2026-11-24
+status: approved
+queue: 2
+---
+import LineChart from '../../components/LineChart.astro';
+import BarChart from '../../components/BarChart.astro';
+import kp from '../../results/adapter_kpair.json';
+import cs from '../../results/adapter_coldstart.json';
+import ca from '../../results/neuron_causal.json';
+
+export const B = ['700', '1100', '1500', '1900', '2300'];
+export const LAB = { '700': '600–1000', '1100': '1000–1400', '1500': '1400–1600', '1900': '1600–2000', '2300': '2000+' };
+export const curve = (b) => [kp[b].nn, ...kp[b].by_rank_bin.map((x) => x.gain)];
+export const rtick = ['1', ...kp['1500'].by_rank_bin.map((x, i) => (i % 2 ? String(x.ranks[0]) : ''))];
+export const rlab = ['1', ...kp['1500'].by_rank_bin.map((x) => (x.ranks[1] - x.ranks[0] > 1 ? `${x.ranks[0]}–${x.ranks[1] - 1}` : String(x.ranks[0])))];
+export const ks = [1, 4, 16, 64];
+export const g = (b, k) => cs[b].gain_pts[k];
+export const keep = (set) => ca['1100'].conds[`keep:${set}`].retained_lp;
+
+The last post gave every player a small adapter on top of Maia-3, trained on their own earlier games. Each adapter
+is a point in a space with a few hundred thousand dimensions. This post is about the shape of that space.
+
+## Do players come in types?
+
+If they do, a bot for a new player could start from their type. To test it we needed a distance between players. We
+used what the adapters *do*: how each one changes Maia-3's move probabilities on the same 2,560 positions. Two
+players are close when their adapters push the same moves up and down.
+
+Then, for every player in the test set, we scored their test game with *another* player's adapter, picked at a range
+of distances: their nearest neighbour, the next few, and so on out to the farthest player in the band.
+
+<LineChart
+  title="Gain from a donor's adapter, by how far away the donor is"
+  note="Top-1 points over Maia-3 on the recipient's test game, using another player's adapter at full strength. Distance rank 1 = nearest neighbour; ranks are log-spaced, the axis marks where every other bin starts and hovering shows each range (shown for 1400–1600; the other bands are similar)."
+  x={{ label: 'Donor distance rank', values: rlab.map((_, i) => i), labels: rlab, ticks: rtick }}
+  y={{ label: 'Gain (points)', min: -4, max: 0, format: 'num', ticks: [-4, -3, -2, -1, 0] }}
+  series={[
+    { name: LAB['700'], slot: 1, values: curve('700') },
+    { name: LAB['1500'], slot: 2, values: curve('1500') },
+    { name: LAB['2300'], slot: 3, values: curve('2300') },
+  ]}
+/>
+
+The closer the donor, the less it costs, all the way out, with no step anywhere. To look for types directly we
+grouped the players into 8 or 32 clusters and asked: at the *same* distance, is a donor from your own cluster better
+than one across a border? It isn't. The difference is within noise in every band (at 8 clusters, all five within
+±0.08 points, against a standard error of 0.05–0.07).
+
+**Players don't come in types. They sit on a continuum**, and any number of clusters is a choice of how coarsely to
+summarise it.
+
+## Your neighbour is worse than nobody
+
+The chart has an odd feature: even the nearest neighbour's adapter is worse than plain Maia-3, by 1.3 to 2 points. A
+neighbour carries real information (a random player costs a point or two more), but each adapter also carries its
+own noise, trained on 200 games, and at full strength that noise wins.
+
+The fix is to average. Instead of one neighbour, we scored each test game with the average of its 4, 16 or 64
+nearest neighbours' adapters.
+
+<LineChart
+  title="Averaging neighbours' adapters"
+  note="Top-1 points over Maia-3. Average of the k nearest players' adapters, at full strength. Finding the neighbours used the player's own adapter, so this is an upper bound for a new player."
+  x={{ label: 'Neighbours averaged (k)', values: ks, log: true, labels: ks.map(String) }}
+  y={{ label: 'Gain (points)', min: -2.5, max: 1.5, format: 'num', ticks: [-2, -1, 0, 1] }}
+  series={['700', '1500', '2300'].map((b, i) => ({ name: LAB[b], slot: i + 1, values: ks.map((k) => g(b, `oracle${k}_x1.0`)) }))}
+/>
+
+Averaging 16 neighbours turns a loss of 1.3 to 2 points into a gain: {['700', '1100', '1500', '1900'].map((b) => `+${g(b, 'oracle16_x1.0').toFixed(2)}`).join(', ')}
+from 600 to 2000, about 60% of what the player's own adapter gains. Nearby players really do play alike; one adapter
+is just a noisy estimate of where they are.
+
+The catch is the caveat in the note. To find a player's neighbours we used their own adapter. For a new player we
+tried the obvious stand-in, the players of nearest *rating*, and the average of the whole band. Both are within ±0.07
+points of plain Maia-3 in every band: Maia-3 already knows the rating. A new player's neighbours have to be found from
+their games.
+
+## Where in Maia-3 the difference lives
+
+The adapter changes four of Maia-3's layers (blocks 5 to 8). Which ones matter? We ran each player's test
+game with the adapter switched on in one block only, or in chosen sets of neurons only, and measured how much of the
+player's own gain survived. (Switching all of it off gives back Maia-3 exactly.)
+
+<BarChart
+  title="Share of the player's gain kept, adapter in one block only"
+  note="1000–1400 band. Share of the own adapter's log-probability gain kept on the test game when only that block's change is left on. Above 1 means more than the full adapter."
+  format="num" max={1.3}
+  bars={[5, 6, 7, 8].map((k) => ({ label: `Block ${k} only`, value: keep(`block${k}`), slot: k === 5 ? 1 : 2 }))}
+/>
+
+**Block 5, the first adapted block, carries the whole effect on its own**, and a bit more:
+{B.slice(0, 4).map((b) => ca[b].conds['keep:block5'].retained_lp.toFixed(2)).join(', ')} of the full gain from 600 to
+2000. Block 8 keeps about a third. So the later blocks partly undo block 5. (In the 2000+ band the full adapter gains
+almost nothing in this test, so its shares can't be read.)
+
+Neurons tell a similar story. Keeping only the 1,024 neurons (of 8,192 in the four blocks) that our attribution ranks
+highest keeps {keep('attrib1024').toFixed(2)} of the gain in this band; 1,024 random neurons keep {keep('random1024').toFixed(2)}.
+The rankings find the right neurons, at least twice as well as chance at every size we tried, from 16 neurons to 1,024.
+
+What do those neurons compute? We asked language-model agents to write and test small programs that predict
+individual neurons from the board. The ones that differ most reliably between players are crisp: *squares the enemy
+holds uncontested*, *enemy pieces that are developed and in contact*, *squares our pawns attack*. Those are
+candidates for something we want eventually: a style you can name.
+
+## What this means for Doppel
+
+1. **No player types.** Building a bot from "your type" throws information away. Better: place each player in the
+   continuous space and borrow from their neighbours.
+2. **Borrowing works if you can find the neighbours.** Rating alone can't. The next experiment is to place a new player
+   from a handful of their games.
+3. **The style is early.** One block's worth of change carries it, which makes cheaper adapters, and more readable
+   ones, look possible.
+
+*Data and code: `doppel_lab/adapter_space.py` (`kpair`, `coldstart`) and `doppel_lab/neuron_attrib.py` (`causal`),
+results in `lab/results/`: `adapter_kpair.json`, `adapter_coldstart.json` and `neuron_causal.json`, in the
+[repository](https://github.com/AlliedToasters/doppel).*

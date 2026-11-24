@@ -1,0 +1,113 @@
+---
+title: One small model per player
+description: We trained a tiny add-on to Maia-3 for each player, from their own earlier games, in under a second of GPU time. On the whole standard test set it lifts Maia-3 from 57.1% to 58.2%, in every rating band. The trick that made it work was telling it to speak more quietly.
+date: 2026-11-23
+status: approved
+queue: 1
+---
+import LineChart from '../../components/LineChart.astro';
+import BarChart from '../../components/BarChart.astro';
+import w from '../../results/ttt_weight_fit.json';
+import t7 from '../../results/allie_ttt_700_ctx200.json';
+import t11 from '../../results/allie_ttt_1100_ctx200.json';
+import t15 from '../../results/allie_ttt_1500_ctx200.json';
+import t19 from '../../results/allie_ttt_1900_ctx200.json';
+import t23 from '../../results/allie_ttt_2300_ctx200.json';
+
+export const T = w.test;
+export const best = T.arms.alpha_top1;
+export const full = T.arms.ttt200;
+export const bands = [['700', '600–1000', t7], ['1100', '1000–1400', t11], ['1500', '1400–1600', t15], ['1900', '1600–2000', t19], ['2300', '2000+', t23]];
+
+The last two posts gave Maia-3 a description of the player, then a learned search through their earlier games. Both
+helped, by a quarter to a third of a point. This post tries the bluntest idea of all: train a separate small model for
+every player.
+
+## A few hundred thousand numbers per person
+
+Maia-3 has 79 million parameters and stays frozen. For each player we add a *low-rank adapter*: a small correction
+to four of its layers, 196,608 numbers in all, about 390 KB. We train it on the player's 200 most recent earlier games
+(strictly before the test game), keep their 5 latest games aside to decide when to stop, and then score the test game.
+
+Training one player takes about 0.7 seconds on one GPU. On a 16-thread CPU it takes about 80 seconds.
+
+As a control, we score every test game a second time through *someone else's* adapter, from the same rating band.
+
+## The result
+
+<BarChart
+  title="Top-1 gain over Maia-3, by rating band"
+  note="Points of top-1 accuracy on each band's part of the Allie test set. Own adapter at full strength, and through another player's adapter."
+  format="pts" min={-3} max={1.5}
+  bars={bands.flatMap(([b, lab, t]) => [
+    { label: `${lab}: own`, value: t.own.all.top1_gain_pts, slot: 1, note: `${t.positions.toLocaleString('en-US')} positions` },
+    { label: `${lab}: someone else's`, value: t.control.all.top1_gain_pts, slot: 2 },
+  ])}
+/>
+
+A player's own adapter gains about a point in every band up to 2000. Someone else's costs two to almost three.
+The adapter is learning the person, not the rating band.
+
+Above 2000 the own adapter gains nothing. That turned out to be a volume problem, not a missing signal.
+
+## Speaking more quietly
+
+Where does the adapter go wrong? When Maia-3's top two moves are nearly tied, the adapter helps a lot: that is where a
+person's habits decide the move. It hurts in a different place: when Maia-3 has a moderate favourite, the adapter
+sometimes overrules it, more often late in the game. It is pointing the right way but too loudly.
+
+So we mixed it with Maia-3: Maia-3 plus a fraction *w* of the adapter's change. We chose *w* on the players' own
+earlier games, not on the test set.
+
+<LineChart
+  title="Gain on held-out earlier games, by adapter strength"
+  note="Top-1 points over Maia-3 on 136,283 positions from players' held-out earlier games (200 players per band). w = 0 is Maia-3; w = 1 is the adapter as trained."
+  x={{ label: 'Adapter strength w', values: w.grid, labels: w.grid.map((v) => String(v)) }}
+  y={{ label: 'Gain (points)', min: -1.25, max: 1.25, format: 'num', ticks: [-1, -0.5, 0, 0.5, 1] }}
+  series={[{ name: 'Adapter', slot: 1, values: w.single.top1_curve_pts }]}
+/>
+
+The best strength is **0.625**, in every band (0.5 to 0.625), and the same in each of five folds of players. Turn
+it up past 1 and it gets worse fast.
+
+## On the whole test set
+
+Scored once, on all 884,049 positions, with *w* = 0.625:
+
+<BarChart
+  title="Top-1 gain over Maia-3, whole Allie test set"
+  note={`Maia-3: ${(100 * T.maia_top1).toFixed(2)}%. 95% intervals from a bootstrap over games.`}
+  format="pts" max={1.4}
+  bars={[
+    { label: 'Adapter, full strength', value: full.top1_pts, slot: 2, note: `+${full.top1_ci[0].toFixed(2)} to +${full.top1_ci[1].toFixed(2)}` },
+    { label: 'Adapter, w = 0.625', value: best.top1_pts, slot: 1, note: `+${best.top1_ci[0].toFixed(2)} to +${best.top1_ci[1].toFixed(2)}` },
+  ]}
+/>
+
+That is **{(100 * T.maia_top1 + best.top1_pts).toFixed(1)}%**, up from {(100 * T.maia_top1).toFixed(1)}%. By band:
+{bands.map(([b, lab]) => `${lab} +${best.by_band_pts[b].toFixed(2)}`).join(', ')}. The 2000+ band goes from nothing
+to +{best.by_band_pts['2300'].toFixed(2)}: its players were never interchangeable, the adapter was just too loud.
+The probabilities improve too, not only the top choice: cross-entropy falls by {(-best.ce_delta).toFixed(3)} nats per
+position.
+
+## How big is that?
+
+A point and a bit: 115 more correct moves per 10,000, about three times the learned lookup from the last post and more
+than the whole spread between the best published models on this test. It costs a second of compute and 390 KB per
+player, which is what a Doppel bot can actually ship.
+
+Two caveats:
+
+1. **Most of the gain is in the opening.** At moves 10–19 the full-strength adapter gains 2.6 to 4 points; after move 40 it adds
+   little. Style in new middlegames is still the hard part.
+2. **The players need a history.** Many of the lowest-rated players have fewer than 200 earlier games. A new player
+   with no games gets plain Maia-3, for now.
+
+## What's next
+
+Each player now has an adapter: a point in a space of a few hundred thousand dimensions. The next post asks what that
+space looks like. Do players fall into types, or is it a continuum? And which parts of Maia-3 carry the difference?
+
+*Data and code: `doppel_lab/allie_ttt.py` and `doppel_lab/ttt_weight.py`, results in `lab/results/`:
+`allie_ttt_<band>_ctx200.json`, `ttt_weight_bins.json` and `ttt_weight_fit.json`, in the
+[repository](https://github.com/AlliedToasters/doppel).*
