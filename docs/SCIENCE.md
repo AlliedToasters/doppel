@@ -2741,13 +2741,28 @@ Tier 2 attribution now covers all 5 bands with the same picture as above (credit
   with averaged donor adapters (exact: concatenated LoRAs at weight 1/k), shrunk by s in {0.25, 0.5, 1}; s chosen on
   one crc32 half, reported on the other.
   - **Own adapter at s = 0.5 beats s = 1 in every band:** +1.96 / 1.77 / 1.49 / 1.59 / 0.99 vs
-    +1.75 / 1.38 / 1.20 / 1.14 / 0.08 (cross-fit +1.70 / 1.76 / 1.48 / 1.59 / 0.99). The shipped adapters are
-    over-scaled; 2300 looked useless only for that reason. Product candidate: scale ≈ 0.5 at inference (grid is
-    coarse; optimum may be about 0.6). Not shipped.
+    +1.75 / 1.38 / 1.20 / 1.14 / 0.08 (cross-fit +1.70 / 1.76 / 1.48 / 1.59 / 0.99). This is the parameter-space
+    twin of the output-space residual weight w = 0.625 already found and shipped (2026-11-18, "how strongly it
+    should speak"; recipe `residual_weight`): shrinking the LoRA's dW by 0.5 recovers about the same gain. It
+    confirms the over-confidence reading, not a new fix.
   - Averaging the 16 nearest sides (oracle location, uses the side's own adapter) at s = 1: +1.09 / 0.87 / 0.71 /
     0.65 / 0.13, about 60% of own full-scale gain. One neighbour at s = 1 reproduces kpair (−1.31 at 700).
   - Realistic cold start fails: 16/64 rating-nearest sides and the band-mean adapter are within ±0.07 of Maia.
     Maia already conditions on rating. A locator has to come from the player's games.
+- **Few-game locator (`locator run --ntrain 5|15`, `lab/results/adapter_locator.json`, 2026-11-23).** Each side
+  gets a quick adapter from its 5 or 15 most recent train games (val = the usual 5; allie_ttt recipe, 3 epochs).
+  Its centred function-space vector V locates donors by cosine (self excluded); conditions are the quick adapter
+  alone, the k located donors averaged, and the quick adapter mixed with them at weight 1/(k+1). Scale in
+  {0.5, 1} chosen by crc32 cross-fit. Points over Maia-3, 700 / 1100 / 1500 / 1900 / 2300:
+  - Quick adapter, 5 games: +0.58 / 0.42 / 0.31 / 0.33 / 0.04. 15 games: **+1.10 / 0.75 / 0.59 / 0.64 / 0.18**,
+    which is 82–100% of the oracle-16 average (+1.18 / 0.81 / 0.72 / 0.64 / 0.20) and 18–65% of the full 200-game
+    own adapter at s = 0.5 (+1.70 / 1.76 / 1.48 / 1.59 / 0.99).
+  - Located donors never help. Best of loc{4,16,64} and mix{4,16,64} at 15 games: +0.78 / 0.57 / 0.47 / 0.35 /
+    0.14, below the quick adapter alone in every band; at 5 games they tie it at 700 and lose elsewhere.
+  - Why: the 5-game V is a poor direction (median cosine with the full adapter's V 0.11–0.26), so located
+    neighbours overlap the oracle's 16 only 4–10% (64: 9–17%).
+  - **Cold start = train on whatever games the player has; no neighbour lookup.** The gain roughly doubles from
+    5 to 15 games, so the product lever is getting a new player to about 15 games.
 
 ### Registered: n = 1 coaching study (2026-11-15)
 

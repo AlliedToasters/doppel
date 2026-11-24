@@ -411,6 +411,7 @@ def main():
     r.add_argument("--no-save-adapters", action="store_true", help="skip writing the per-side adapters")
     r.add_argument("--split", action="store_true", help="two adapters per side on disjoint halves of its train games")
     r.add_argument("--chunks", default="", help="restore: 'spread:K' or '0,2000,...'; only those chunks, -> *_restore")
+    r.add_argument("--blocks", default="", help="adapt only these Maia-3 blocks, 1-based (e.g. '5'); tag += _b<blocks>")
     s = sub.add_parser("summary")
     s.add_argument("--band", type=int, default=1500)
     s.add_argument("--tag", default="")
@@ -443,6 +444,10 @@ def main():
         if a.ctx == 200:
             use_store200()
             tag = "_ctx200"
+        if a.blocks:
+            from doppel_lab import lora_probe
+            lora_probe.BLOCKS = tuple(int(x) - 1 for x in a.blocks.split(","))
+            tag += "_b" + a.blocks.replace(",", "")
         run(a.band, "cuda" if a.gpu_ok else "cpu", a.workers, a.epochs, a.lr, a.wd, a.bs, a.limit, tag, a.fit, a.sample,
             not a.no_save_adapters, a.chunks, split=a.split)
     else:
